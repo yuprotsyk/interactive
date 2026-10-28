@@ -1,0 +1,833 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Розподіли ймовірностей</title>
+<meta name="description" content="Інтерактивний огляд відомих розподілів: змінюйте параметри, дивіться форму щільності чи ймовірностей і обчислюйте ймовірність потрапляння в потрібний проміжок.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="common.css">
+<style>
+/* Розкладка: на телефоні один стовпчик (вибір, графік, параметри, ймовірність, показники, таблиця);
+   від 900px графік зліва, параметри й показники справа */
+.app {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "head" "choose" "plot" "params" "calc" "stats" "table";
+}
+.head { grid-area: head; }
+.backlink { display: inline-block; margin-bottom: 10px; font-size: 13px; }
+.choose { grid-area: choose; }
+.plotwrap { grid-area: plot; min-width: 0; }
+.params { grid-area: params; }
+.calc { grid-area: calc; }
+.stats { grid-area: stats; }
+.tablebox { grid-area: table; }
+.side { display: contents; }
+
+.group + .group { margin-top: 14px; }
+
+.plothead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin-bottom: 8px; }
+.plothead h2 { margin: 0; font-size: 18px; font-weight: 700; min-width: 0; text-wrap: balance; }
+#plot {
+  display: block; width: 100%; aspect-ratio: 4 / 3; max-height: 70vh;
+  background: var(--panel); border: 1px solid var(--grid-strong); border-radius: 6px;
+  cursor: crosshair; user-select: none; -webkit-user-select: none;
+}
+.caption { display: flex; justify-content: space-between; gap: 4px 12px; flex-wrap: wrap; margin-top: 6px; font-size: 12.5px; color: var(--muted); }
+.caption .hover { font-family: var(--font-data); font-variant-numeric: tabular-nums; min-height: 1.5em; }
+.legend { margin: 6px 0 0; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; }
+.legend .sw { display: inline-block; width: 22px; height: 0; border-top: 2px solid var(--pt); vertical-align: middle; margin-right: 6px; }
+.legend .sw.o { border-top: 2px dashed var(--neg); }
+.legend .sw.s { height: 10px; border: 0; background: var(--pos); opacity: .35; }
+.overlay { margin-top: 10px; }
+
+.prow { display: grid; grid-template-columns: minmax(0, 1fr) 96px; gap: 4px 12px; align-items: center; }
+.prow + .prow { margin-top: 12px; }
+.prow label { grid-column: 1 / -1; font-size: 13.5px; }
+.prow input[type="range"] { width: 100%; margin: 0; accent-color: var(--pos); }
+.prow input[type="number"], .prow output {
+  width: 100%; font-family: var(--font-data); font-size: 13.5px; font-variant-numeric: tabular-nums;
+  color: var(--ink); background: var(--bg); border: 1px solid var(--grid-strong); border-radius: 4px; padding: 5px 7px;
+}
+
+.calc .seg { margin: 8px 0 12px; flex-wrap: wrap; max-width: 100%; }
+.calc .seg button { font-family: var(--font-data); font-size: 13.5px; padding: 7px 11px; }
+.result { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--grid-strong); }
+.result .expr { font-family: var(--font-data); font-size: 14px; color: var(--muted); overflow-wrap: anywhere; }
+.result .pval { font-family: var(--font-data); font-weight: 500; font-size: clamp(30px, 8vw, 40px); line-height: 1.1; letter-spacing: -0.02em; color: var(--pos); font-variant-numeric: tabular-nums; margin-top: 2px; }
+.result .pct { font-size: 14px; color: var(--muted); font-family: var(--font-data); }
+
+.formula { margin: 8px 0 0; font-family: var(--font-data); font-size: 13px; overflow-wrap: anywhere; }
+.where { margin: 10px 0 0; font-size: 14px; color: var(--muted); text-wrap: pretty; }
+.stats dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 14px; margin: 12px 0 0; }
+.stats dt { font-size: 12px; color: var(--muted); }
+.stats dd { margin: 0; font-family: var(--font-data); font-size: 16px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.stats .note { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+
+.tablebox summary { cursor: pointer; font-weight: 500; }
+.tablebox .tnote { margin: 8px 0 10px; font-size: 13px; color: var(--muted); }
+.twrap { overflow: auto; max-height: 340px; border: 1px solid var(--grid-strong); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+th, td { padding: 4px 10px; text-align: right; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500; color: var(--muted); border-bottom: 1px solid var(--grid-strong); }
+
+@media (min-width: 900px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr) 360px;
+    column-gap: 24px;
+    grid-template-areas: "head head" "choose choose" "plot side" "table side";
+  }
+  .side { grid-area: side; display: flex; flex-direction: column; gap: 16px; align-self: start; min-width: 0; }
+}
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="head">
+    <a class="backlink" href="index.html">← Усі сторінки</a>
+    <h1>Розподіли ймовірностей</h1>
+    <p class="lead">Оберіть розподіл і змінюйте його параметри: графік оновлюється одразу. Нижче можна обчислити ймовірність потрапляння значення в потрібний проміжок.</p>
+  </header>
+
+  <section class="choose panel" aria-label="Вибір розподілу">
+    <div class="group">
+      <p class="eyebrow">Дискретні</p>
+      <div class="chips" id="chipsDiscrete"></div>
+    </div>
+    <div class="group">
+      <p class="eyebrow">Неперервні</p>
+      <div class="chips" id="chipsContinuous"></div>
+    </div>
+  </section>
+
+  <section class="plotwrap">
+    <div class="plothead">
+      <h2 id="title">Розподіл</h2>
+      <div class="seg" role="group" aria-label="Що показувати">
+        <button type="button" id="modeDens" aria-pressed="true">Щільність</button>
+        <button type="button" id="modeCdf" aria-pressed="false">Функція розподілу</button>
+      </div>
+    </div>
+    <canvas id="plot" role="img" aria-label="Графік розподілу"></canvas>
+    <div class="caption">
+      <span class="hover" id="hover">Наведіть вказівник на графік</span>
+      <span id="outside"></span>
+    </div>
+    <p class="legend" id="legend"></p>
+    <label class="check overlay" id="overlayBox" hidden><input type="checkbox" id="overlay"> <span id="overlayLabel">Накласти нормальне наближення</span></label>
+  </section>
+
+  <div class="side">
+    <section class="params panel" aria-labelledby="pTitle">
+      <p class="eyebrow" id="pTitle">Параметри</p>
+      <div id="paramRows"></div>
+    </section>
+
+    <section class="calc panel" aria-labelledby="cTitle">
+      <p class="eyebrow" id="cTitle">Ймовірність</p>
+      <div class="seg" role="group" aria-label="Тип ймовірності">
+        <button type="button" id="cLe" aria-pressed="true">P(X ≤ a)</button>
+        <button type="button" id="cGe" aria-pressed="false">P(X ≥ a)</button>
+        <button type="button" id="cBt" aria-pressed="false">P(a ≤ X ≤ b)</button>
+      </div>
+      <div class="prow">
+        <label for="aRange" id="aLabel">a</label>
+        <input type="range" id="aRange" min="0" max="1" step="any">
+        <input type="number" id="aNum" step="any" aria-labelledby="aLabel">
+      </div>
+      <div class="prow" id="bRow" hidden>
+        <label for="bRange" id="bLabel">b</label>
+        <input type="range" id="bRange" min="0" max="1" step="any">
+        <input type="number" id="bNum" step="any" aria-labelledby="bLabel">
+      </div>
+      <div class="result">
+        <div class="expr" id="expr">P(X ≤ a) =</div>
+        <div class="pval" id="pval">—</div>
+        <div class="pct" id="pct"></div>
+      </div>
+    </section>
+
+    <section class="stats panel" aria-labelledby="sTitle">
+      <p class="eyebrow" id="sTitle">Про розподіл</p>
+      <p class="formula" id="formula"></p>
+      <p class="where" id="where"></p>
+      <dl>
+        <div><dt>Середнє, E(X)</dt><dd id="sMean">—</dd></div>
+        <div><dt>Дисперсія, D(X)</dt><dd id="sVar">—</dd></div>
+        <div><dt>Станд. відхилення</dt><dd id="sSd">—</dd></div>
+      </dl>
+      <p class="note" id="sNote"></p>
+    </section>
+  </div>
+
+  <details class="tablebox panel" id="tableBox">
+    <summary>Таблиця значень</summary>
+    <p class="tnote" id="tableNote"></p>
+    <div class="twrap">
+      <table>
+        <caption class="sr-only">Значення розподілу</caption>
+        <thead id="thead"></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </details>
+</main>
+
+<div class="sr-only" id="sr" role="status" aria-live="polite"></div>
+
+<script src="common.js"></script>
+<script src="distributions.js"></script>
+<script>
+(function () {
+  "use strict";
+  var S = Stat, fmt = S.fmt, fmtSig = S.fmtSig, clamp = S.clamp;
+
+  /* ---------- Опис розподілів ----------
+     Щоб додати розподіл: скопіюйте один запис із DEFS, змініть назву, параметри, формулу й опис
+     та додайте відповідні функції в distributions.js. */
+  function n(v) { return fmtSig(v); }
+  var NORMAL_APPROX = function (D, P) {
+    return { mu: D.mean(P), sigma: Math.sqrt(D.variance(P)), label: "Нормальне наближення" };
+  };
+
+  var DEFS = [
+    { id: "binomial", adj: true, group: "d", name: "Біноміальний", D: Dist.binomial,
+      sym: function (p) { return "B(" + n(p.n) + "; " + n(p.p) + ")"; },
+      params: [
+        { k: "n", label: "n, кількість випробувань", min: 1, max: 100, step: 1, def: 20 },
+        { k: "p", label: "p, ймовірність успіху в одному випробуванні", min: 0, max: 1, step: 0.01, def: 0.4 }
+      ],
+      formula: "P(X = k) = C(n, k) · pᵏ · (1 − p)ⁿ⁻ᵏ,  k = 0, 1, …, n",
+      where: "Кількість успіхів у n незалежних випробуваннях з однаковою ймовірністю успіху p. Наприклад, кількість бракованих виробів серед n перевірених.",
+      overlay: NORMAL_APPROX },
+    { id: "geometric", adj: true, group: "d", name: "Геометричний", D: Dist.geometric,
+      sym: function (p) { return "Geom(" + n(p.p) + ")"; },
+      params: [{ k: "p", label: "p, ймовірність успіху в одному випробуванні", min: 0.02, max: 0.95, step: 0.01, def: 0.25 }],
+      formula: "P(X = k) = (1 − p)ᵏ⁻¹ · p,  k = 1, 2, 3, …",
+      where: "Номер випробування, на якому успіх настав уперше (разом з цим випробуванням). Наприклад, скільки разів треба підкинути кубик, поки випаде шістка.",
+      note: "Тут X починається з 1. Якщо рахувати лише невдачі до першого успіху, усі значення зсунуться на 1 вліво." },
+    { id: "poisson", group: "d", name: "Пуассона", D: Dist.poisson,
+      sym: function (p) { return "Pois(" + n(p.lam) + ")"; },
+      params: [{ k: "lam", label: "λ, середня кількість подій", min: 0.1, max: 50, step: 0.1, def: 4 }],
+      formula: "P(X = k) = λᵏ · e^(−λ) / k!,  k = 0, 1, 2, …",
+      where: "Кількість рідкісних незалежних подій за фіксований проміжок часу чи простору. Наприклад, кількість дзвінків за годину чи помилок на сторінці тексту.",
+      overlay: NORMAL_APPROX },
+    { id: "hypergeometric", adj: true, group: "d", name: "Гіпергеометричний", D: Dist.hypergeometric,
+      sym: function (p) { return "H(" + n(p.N) + "; " + n(p.K) + "; " + n(p.n) + ")"; },
+      params: [
+        { k: "N", label: "N, розмір сукупності", min: 1, max: 100, step: 1, def: 50 },
+        { k: "K", label: "K, кількість «успішних» елементів у сукупності", min: 0, max: function (P) { return P.N; }, step: 1, def: 15 },
+        { k: "n", label: "n, обсяг вибірки (без повернення)", min: 0, max: function (P) { return P.N; }, step: 1, def: 10 }
+      ],
+      formula: "P(X = k) = C(K, k) · C(N − K, n − k) / C(N, n)",
+      where: "Кількість «успішних» елементів у вибірці без повернення. Наприклад, скільки бракованих деталей потрапить у контрольну вибірку з партії.",
+      overlay: NORMAL_APPROX },
+
+    { id: "normal", adj: true, group: "c", name: "Нормальний", D: Dist.normal,
+      sym: function (p) { return "N(" + n(p.mu) + "; " + n(p.sigma * p.sigma) + ")"; },
+      params: [
+        { k: "mu", label: "μ, середнє", min: -10, max: 10, step: 0.1, def: 0 },
+        { k: "sigma", label: "σ, стандартне відхилення", min: 0.2, max: 5, step: 0.1, def: 1 }
+      ],
+      formula: "f(x) = 1 / (σ·√(2π)) · e^(−(x − μ)² / (2σ²))",
+      where: "Результат накопичення багатьох малих незалежних впливів: похибки вимірювань, зріст, оцінки на тестах. До нього наближаються суми й середні (центральна гранична теорема).",
+      note: "У позначенні N(μ; σ²) другий параметр це дисперсія σ², а не σ." },
+    { id: "exponential", adj: true, group: "c", name: "Показниковий", D: Dist.exponential,
+      sym: function (p) { return "Exp(" + n(p.lam) + ")"; },
+      params: [{ k: "lam", label: "λ, інтенсивність", min: 0.1, max: 5, step: 0.1, def: 1 }],
+      formula: "f(x) = λ · e^(−λx),  x ≥ 0;   F(x) = 1 − e^(−λx)",
+      where: "Час очікування до наступної події в пуассонівському потоці: тривалість між дзвінками, строк служби пристрою. Не має «пам'яті»: скільки вже чекали, на подальше очікування не впливає." },
+    { id: "uniform", adj: true, group: "c", name: "Рівномірний", D: Dist.uniform,
+      sym: function (p) { return "U(" + n(p.a) + "; " + n(p.b) + ")"; },
+      params: [
+        { k: "a", label: "a, початок відрізка", min: -10, max: function (P) { return P.b - 0.5; }, step: 0.5, def: 0 },
+        { k: "b", label: "b, кінець відрізка", min: function (P) { return P.a + 0.5; }, max: 15, step: 0.5, def: 4 }
+      ],
+      formula: "f(x) = 1 / (b − a) для a ≤ x ≤ b, інакше 0",
+      where: "Усі значення на відрізку однаково можливі. Наприклад, час очікування транспорту, який ходить за розкладом, чи випадкове число з генератора." },
+    { id: "chisq", group: "c", name: "Хі-квадрат", D: Dist.chisq,
+      sym: function (p) { return "χ²(" + n(p.k) + ")"; },
+      params: [{ k: "k", label: "k, кількість ступенів свободи", min: 1, max: 50, step: 1, def: 4 }],
+      formula: "f(x) = x^(k/2 − 1) · e^(−x/2) / (2^(k/2) · Γ(k/2)),  x > 0",
+      where: "Сума квадратів k незалежних стандартних нормальних величин. Застосовується в критеріях згоди, перевірці незалежності та оцінюванні дисперсії.",
+      overlay: NORMAL_APPROX },
+    { id: "student", group: "c", name: "Стьюдента", D: Dist.student,
+      sym: function (p) { return "t(" + n(p.nu) + ")"; },
+      params: [{ k: "nu", label: "ν, кількість ступенів свободи", min: 1, max: 100, step: 1, def: 5 }],
+      formula: "f(t) = Γ((ν+1)/2) / (√(νπ) · Γ(ν/2)) · (1 + t²/ν)^(−(ν+1)/2)",
+      where: "Розподіл стандартизованого середнього, коли дисперсія невідома і оцінена за малою вибіркою. Лежить в основі t-критеріїв і довірчих інтервалів для середнього.",
+      overlay: function () { return { mu: 0, sigma: 1, label: "Стандартний нормальний N(0; 1)" }; },
+      note: "Зі зростанням ν розподіл наближається до стандартного нормального. Хвости важчі, ніж у нормального." },
+    { id: "fisher", group: "c", name: "Фішера", D: Dist.fisher,
+      sym: function (p) { return "F(" + n(p.d1) + "; " + n(p.d2) + ")"; },
+      params: [
+        { k: "d1", label: "d₁, ступені свободи чисельника", min: 1, max: 100, step: 1, def: 5 },
+        { k: "d2", label: "d₂, ступені свободи знаменника", min: 1, max: 100, step: 1, def: 10 }
+      ],
+      formula: "X = (U/d₁) / (V/d₂), де U ~ χ²(d₁), V ~ χ²(d₂) незалежні",
+      where: "Відношення двох незалежних оцінок дисперсії. Застосовується в дисперсійному аналізі (ANOVA), порівнянні дисперсій і перевірці значущості регресії." }
+  ];
+  var BY_ID = {};
+  DEFS.forEach(function (d) { BY_ID[d.id] = d; });
+
+  /* ---------- Стан ---------- */
+  var state = {
+    id: "binomial", mode: "dens", calc: "le", a: 8, b: 12, overlay: false,
+    params: {}
+  };
+  DEFS.forEach(function (d) {
+    var o = {};
+    d.params.forEach(function (p) { o[p.k] = p.def; });
+    state.params[d.id] = o;
+  });
+  var model = null;
+
+  function $(id) { return document.getElementById(id); }
+  function def() { return BY_ID[state.id]; }
+  function titleFor(d, p) { return (d.adj ? d.name + " розподіл " : "Розподіл " + d.name + " ") + d.sym(p); }
+  function P() { return state.params[state.id]; }
+  function lim(v) { return typeof v === "function" ? v(P()) : v; }
+  function stepDecimals(step) { var s = String(step); var i = s.indexOf("."); return i < 0 ? 0 : s.length - i - 1; }
+  function roundTo(v, step) { var d = stepDecimals(step); return Number((Math.round(v / step) * step).toFixed(d)); }
+
+  var sayTimer = null;
+  function say(text, delay) {
+    clearTimeout(sayTimer);
+    sayTimer = setTimeout(function () { $("sr").textContent = ""; $("sr").textContent = text; }, delay || 0);
+  }
+
+  /* ---------- Вибір розподілу ---------- */
+  var chipEls = {};
+  function buildChips() {
+    DEFS.forEach(function (d) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "chip";
+      b.textContent = d.name;
+      b.setAttribute("aria-pressed", "false");
+      b.addEventListener("click", function () { choose(d.id); });
+      $(d.group === "d" ? "chipsDiscrete" : "chipsContinuous").appendChild(b);
+      chipEls[d.id] = b;
+    });
+  }
+  function choose(id) {
+    state.id = id;
+    for (var k in chipEls) chipEls[k].setAttribute("aria-pressed", String(k === id));
+    $("overlay").checked = false; state.overlay = false;
+    buildParams();
+    resetCalc();
+    refresh();
+    say(titleFor(def(), P()) + ".");
+  }
+
+  /* ---------- Параметри ---------- */
+  var paramEls = {};
+  function buildParams() {
+    var box = $("paramRows");
+    box.textContent = "";
+    paramEls = {};
+    def().params.forEach(function (sp) {
+      var row = document.createElement("div");
+      row.className = "prow";
+      var label = document.createElement("label");
+      label.textContent = sp.label;
+      label.htmlFor = "r-" + sp.k;
+      var range = document.createElement("input");
+      range.type = "range"; range.id = "r-" + sp.k;
+      var num = document.createElement("input");
+      num.type = "number"; num.id = "n-" + sp.k;
+      num.setAttribute("aria-label", sp.label);
+      row.appendChild(label); row.appendChild(range); row.appendChild(num);
+      box.appendChild(row);
+      paramEls[sp.k] = { range: range, num: num, spec: sp };
+      range.addEventListener("input", function () { setParam(sp, Number(range.value)); });
+      num.addEventListener("change", function () {
+        var v = Number(String(num.value).replace(",", "."));
+        if (!isFinite(v)) { syncParams(); return; }
+        setParam(sp, v);
+      });
+    });
+    syncParams();
+  }
+  function setParam(sp, v) {
+    var p = P();
+    p[sp.k] = clamp(roundTo(v, sp.step), lim(sp.min), lim(sp.max));
+    normalizeParams();
+    syncParams();
+    refresh();
+  }
+  /* Залежні межі: K ≤ N, n ≤ N, a < b */
+  function normalizeParams() {
+    var p = P();
+    def().params.forEach(function (sp) {
+      p[sp.k] = clamp(p[sp.k], lim(sp.min), lim(sp.max));
+    });
+  }
+  function syncParams() {
+    var p = P();
+    def().params.forEach(function (sp) {
+      var e = paramEls[sp.k], mn = lim(sp.min), mx = lim(sp.max);
+      e.range.min = mn; e.range.max = mx; e.range.step = sp.step;
+      e.num.min = mn; e.num.max = mx; e.num.step = sp.step;
+      e.range.value = p[sp.k];
+      e.num.value = p[sp.k];
+    });
+  }
+
+  /* ---------- Модель для малювання ---------- */
+  var EPS_SHOW = 1e-4;
+  function buildModel() {
+    var d = def(), D = d.D, p = P(), m = { kind: D.kind, def: d };
+    var ov = d.overlay ? d.overlay(D, p) : null;
+    m.ov = ov && isFinite(ov.sigma) && ov.sigma > 0 ? ov : null;
+
+    if (D.kind === "discrete") {
+      var sup = D.support(p);
+      var lo = Dist.quantileDiscrete(D, p, EPS_SHOW);
+      lo = Math.max(sup[0], lo);
+      var hi = isFinite(sup[1]) ? Math.min(sup[1], Dist.quantileDiscrete(D, p, 1 - EPS_SHOW)) : Dist.quantileDiscrete(D, p, 1 - EPS_SHOW);
+      if (hi < lo) hi = lo;
+      if (hi - lo > 120) hi = lo + 120;
+      m.lo = lo; m.hi = hi;
+      m.xmin = lo - 0.6; m.xmax = hi + 0.6;
+      m.ks = []; m.f = []; m.F = [];
+      var ymax = 0;
+      for (var k = lo; k <= hi; k++) {
+        var f = D.pmf(k, p);
+        m.ks.push(k); m.f.push(f); m.F.push(D.cdf(k, p));
+        if (f > ymax) ymax = f;
+      }
+      if (m.ov) {
+        var NN = Dist.normal, Q = { mu: m.ov.mu, sigma: m.ov.sigma };
+        for (var x = m.xmin; x <= m.xmax; x += (m.xmax - m.xmin) / 200) ymax = Math.max(ymax, NN.pdf(x, Q));
+      }
+      m.ymax = ymax * 1.1 || 1;
+      m.step = 1;
+    } else {
+      var rng = viewRange(d, D, p);
+      m.xmin = rng[0]; m.xmax = rng[1];
+      var N = 320, xs = [], fs = [], Fs = [], yy = 0;
+      var unb = D.unboundedAtZero && D.unboundedAtZero(p);
+      var yFrom = unb ? Dist.quantile(D, p, 0.06) : -Infinity;
+      for (var i = 0; i <= N; i++) {
+        var xv = m.xmin + (m.xmax - m.xmin) * i / N;
+        var fv = D.pdf(xv, p);
+        xs.push(xv); fs.push(fv); Fs.push(D.cdf(xv, p));
+        if (isFinite(fv) && xv >= yFrom && fv > yy) yy = fv;
+      }
+      if (m.ov) {
+        for (var j = 0; j <= N; j++) {
+          var ov0 = Dist.normal.pdf(xs[j], { mu: m.ov.mu, sigma: m.ov.sigma });
+          if (!unb && ov0 > yy) yy = ov0;
+        }
+      }
+      m.xs = xs; m.fs = fs; m.Fs = Fs;
+      m.ymax = yy * 1.1 || 1;
+      var span = m.xmax - m.xmin;
+      m.step = roundTo(span / 400, Math.pow(10, Math.floor(Math.log10(span / 400))));
+      if (!(m.step > 0)) m.step = span / 400;
+    }
+    var outside = D.cdf(m.kind === "discrete" ? m.lo - 1 : m.xmin, p) + (1 - D.cdf(m.kind === "discrete" ? m.hi : m.xmax, p));
+    m.outside = outside;
+    return m;
+  }
+  function viewRange(d, D, p) {
+    var id = d.id;
+    if (id === "uniform") { var w = p.b - p.a; return [p.a - 0.15 * w, p.b + 0.15 * w]; }
+    if (id === "student") { var R = clamp(Dist.quantile(D, p, 0.995), 4, 10); return [-R, R]; }
+    if (id === "fisher") return [0, clamp(Dist.quantile(D, p, 0.98), 3, 50)];
+    if (id === "exponential" || id === "chisq") return [0, Dist.quantile(D, p, 0.999)];
+    return [Dist.quantile(D, p, 0.0002), Dist.quantile(D, p, 0.9998)];
+  }
+
+  /* ---------- Калькулятор ймовірностей ---------- */
+  function resetCalc() {
+    var d = def(), D = d.D, p = P();
+    var mu = D.mean(p), sd = Math.sqrt(D.variance(p));
+    var m = buildModel();
+    var a, b;
+    if (isFinite(mu) && isFinite(sd) && sd > 0) { a = mu; b = mu + sd; }
+    else { a = m.xmin + (m.xmax - m.xmin) * 0.3; b = m.xmin + (m.xmax - m.xmin) * 0.6; }
+    state.a = a; state.b = b;
+    clampCalc(m);
+  }
+  function clampCalc(m) {
+    var disc = m.kind === "discrete";
+    var lo = disc ? m.lo : m.xmin, hi = disc ? m.hi : m.xmax;
+    state.a = clamp(disc ? Math.round(state.a) : roundTo(state.a, m.step), lo, hi);
+    state.b = clamp(disc ? Math.round(state.b) : roundTo(state.b, m.step), lo, hi);
+    if (state.b < state.a) state.b = state.a;
+  }
+  function probability(m) {
+    var D = def().D, p = P(), a = state.a, b = state.b, disc = m.kind === "discrete", v;
+    if (state.calc === "le") v = D.cdf(a, p);
+    else if (state.calc === "ge") v = 1 - D.cdf(disc ? a - 1 : a, p);
+    else v = D.cdf(b, p) - D.cdf(disc ? a - 1 : a, p);
+    return clamp(v, 0, 1);
+  }
+  function numText(v, m) { return m.kind === "discrete" ? fmt(v, 0) : fmtSig(roundTo(v, m.step)); }
+  function fmtProb(v) {
+    if (v > 0 && v < 1e-4) return fmtSig(v);
+    return fmt(v, 4);
+  }
+  function setCalc(type) {
+    state.calc = type;
+    $("cLe").setAttribute("aria-pressed", String(type === "le"));
+    $("cGe").setAttribute("aria-pressed", String(type === "ge"));
+    $("cBt").setAttribute("aria-pressed", String(type === "bt"));
+    refresh();
+  }
+  function bindCalcInputs() {
+    function setA(v) { state.a = v; if (state.b < state.a) state.b = state.a; refresh(); }
+    function setB(v) { state.b = v; if (state.a > state.b) state.a = state.b; refresh(); }
+    $("aRange").addEventListener("input", function (e) { setA(Number(e.target.value)); });
+    $("bRange").addEventListener("input", function (e) { setB(Number(e.target.value)); });
+    $("aNum").addEventListener("change", function (e) { var v = Number(String(e.target.value).replace(",", ".")); if (isFinite(v)) setA(v); else refresh(); });
+    $("bNum").addEventListener("change", function (e) { var v = Number(String(e.target.value).replace(",", ".")); if (isFinite(v)) setB(v); else refresh(); });
+    $("cLe").addEventListener("click", function () { setCalc("le"); });
+    $("cGe").addEventListener("click", function () { setCalc("ge"); });
+    $("cBt").addEventListener("click", function () { setCalc("bt"); });
+  }
+  function selection(m) {
+    if (state.calc === "le") return [-Infinity, state.a];
+    if (state.calc === "ge") return [state.a, Infinity];
+    return [state.a, state.b];
+  }
+
+  /* ---------- Малювання ---------- */
+  var canvas = $("plot"), ctx = canvas.getContext("2d");
+  var W = 0, H = 0, M = { l: 52, r: 16, t: 28, b: 42 };
+  function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  function resize() {
+    var rect = canvas.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    W = rect.width; H = rect.height;
+    canvas.width = Math.max(1, Math.round(W * dpr));
+    canvas.height = Math.max(1, Math.round(H * dpr));
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    draw();
+  }
+  function pw() { return W - M.l - M.r; }
+  function ph() { return H - M.t - M.b; }
+  var vw = { xmin: 0, xmax: 1, ymax: 1 };
+  function px(x) { return M.l + (x - vw.xmin) / (vw.xmax - vw.xmin) * pw(); }
+  function py(y) { return M.t + (1 - y / vw.ymax) * ph(); }
+
+  function draw() {
+    if (!W || !model) return;
+    var m = model, d = def(), disc = m.kind === "discrete", cdfMode = state.mode === "cdf";
+    var cPanel = cssVar("--panel"), cGrid = cssVar("--grid"), cStrong = cssVar("--grid-strong");
+    var cMuted = cssVar("--muted"), cInk = cssVar("--ink"), cPt = cssVar("--pt"), cPos = cssVar("--pos"), cNeg = cssVar("--neg");
+    var fData = cssVar("--font-data"), fBody = cssVar("--font-body");
+    var p = P(), sel = selection(m);
+
+    vw.xmin = m.xmin; vw.xmax = m.xmax; vw.ymax = cdfMode ? 1.04 : m.ymax;
+
+    ctx.font = "11px " + fData;
+    var ty = S.ticksFor(0, cdfMode ? 1 : m.ymax, clamp(ph() / 55, 3, 7));
+    var wmax = 0;
+    ty.major.forEach(function (v) { wmax = Math.max(wmax, ctx.measureText(fmt(v, ty.decimals)).width); });
+    M.l = Math.max(36, Math.ceil(wmax) + 18);
+
+    var tx = S.ticksFor(m.xmin, m.xmax, clamp((W - 60) / 70, 3, 9));
+    if (disc) {
+      tx.major = tx.major.filter(function (v) { return Math.abs(v - Math.round(v)) < 1e-9; });
+      tx.minor = [];
+      tx.decimals = 0;
+    }
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = cPanel; ctx.fillRect(0, 0, W, H);
+
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = cGrid;
+    ctx.beginPath();
+    tx.minor.forEach(function (v) { var x = Math.round(px(v)) + 0.5; ctx.moveTo(x, M.t); ctx.lineTo(x, H - M.b); });
+    ty.minor.forEach(function (v) { var y = Math.round(py(v)) + 0.5; ctx.moveTo(M.l, y); ctx.lineTo(W - M.r, y); });
+    ctx.stroke();
+    ctx.strokeStyle = cStrong;
+    ctx.beginPath();
+    tx.major.forEach(function (v) { var x = Math.round(px(v)) + 0.5; ctx.moveTo(x, M.t); ctx.lineTo(x, H - M.b); });
+    ty.major.forEach(function (v) { var y = Math.round(py(v)) + 0.5; ctx.moveTo(M.l, y); ctx.lineTo(W - M.r, y); });
+    ctx.stroke();
+
+    ctx.strokeStyle = cInk; ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(M.l + 0.5, M.t); ctx.lineTo(M.l + 0.5, H - M.b + 0.5); ctx.lineTo(W - M.r, H - M.b + 0.5);
+    ctx.stroke();
+
+    ctx.fillStyle = cMuted; ctx.font = "11px " + fData;
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    tx.major.forEach(function (v) { ctx.fillText(fmt(v, tx.decimals), px(v), H - M.b + 8); });
+    ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    ty.major.forEach(function (v) { ctx.fillText(fmt(v, ty.decimals), M.l - 7, py(v)); });
+
+    ctx.fillStyle = cInk; ctx.font = "500 12px " + fBody;
+    ctx.textAlign = "right"; ctx.textBaseline = "bottom";
+    ctx.fillText(disc ? "k" : "x", W - M.r, H - 6);
+    ctx.textAlign = "left"; ctx.textBaseline = "top";
+    ctx.fillText(cdfMode ? (disc ? "F(k) = P(X ≤ k)" : "F(x) = P(X ≤ x)") : (disc ? "P(X = k)" : "f(x)"), M.l, 6);
+
+    ctx.save();
+    ctx.beginPath(); ctx.rect(M.l, M.t, pw(), ph()); ctx.clip();
+
+    if (!cdfMode) {
+      if (disc) {
+        var bw = Math.max(1.5, (px(1) - px(0)) * 0.72);
+        m.ks.forEach(function (k, i) {
+          var inSel = k >= Math.ceil(sel[0] - 1e-9) && k <= Math.floor(sel[1] + 1e-9);
+          var top = py(m.f[i]), base = py(0), h = Math.max(1, base - top);
+          ctx.fillStyle = inSel ? cPos : cPt;
+          ctx.globalAlpha = inSel ? 0.95 : 0.4;
+          ctx.fillRect(px(k) - bw / 2, base - h, bw, h);
+        });
+        ctx.globalAlpha = 1;
+      } else {
+        var xa = Math.max(sel[0], m.xmin), xb = Math.min(sel[1], m.xmax);
+        if (xb > xa) {
+          ctx.beginPath();
+          ctx.moveTo(px(xa), py(0));
+          for (var i = 0; i < m.xs.length; i++) {
+            var x = m.xs[i];
+            if (x < xa || x > xb) continue;
+            ctx.lineTo(px(x), py(isFinite(m.fs[i]) ? m.fs[i] : 1e9));
+          }
+          ctx.lineTo(px(xb), py(0)); ctx.closePath();
+          ctx.fillStyle = cPos; ctx.globalAlpha = 0.35; ctx.fill(); ctx.globalAlpha = 1;
+        }
+        ctx.beginPath();
+        var started = false;
+        for (var j = 0; j < m.xs.length; j++) {
+          var yv = m.fs[j];
+          if (!isFinite(yv)) yv = 1e9;
+          if (!started) { ctx.moveTo(px(m.xs[j]), py(yv)); started = true; } else ctx.lineTo(px(m.xs[j]), py(yv));
+        }
+        ctx.strokeStyle = cPt; ctx.lineWidth = 2.4; ctx.lineJoin = "round"; ctx.stroke();
+      }
+      if (m.ov && state.overlay) {
+        var Q = { mu: m.ov.mu, sigma: m.ov.sigma };
+        ctx.beginPath();
+        for (var t = 0; t <= 240; t++) {
+          var xo = m.xmin + (m.xmax - m.xmin) * t / 240, yo = Dist.normal.pdf(xo, Q);
+          if (t === 0) ctx.moveTo(px(xo), py(yo)); else ctx.lineTo(px(xo), py(yo));
+        }
+        ctx.strokeStyle = cNeg; ctx.lineWidth = 2; ctx.setLineDash([7, 5]); ctx.stroke(); ctx.setLineDash([]);
+      }
+    } else {
+      if (disc) {
+        ctx.strokeStyle = cPt; ctx.lineWidth = 2.4;
+        ctx.beginPath();
+        ctx.moveTo(px(m.xmin), py(0)); ctx.lineTo(px(m.ks[0]), py(0));
+        m.ks.forEach(function (k, i) {
+          var next = i + 1 < m.ks.length ? px(m.ks[i + 1]) : px(m.xmax);
+          ctx.moveTo(px(k), py(m.F[i])); ctx.lineTo(next, py(m.F[i]));
+        });
+        ctx.stroke();
+        // тонкі вертикальні з'єднання між сходинками
+        ctx.strokeStyle = cPt; ctx.lineWidth = 1; ctx.globalAlpha = 0.45;
+        ctx.beginPath();
+        ctx.moveTo(px(m.ks[0]), py(0)); ctx.lineTo(px(m.ks[0]), py(m.F[0]));
+        for (var r = 1; r < m.ks.length; r++) { ctx.moveTo(px(m.ks[r]), py(m.F[r - 1])); ctx.lineTo(px(m.ks[r]), py(m.F[r])); }
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+        if (m.ks.length <= 70) {
+          ctx.fillStyle = cPt;
+          m.ks.forEach(function (k, i) { ctx.beginPath(); ctx.arc(px(k), py(m.F[i]), 3.5, 0, Math.PI * 2); ctx.fill(); });
+        }
+      } else {
+        ctx.beginPath();
+        for (var q = 0; q < m.xs.length; q++) {
+          if (q === 0) ctx.moveTo(px(m.xs[q]), py(m.Fs[q])); else ctx.lineTo(px(m.xs[q]), py(m.Fs[q]));
+        }
+        ctx.strokeStyle = cPt; ctx.lineWidth = 2.4; ctx.lineJoin = "round"; ctx.stroke();
+      }
+      if (m.ov && state.overlay) {
+        var Q2 = { mu: m.ov.mu, sigma: m.ov.sigma };
+        ctx.beginPath();
+        for (var u = 0; u <= 240; u++) {
+          var xc = m.xmin + (m.xmax - m.xmin) * u / 240, yc = Dist.normal.cdf(disc ? xc + 0.5 : xc, Q2);
+          if (u === 0) ctx.moveTo(px(xc), py(yc)); else ctx.lineTo(px(xc), py(yc));
+        }
+        ctx.strokeStyle = cNeg; ctx.lineWidth = 2; ctx.setLineDash([7, 5]); ctx.stroke(); ctx.setLineDash([]);
+      }
+      // межі a і b: вертикальні лінії та відповідні значення F
+      var marks = [];
+      marks.push({ x: state.a });
+      if (state.calc === "bt") marks.push({ x: state.b });
+      ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]); ctx.strokeStyle = cInk;
+      marks.forEach(function (mk) {
+        var Fv = def().D.cdf(mk.x, p);
+        ctx.beginPath();
+        ctx.moveTo(px(mk.x), py(0)); ctx.lineTo(px(mk.x), py(Fv)); ctx.lineTo(px(m.xmin), py(Fv));
+        ctx.stroke();
+      });
+      ctx.setLineDash([]);
+      marks.forEach(function (mk) {
+        var Fv = def().D.cdf(mk.x, p);
+        ctx.beginPath(); ctx.arc(px(mk.x), py(Fv), 5, 0, Math.PI * 2); ctx.fillStyle = cPos; ctx.fill();
+        ctx.strokeStyle = cPanel; ctx.lineWidth = 1.5; ctx.stroke();
+      });
+    }
+    ctx.restore();
+
+    // позначки меж a і b на осі
+    var xs2 = selection(m);
+    var ax = clamp(xs2[0], m.xmin, m.xmax), bx = clamp(xs2[1], m.xmin, m.xmax);
+    ctx.fillStyle = cPos; ctx.globalAlpha = 0.9;
+    ctx.fillRect(Math.min(px(ax), px(bx)), H - M.b - 2, Math.max(2, Math.abs(px(bx) - px(ax))), 4);
+    ctx.globalAlpha = 1;
+  }
+
+  /* ---------- Наведення ---------- */
+  canvas.addEventListener("pointermove", function (e) {
+    if (!model) return;
+    var rect = canvas.getBoundingClientRect(), cx = e.clientX - rect.left, cy = e.clientY - rect.top;
+    if (cx < M.l || cx > W - M.r || cy < M.t || cy > H - M.b) { $("hover").textContent = "Наведіть вказівник на графік"; return; }
+    var m = model, D = def().D, p = P();
+    var x = vw.xmin + (cx - M.l) / pw() * (vw.xmax - vw.xmin);
+    if (m.kind === "discrete") {
+      var k = clamp(Math.round(x), m.lo, m.hi);
+      $("hover").textContent = "k = " + fmt(k, 0) + " · P(X = k) = " + fmtProb(D.pmf(k, p)) + " · F(k) = " + fmtProb(D.cdf(k, p));
+    } else {
+      $("hover").textContent = "x = " + fmtSig(x) + " · f(x) = " + fmtSig(D.pdf(x, p)) + " · F(x) = " + fmtProb(D.cdf(x, p));
+    }
+  });
+  canvas.addEventListener("pointerleave", function () { $("hover").textContent = "Наведіть вказівник на графік"; });
+
+  /* ---------- Оновлення ---------- */
+  function momentText(v) { return v === null ? "не існує" : v === Infinity ? "∞" : fmtSig(v); }
+
+  function refresh() {
+    var d = def(), D = d.D, p = P(), disc = D.kind === "discrete";
+    normalizeParams();
+    model = buildModel();
+    clampCalc(model);
+    var m = model;
+
+    // назви режимів
+    $("modeDens").textContent = disc ? "Ймовірності" : "Щільність";
+    $("title").textContent = titleFor(d, p);
+
+    // повзунки a, b
+    var lo = disc ? m.lo : m.xmin, hi = disc ? m.hi : m.xmax, stp = disc ? 1 : m.step;
+    [["aRange", "aNum"], ["bRange", "bNum"]].forEach(function (ids, i) {
+      var r = $(ids[0]), nm = $(ids[1]), val = i === 0 ? state.a : state.b;
+      r.min = lo; r.max = hi; r.step = stp; r.value = val;
+      nm.min = lo; nm.max = hi; nm.step = stp;
+      if (document.activeElement !== nm) nm.value = disc ? String(val) : String(roundTo(val, stp));
+    });
+    $("aLabel").textContent = state.calc === "bt" ? "a, ліва межа" : "a, межа";
+    $("bRow").hidden = state.calc !== "bt";
+
+    // ймовірність
+    var pr = probability(m);
+    var A = numText(state.a, m), B = numText(state.b, m);
+    var expr = state.calc === "le" ? "P(X ≤ " + A + ")" : state.calc === "ge" ? "P(X ≥ " + A + ")" : "P(" + A + " ≤ X ≤ " + B + ")";
+    $("expr").textContent = expr + " =";
+    $("pval").textContent = fmtProb(pr);
+    $("pct").textContent = pr > 0 && pr < 1e-4 ? "" : "або " + fmt(pr * 100, 2) + " %";
+
+    // про розподіл
+    $("formula").textContent = d.formula;
+    $("where").textContent = d.where;
+    var mean = D.mean(p), vr = D.variance(p);
+    $("sMean").textContent = momentText(mean);
+    $("sVar").textContent = momentText(vr);
+    $("sSd").textContent = vr === null ? "не існує" : vr === Infinity ? "∞" : fmtSig(Math.sqrt(vr));
+    var notes = [];
+    if (d.note) notes.push(d.note);
+    if (d.id === "student" && p.nu <= 1) notes.push("При ν = 1 (розподіл Коші) середнє не існує.");
+    else if (d.id === "student" && p.nu <= 2) notes.push("При ν ≤ 2 дисперсія нескінченна.");
+    if (d.id === "fisher" && p.d2 <= 4) notes.push(p.d2 <= 2 ? "При d₂ ≤ 2 середнє й дисперсія нескінченні." : "При d₂ ≤ 4 дисперсія нескінченна.");
+    $("sNote").textContent = notes.join(" ");
+
+    // підписи під графіком
+    $("outside").textContent = m.outside > 1e-3 ? "Поза межами графіка: " + fmtProb(m.outside) + " ймовірності" : "";
+    var main = disc ? "ймовірності P(X = k)" : "щільність f(x)";
+    $("legend").innerHTML = "";
+    function item(cls, text) {
+      var span = document.createElement("span");
+      var sw = document.createElement("span"); sw.className = "sw " + cls;
+      span.appendChild(sw); span.appendChild(document.createTextNode(text));
+      $("legend").appendChild(span);
+    }
+    item("", state.mode === "cdf" ? "функція розподілу F" : main);
+    if (state.mode !== "cdf") item("s", "вибрана ймовірність");
+    if (m.ov && state.overlay) item("o", m.ov.label);
+    $("overlayBox").hidden = !m.ov;
+    if (m.ov) $("overlayLabel").textContent = m.ov.label === "Нормальне наближення" ? "Накласти нормальне наближення" : "Накласти стандартний нормальний N(0; 1)";
+
+    $("plot").setAttribute("aria-label", "Графік. " + titleFor(d, p) + ". Середнє " + momentText(mean) + ", дисперсія " + momentText(vr) + ". " + expr + " = " + fmtProb(pr) + ".");
+    renderTable();
+    draw();
+    say(expr + " дорівнює " + fmtProb(pr) + ".", 900);
+  }
+
+  /* ---------- Таблиця ---------- */
+  function renderTable() {
+    if (!$("tableBox").open || !model) return;
+    var m = model, D = def().D, p = P(), disc = m.kind === "discrete", rows = [];
+    var head = disc ? ["k", "P(X = k)", "F(k)"] : ["x", "f(x)", "F(x)"];
+    $("thead").innerHTML = "";
+    var tr = document.createElement("tr");
+    head.forEach(function (h) { var th = document.createElement("th"); th.scope = "col"; th.textContent = h; tr.appendChild(th); });
+    $("thead").appendChild(tr);
+    if (disc) {
+      for (var i = 0; i < m.ks.length; i++) rows.push([fmt(m.ks[i], 0), fmtProb(m.f[i]), fmtProb(m.F[i])]);
+      $("tableNote").textContent = "Показано значення від " + m.lo + " до " + m.hi + ", де зосереджено майже всю ймовірність.";
+    } else {
+      var N = 20;
+      for (var j = 0; j <= N; j++) {
+        var x = S.snapToSpan(m.xmin + (m.xmax - m.xmin) * j / N, m.xmax - m.xmin), f = D.pdf(x, p);
+        rows.push([fmtSig(x), isFinite(f) ? fmtSig(f) : "∞", fmtProb(D.cdf(x, p))]);
+      }
+      $("tableNote").textContent = "21 рівновіддалена точка на межах графіка.";
+    }
+    var tb = $("tbody");
+    tb.textContent = "";
+    rows.forEach(function (r) {
+      var t = document.createElement("tr");
+      r.forEach(function (c, i) {
+        var cell = document.createElement(i === 0 ? "th" : "td");
+        if (i === 0) cell.scope = "row";
+        cell.textContent = c;
+        t.appendChild(cell);
+      });
+      tb.appendChild(t);
+    });
+  }
+  $("tableBox").addEventListener("toggle", renderTable);
+
+  /* ---------- Кнопки ---------- */
+  function setMode(mode) {
+    state.mode = mode;
+    $("modeDens").setAttribute("aria-pressed", String(mode === "dens"));
+    $("modeCdf").setAttribute("aria-pressed", String(mode === "cdf"));
+    refresh();
+  }
+  $("modeDens").addEventListener("click", function () { setMode("dens"); });
+  $("modeCdf").addEventListener("click", function () { setMode("cdf"); });
+  $("overlay").addEventListener("change", function (e) { state.overlay = e.target.checked; refresh(); });
+  bindCalcInputs();
+
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(canvas);
+  else window.addEventListener("resize", resize);
+  new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  if (window.matchMedia) {
+    var mq = window.matchMedia("(prefers-color-scheme: dark)");
+    if (mq.addEventListener) mq.addEventListener("change", draw);
+  }
+
+  /* ---------- Старт ---------- */
+  buildChips();
+  choose("binomial");
+  resize();
+})();
+</script>
+</body>
+</html>

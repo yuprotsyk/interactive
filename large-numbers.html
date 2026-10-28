@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Закон великих чисел</title>
+<meta name="description" content="Підкидайте монету чи кидайте кубик багато разів і дивіться, як середнє результатів наближається до очікуваного значення.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="common.css">
+<style>
+/* Розкладка: на телефоні один стовпчик (вибір, керування, графіки, показники, пояснення, таблиця);
+   від 900px графіки зліва, показники й пояснення справа */
+.app {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "head" "choose" "run" "charts" "readout" "explain" "table";
+}
+.head { grid-area: head; }
+.backlink { display: inline-block; margin-bottom: 10px; font-size: 13px; }
+.choose { grid-area: choose; }
+.run { grid-area: run; display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: center; }
+.charts { grid-area: charts; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.readout { grid-area: readout; }
+.explain { grid-area: explain; }
+.tablebox { grid-area: table; }
+.side { display: contents; }
+
+.srcnote { margin: 10px 0 0; font-size: 14px; color: var(--muted); max-width: 70ch; text-wrap: pretty; }
+.cfg { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-top: 14px; align-items: end; }
+.fld { display: grid; gap: 4px; min-width: 190px; flex: 1 1 190px; max-width: 320px; }
+.fld label { font-size: 13.5px; }
+.fld .row { display: grid; grid-template-columns: minmax(0, 1fr) 72px; gap: 10px; align-items: center; }
+.fld input[type="range"] { width: 100%; margin: 0; accent-color: var(--pos); }
+.fld output, .fld input[type="number"], select {
+  font-family: var(--font-data); font-size: 13.5px; font-variant-numeric: tabular-nums;
+  color: var(--ink); background: var(--bg); border: 1px solid var(--grid-strong); border-radius: 4px; padding: 5px 7px;
+}
+.fld output { text-align: right; }
+select { font-family: var(--font-body); padding: 7px 9px; border-radius: 6px; }
+
+.chart h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; text-wrap: balance; }
+.chart canvas {
+  display: block; width: 100%; background: var(--panel);
+  border: 1px solid var(--grid-strong); border-radius: 6px;
+}
+#c1 { aspect-ratio: 16 / 10; max-height: 60vh; }
+#c2 { aspect-ratio: 16 / 7; max-height: 40vh; }
+.legend { margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; }
+.legend .sw { display: inline-block; width: 22px; height: 0; border-top: 3px solid var(--pos); vertical-align: middle; margin-right: 6px; }
+.legend .sw.o { border-top: 2px solid var(--pt); opacity: .45; }
+.legend .sw.m { border-top: 2px dashed var(--ink); }
+.legend .sw.b { height: 10px; border: 0; background: var(--pos); opacity: .18; }
+.cmsg { margin: 8px 0 0; font-size: 13.5px; color: var(--muted); max-width: 70ch; text-wrap: pretty; }
+
+.readout dl { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; margin: 10px 0 0; }
+.readout dt { font-size: 12px; color: var(--muted); }
+.readout dd { margin: 0; font-family: var(--font-data); font-size: 18px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.readout .big { grid-column: 1 / -1; }
+.readout .big dd { font-size: clamp(30px, 8vw, 40px); line-height: 1.1; letter-spacing: -0.02em; color: var(--pos); }
+
+.explain h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
+.explain p { margin: 8px 0 0; font-size: 14.5px; max-width: 68ch; text-wrap: pretty; }
+.explain p.key { margin-top: 0; }
+
+.tablebox summary { cursor: pointer; font-weight: 500; }
+.tablebox .tnote { margin: 8px 0 10px; font-size: 13px; color: var(--muted); }
+.twrap { overflow: auto; max-height: 340px; border: 1px solid var(--grid-strong); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+th, td { padding: 4px 10px; text-align: right; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500; color: var(--muted); border-bottom: 1px solid var(--grid-strong); }
+
+@media (min-width: 900px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    column-gap: 24px;
+    grid-template-areas: "head head" "choose choose" "run run" "charts side" "table side";
+  }
+  .side { grid-area: side; display: flex; flex-direction: column; gap: 16px; align-self: start; min-width: 0; }
+}
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="head">
+    <a class="backlink" href="index.html">← Усі сторінки</a>
+    <h1>Закон великих чисел</h1>
+    <p class="lead">Підкидайте монету, кидайте кубик або беріть випадкові числа. Чим більше дослідів, тим ближче середнє результатів до очікуваного значення.</p>
+  </header>
+
+  <section class="choose panel" aria-label="Що випробовуємо">
+    <p class="eyebrow">Що випробовуємо</p>
+    <div class="chips" id="chips"></div>
+    <p class="srcnote" id="srcNote"></p>
+    <div class="cfg">
+      <div class="fld" id="pFld" hidden>
+        <label for="pRange">p, ймовірність орла</label>
+        <div class="row"><input type="range" id="pRange" min="0" max="1" step="0.01" value="0.5"><output id="pOut" for="pRange">0,5</output></div>
+      </div>
+      <div class="fld">
+        <label for="serRange">Скільки серій дослідів одночасно</label>
+        <div class="row"><input type="range" id="serRange" min="1" max="30" step="1" value="12"><output id="serOut" for="serRange">12</output></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="run" role="group" aria-label="Керування дослідами">
+    <button type="button" class="btn primary" id="play">▶ Запустити</button>
+    <button type="button" class="btn" id="add10">+10</button>
+    <button type="button" class="btn" id="add100">+100</button>
+    <button type="button" class="btn" id="add1000">+1 000</button>
+    <button type="button" class="btn" id="add10000">+10 000</button>
+    <label class="sr-only" for="speed">Швидкість</label>
+    <select id="speed" aria-label="Швидкість запуску">
+      <option value="0.012">Повільно</option>
+      <option value="0.025" selected>Звичайно</option>
+      <option value="0.06">Швидко</option>
+    </select>
+    <button type="button" class="btn" id="fresh">Нова симуляція</button>
+    <label class="check"><input type="checkbox" id="logScale" checked> Логарифмічна шкала по n</label>
+    <label class="check"><input type="checkbox" id="showBand" checked> Типовий розкид</label>
+  </div>
+
+  <div class="charts">
+    <section class="chart" aria-labelledby="h1">
+      <h2 id="h1">Середнє перших n дослідів</h2>
+      <canvas id="c1" role="img" aria-label="Графік середніх"></canvas>
+      <p class="legend" id="legend1"></p>
+    </section>
+    <section class="chart" id="chart2" aria-labelledby="h2">
+      <h2 id="h2">Відхилення суми від n · μ (перша серія)</h2>
+      <canvas id="c2" role="img" aria-label="Графік відхилення суми"></canvas>
+      <p class="legend" id="legend2"></p>
+    </section>
+    <p class="cmsg" id="noChart2" hidden>Для розподілу Коші очікуваного значення немає, тому відхилення від n · μ порахувати неможливо.</p>
+  </div>
+
+  <div class="side">
+    <section class="readout panel" aria-labelledby="rTitle">
+      <p class="eyebrow" id="rTitle">Зараз</p>
+      <dl>
+        <div class="big"><dt>Дослідів у кожній серії, n</dt><dd id="rN">0</dd></div>
+        <div><dt>Середнє першої серії</dt><dd id="rMean">—</dd></div>
+        <div><dt>Очікуване значення μ</dt><dd id="rMu">—</dd></div>
+        <div><dt>Розкид між серіями</dt><dd id="rSpread">—</dd></div>
+        <div><dt>Очікуваний розкид σ/√n</dt><dd id="rTheory">—</dd></div>
+      </dl>
+    </section>
+
+    <section class="explain panel" aria-labelledby="eTitle">
+      <h2 id="eTitle">Що тут відбувається</h2>
+      <div id="expMain">
+      <p class="key"><strong>Кожна лінія — окрема серія дослідів.</strong> Вона показує середнє результатів перших n дослідів. На початку лінії стрибають, а потім дедалі точніше тримаються біля очікуваного значення μ (штрихова лінія). Це і є закон великих чисел.</p>
+      <p><strong>Розкид між серіями зменшується повільно</strong>, приблизно як 1/√n. Щоб розкид став удвічі меншим, дослідів потрібно вчетверо більше.</p>
+      <p><strong>Закон не «вирівнює» минулі відхилення.</strong> Після серії з десяти орлів поспіль наступний кидок усе одно 50 на 50. Нижній графік показує: сума результатів типово відходить від n · μ дедалі далі (приблизно як √n), а середнє все одно наближається до μ, бо цю суму ділять на дедалі більше n.</p>
+      </div>
+      <div id="cauchyNote" hidden>
+        <p class="key"><strong>Кожна лінія — окрема серія дослідів</strong>, а на ній середнє результатів перших n дослідів. Тут лінії не заспокоюються: щоразу, коли випадає дуже велике число, середнє різко стрибає.</p>
+        <p><strong>Чому Коші виняток.</strong> Це розподіл, схожий на нормальний, але в нього іноді трапляються дуже великі значення. Через них очікуваного значення не існує, а закон великих чисел спирається саме на нього. Тому середнє не наближається ні до чого, навіть після багатьох дослідів.</p>
+      </div>
+    </section>
+  </div>
+
+  <details class="tablebox panel" id="tableBox">
+    <summary>Таблиця за контрольними n</summary>
+    <p class="tnote">Середнє першої серії та найменше й найбільше середнє серед усіх серій для кожного досягнутого n.</p>
+    <div class="twrap">
+      <table>
+        <caption class="sr-only">Середні за контрольними n</caption>
+        <thead><tr><th scope="col">n</th><th scope="col">Перша серія</th><th scope="col">Найменше</th><th scope="col">Найбільше</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </details>
+</main>
+
+<div class="sr-only" id="sr" role="status" aria-live="polite"></div>
+
+<script src="common.js"></script>
+<script src="random.js"></script>
+<script>
+(function () {
+  "use strict";
+  var S = Stat, fmt = S.fmt, fmtSig = S.fmtSig, clamp = S.clamp;
+  var CAP = 100000, START_N = 50;
+
+  /* ---------- Що випробовуємо ----------
+     mu — очікуване значення, variance — дисперсія, draw — одне випробування, y — діапазон осі.
+     Щоб додати джерело, скопіюйте один запис і змініть. */
+  var SOURCES = [
+    { id: "coin", name: "Монета",
+      mu: function (P) { return P.p; }, variance: function (P) { return P.p * (1 - P.p); },
+      draw: function (r, P) { return r.next() < P.p ? 1 : 0; }, y: [0, 1],
+      note: "Орел це 1, решка це 0, тому середнє результатів є часткою орлів. Очікуване значення μ дорівнює p." },
+    { id: "die", name: "Кубик",
+      mu: function () { return 3.5; }, variance: function () { return 35 / 12; },
+      draw: function (r) { return r.int(6) + 1; }, y: [1, 6],
+      note: "Результат від 1 до 6, усі грані рівноймовірні. Очікуване значення μ = 3,5." },
+    { id: "uniform", name: "Випадкове число від 0 до 1",
+      mu: function () { return 0.5; }, variance: function () { return 1 / 12; },
+      draw: function (r) { return r.next(); }, y: [0, 1],
+      note: "Будь-яке число між 0 і 1 однаково можливе. Очікуване значення μ = 0,5." },
+    { id: "exp", name: "Час очікування",
+      mu: function () { return 1; }, variance: function () { return 1; },
+      draw: function (r) { return r.exp(1); }, y: [0, 3],
+      note: "Показниковий розподіл із середнім 1: багато малих значень і зрідка великі. Очікуване значення μ = 1." },
+    { id: "normal", name: "Нормальний",
+      mu: function () { return 0; }, variance: function () { return 1; },
+      draw: function (r) { return r.normal(); }, y: [-1.5, 1.5],
+      note: "Нормальний розподіл N(0; 1): значення групуються навколо 0. Очікуване значення μ = 0." },
+    { id: "cauchy", name: "Коші (виняток)",
+      mu: null, variance: null,
+      draw: function (r) { return r.cauchy(); }, y: [-10, 10],
+      note: "Розподіл Коші виглядає схожим на нормальний, але іноді дає дуже великі значення. Очікуваного значення в нього немає, тож закон тут не діє. Графік показує значення від −10 до 10, більші виходять за межі." }
+  ];
+  var BY_ID = {};
+  SOURCES.forEach(function (s) { BY_ID[s.id] = s; });
+
+  /* ---------- Стан ---------- */
+  var state = { src: "coin", p: 0.5, series: 12, seed: 2026, log: true, band: true, running: false, factor: 0.025 };
+  var sim = null, raf = 0, ticks = 0;
+
+  function $(id) { return document.getElementById(id); }
+  function src() { return BY_ID[state.src]; }
+  function P() { return { p: state.p }; }
+  function mu() { var s = src(); return s.mu ? s.mu(P()) : null; }
+  function sd() { var s = src(); return s.variance ? Math.sqrt(s.variance(P())) : null; }
+
+  var sayTimer = null;
+  function say(text, delay) {
+    clearTimeout(sayTimer);
+    sayTimer = setTimeout(function () { $("sr").textContent = ""; $("sr").textContent = text; }, delay || 0);
+  }
+  function group(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " "); }
+
+  /* ---------- Симуляція ---------- */
+  function newSim(seed) {
+    state.seed = seed;
+    sim = { n: 0, series: [] };
+    for (var i = 0; i < state.series; i++) {
+      sim.series.push({ rng: Rand.create(Rand.seedFor(seed, i)), S: new Float64Array(CAP + 1) });
+    }
+    advance(START_N);
+  }
+  /* S[n] = сума результатів перших n дослідів цієї серії */
+  function advance(k) {
+    k = Math.min(k, CAP - sim.n);
+    if (k <= 0) return 0;
+    var draw = src().draw, p = P();
+    for (var s = 0; s < sim.series.length; s++) {
+      var ser = sim.series[s], arr = ser.S, rng = ser.rng, sum = arr[sim.n];
+      for (var i = sim.n + 1; i <= sim.n + k; i++) { sum += draw(rng, p); arr[i] = sum; }
+    }
+    sim.n += k;
+    return k;
+  }
+
+  /* ---------- Вибір ---------- */
+  var chipEls = {};
+  function buildChips() {
+    SOURCES.forEach(function (s) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "chip"; b.textContent = s.name;
+      b.setAttribute("aria-pressed", "false");
+      b.addEventListener("click", function () { choose(s.id); });
+      $("chips").appendChild(b);
+      chipEls[s.id] = b;
+    });
+  }
+  function choose(id) {
+    stop();
+    state.src = id;
+    for (var k in chipEls) chipEls[k].setAttribute("aria-pressed", String(k === id));
+    $("pFld").hidden = id !== "coin";
+    $("srcNote").textContent = src().note;
+    var isC = id === "cauchy";
+    $("chart2").hidden = isC;
+    $("noChart2").hidden = !isC;
+    $("cauchyNote").hidden = !isC;
+    $("expMain").hidden = isC;
+    $("showBand").disabled = isC;
+    newSim(state.seed);
+    renderLegends();
+    update(true);
+    say(src().name + ". Дослідів: " + sim.n + ".");
+  }
+
+  /* ---------- Керування ---------- */
+  function stop() {
+    state.running = false;
+    cancelAnimationFrame(raf);
+    $("play").textContent = "▶ Запустити";
+    $("play").classList.add("primary");
+  }
+  function frame() {
+    if (!state.running) return;
+    advance(Math.max(1, Math.round(sim.n * state.factor)));
+    ticks++;
+    update(false);
+    if (sim.n >= CAP) { stop(); update(true); say(announce()); return; }
+    raf = requestAnimationFrame(frame);
+  }
+  function play() {
+    if (state.running) { stop(); update(true); say(announce()); return; }
+    if (sim.n >= CAP) return;
+    state.running = true;
+    $("play").textContent = "❚❚ Пауза";
+    $("play").classList.remove("primary");
+    raf = requestAnimationFrame(frame);
+  }
+  function step(k) {
+    stop();
+    if (sim.n >= CAP) { say("Досягнуто межу: " + group(CAP) + " дослідів."); return; }
+    advance(k);
+    update(true);
+    say(announce(), 400);
+  }
+  function announce() {
+    var m = mu(), ser = sim.series[0], mean = ser.S[sim.n] / sim.n;
+    return "Дослідів: " + group(sim.n) + ". Середнє першої серії " + fmtSig(mean) + (m === null ? "." : ", очікуване значення " + fmtSig(m) + ".");
+  }
+  $("play").addEventListener("click", play);
+  $("add10").addEventListener("click", function () { step(10); });
+  $("add100").addEventListener("click", function () { step(100); });
+  $("add1000").addEventListener("click", function () { step(1000); });
+  $("add10000").addEventListener("click", function () { step(10000); });
+  $("fresh").addEventListener("click", function () {
+    stop();
+    newSim(Math.floor(Math.random() * 1e9));
+    update(true);
+    say("Нова симуляція.");
+  });
+  $("speed").addEventListener("change", function (e) { state.factor = Number(e.target.value); });
+  $("logScale").addEventListener("change", function (e) { state.log = e.target.checked; draw(); });
+  $("showBand").addEventListener("change", function (e) { state.band = e.target.checked; draw(); });
+  $("pRange").addEventListener("input", function (e) {
+    state.p = Number(e.target.value);
+    $("pOut").textContent = fmt(state.p, 2);
+    stop(); newSim(state.seed); update(true);
+  });
+  $("serRange").addEventListener("input", function (e) {
+    state.series = Number(e.target.value);
+    $("serOut").textContent = String(state.series);
+    stop(); newSim(state.seed); update(true);
+  });
+
+  /* ---------- Малювання ---------- */
+  function Chart(el) { this.el = el; this.ctx = el.getContext("2d"); this.W = 0; this.H = 0; this.M = { l: 52, r: 16, t: 26, b: 38 }; }
+  Chart.prototype.resize = function () {
+    var rect = this.el.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    this.W = rect.width; this.H = rect.height;
+    this.el.width = Math.max(1, Math.round(this.W * dpr));
+    this.el.height = Math.max(1, Math.round(this.H * dpr));
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  };
+  var c1 = new Chart($("c1")), c2 = new Chart($("c2"));
+
+  function colors() {
+    return {
+      panel: cssVar("--panel"), grid: cssVar("--grid"), strong: cssVar("--grid-strong"),
+      muted: cssVar("--muted"), ink: cssVar("--ink"), pt: cssVar("--pt"), pos: cssVar("--pos"),
+      data: cssVar("--font-data"), body: cssVar("--font-body")
+    };
+  }
+  function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+  /* Спільні осі: x це n (логарифмічна чи лінійна шкала), y задається діапазоном */
+  function frameChart(ch, nv, y0, y1, ylabel, k) {
+    var ctx = ch.ctx, M = ch.M, W = ch.W, H = ch.H;
+    ctx.font = "11px " + k.data;
+    var ty = S.ticksFor(y0, y1, clamp((H - M.t - M.b) / 48, 3, 8));
+    var wmax = 0;
+    ty.major.forEach(function (v) { wmax = Math.max(wmax, ctx.measureText(fmt(v, ty.decimals)).width); });
+    M.l = Math.max(36, Math.ceil(wmax) + 18);
+    var pw = W - M.l - M.r, ph = H - M.t - M.b;
+    var lg = state.log;
+    function px(n) { return lg ? M.l + Math.log(n) / Math.log(nv) * pw : M.l + (n - 1) / (nv - 1) * pw; }
+    function py(v) { return M.t + (1 - (v - y0) / (y1 - y0)) * ph; }
+    ch.px = px; ch.py = py; ch.nv = nv;
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = k.panel; ctx.fillRect(0, 0, W, H);
+    ctx.lineWidth = 1;
+
+    var xmaj = [], xmin = [];
+    if (lg) {
+      for (var e = 1; e <= nv; e *= 10) {
+        xmaj.push(e);
+        for (var m = 2; m <= 9; m++) if (e * m < nv) xmin.push(e * m);
+      }
+    } else {
+      var tx = S.ticksFor(1, nv, clamp((W - 60) / 90, 3, 8));
+      xmaj = tx.major.filter(function (v) { return v >= 1; });
+      xmin = tx.minor.filter(function (v) { return v >= 1; });
+    }
+    ctx.strokeStyle = k.grid; ctx.beginPath();
+    xmin.forEach(function (v) { var x = Math.round(px(v)) + 0.5; ctx.moveTo(x, M.t); ctx.lineTo(x, H - M.b); });
+    ty.minor.forEach(function (v) { var yy = Math.round(py(v)) + 0.5; ctx.moveTo(M.l, yy); ctx.lineTo(W - M.r, yy); });
+    ctx.stroke();
+    ctx.strokeStyle = k.strong; ctx.beginPath();
+    xmaj.forEach(function (v) { var x = Math.round(px(v)) + 0.5; ctx.moveTo(x, M.t); ctx.lineTo(x, H - M.b); });
+    ty.major.forEach(function (v) { var yy = Math.round(py(v)) + 0.5; ctx.moveTo(M.l, yy); ctx.lineTo(W - M.r, yy); });
+    ctx.stroke();
+
+    ctx.strokeStyle = k.ink; ctx.lineWidth = 1.2; ctx.beginPath();
+    ctx.moveTo(M.l + 0.5, M.t); ctx.lineTo(M.l + 0.5, H - M.b + 0.5); ctx.lineTo(W - M.r, H - M.b + 0.5);
+    ctx.stroke();
+
+    ctx.fillStyle = k.muted; ctx.font = "11px " + k.data;
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    xmaj.forEach(function (v) {
+      var label = group(v), w = ctx.measureText(label).width, x = px(v);
+      if (x + w / 2 > W - 2) { ctx.textAlign = "right"; x = W - 2; }
+      else if (x - w / 2 < M.l - 6) { ctx.textAlign = "left"; x = M.l - 6; }
+      else ctx.textAlign = "center";
+      ctx.fillText(label, x, H - M.b + 8);
+    });
+    ctx.textAlign = "center";
+    ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    ty.major.forEach(function (v) { ctx.fillText(fmt(v, ty.decimals), M.l - 7, py(v)); });
+    ctx.fillStyle = k.ink; ctx.font = "500 12px " + k.body;
+    ctx.textAlign = "right"; ctx.textBaseline = "bottom";
+    ctx.fillText("n", W - M.r, H - 6);
+    ctx.textAlign = "left"; ctx.textBaseline = "top";
+    ctx.fillText(ylabel, M.l, 6);
+    ch.pw = pw; ch.ph = ph;
+  }
+
+  /* Індекси n для малювання: до ~500 точок, розподілених за шкалою осі */
+  function sampleIdx(n) {
+    var K = 500, out = [], last = 0, i;
+    for (i = 0; i <= K; i++) {
+      var v = state.log ? Math.round(Math.exp(i / K * Math.log(n))) : Math.round(1 + i * (n - 1) / K);
+      if (v !== last && v >= 1) { out.push(v); last = v; }
+    }
+    if (out[out.length - 1] !== n) out.push(n);
+    return out;
+  }
+
+  function lineOf(ch, idx, valueAt, style, width, alpha) {
+    var ctx = ch.ctx;
+    ctx.beginPath();
+    for (var i = 0; i < idx.length; i++) {
+      var X = ch.px(idx[i]), Y = ch.py(valueAt(idx[i]));
+      if (i === 0) ctx.moveTo(X, Y); else ctx.lineTo(X, Y);
+    }
+    ctx.strokeStyle = style; ctx.lineWidth = width; ctx.globalAlpha = alpha; ctx.lineJoin = "round";
+    ctx.stroke(); ctx.globalAlpha = 1;
+  }
+
+  function draw() {
+    if (!sim || !c1.W) return;
+    var k = colors(), s = src(), n = sim.n, nv = Math.max(100, n), m = mu(), sg = sd();
+    var idx = sampleIdx(n), hasMu = m !== null;
+
+    /* --- графік 1: середні --- */
+    var y = s.y;
+    frameChart(c1, nv, y[0], y[1], "Середнє перших n дослідів", k);
+    var ctx = c1.ctx, M = c1.M;
+    ctx.save(); ctx.beginPath(); ctx.rect(M.l, M.t, c1.pw, c1.ph); ctx.clip();
+    if (hasMu && state.band) {
+      var xs = [], i;
+      var steps = 160;
+      ctx.beginPath();
+      for (i = 0; i <= steps; i++) {
+        var nn = state.log ? Math.exp(i / steps * Math.log(nv)) : 1 + i * (nv - 1) / steps;
+        var X = c1.px(nn), Y = c1.py(m + 2 * sg / Math.sqrt(nn));
+        if (i === 0) ctx.moveTo(X, Y); else ctx.lineTo(X, Y);
+      }
+      for (i = steps; i >= 0; i--) {
+        var n2 = state.log ? Math.exp(i / steps * Math.log(nv)) : 1 + i * (nv - 1) / steps;
+        ctx.lineTo(c1.px(n2), c1.py(m - 2 * sg / Math.sqrt(n2)));
+      }
+      ctx.closePath(); ctx.fillStyle = k.pos; ctx.globalAlpha = 0.14; ctx.fill(); ctx.globalAlpha = 1;
+    }
+    for (var si = sim.series.length - 1; si >= 0; si--) {
+      var arr = sim.series[si].S;
+      var f = function (nIdx) { return arr[nIdx] / nIdx; };
+      if (si === 0) lineOf(c1, idx, f, k.pos, 2.4, 1);
+      else lineOf(c1, idx, f, k.pt, 1.2, 0.42);
+    }
+    if (hasMu) {
+      ctx.strokeStyle = k.ink; ctx.lineWidth = 1.5; ctx.setLineDash([6, 5]);
+      ctx.beginPath(); ctx.moveTo(M.l, c1.py(m)); ctx.lineTo(M.l + c1.pw, c1.py(m)); ctx.stroke(); ctx.setLineDash([]);
+    }
+    ctx.restore();
+
+    /* --- графік 2: відхилення суми --- */
+    if (hasMu) {
+      var arr0 = sim.series[0].S;
+      var dev = function (nIdx) { return arr0[nIdx] - nIdx * m; };
+      var maxAbs = 0;
+      for (var q = 0; q < idx.length; q++) maxAbs = Math.max(maxAbs, Math.abs(dev(idx[q])));
+      var lim = Math.max(2.4 * sg * Math.sqrt(nv), maxAbs * 1.1);
+      lim = S.niceStep(lim, 1) * Math.ceil(lim / S.niceStep(lim, 1));
+      frameChart(c2, nv, -lim, lim, "Сума мінус n · μ", k);
+      var c = c2.ctx, M2 = c2.M;
+      c.save(); c.beginPath(); c.rect(M2.l, M2.t, c2.pw, c2.ph); c.clip();
+      if (state.band) {
+        var st2 = 160, j;
+        c.beginPath();
+        for (j = 0; j <= st2; j++) {
+          var a = state.log ? Math.exp(j / st2 * Math.log(nv)) : 1 + j * (nv - 1) / st2;
+          if (j === 0) c.moveTo(c2.px(a), c2.py(2 * sg * Math.sqrt(a))); else c.lineTo(c2.px(a), c2.py(2 * sg * Math.sqrt(a)));
+        }
+        for (j = st2; j >= 0; j--) {
+          var b = state.log ? Math.exp(j / st2 * Math.log(nv)) : 1 + j * (nv - 1) / st2;
+          c.lineTo(c2.px(b), c2.py(-2 * sg * Math.sqrt(b)));
+        }
+        c.closePath(); c.fillStyle = k.pos; c.globalAlpha = 0.14; c.fill(); c.globalAlpha = 1;
+      }
+      c.strokeStyle = k.ink; c.lineWidth = 1.5; c.setLineDash([6, 5]);
+      c.beginPath(); c.moveTo(M2.l, c2.py(0)); c.lineTo(M2.l + c2.pw, c2.py(0)); c.stroke(); c.setLineDash([]);
+      lineOf(c2, idx, dev, k.pos, 2.4, 1);
+      c.restore();
+    }
+  }
+
+  function renderLegends() {
+    var hasMu = mu() !== null;
+    function build(el, items) {
+      el.textContent = "";
+      items.forEach(function (it) {
+        var span = document.createElement("span");
+        var sw = document.createElement("span"); sw.className = "sw " + it[0];
+        span.appendChild(sw); span.appendChild(document.createTextNode(it[1]));
+        el.appendChild(span);
+      });
+    }
+    var l1 = [["", "перша серія"]];
+    if (state.series > 1) l1.push(["o", "інші серії"]);
+    if (hasMu) { l1.push(["m", "очікуване значення μ"]); l1.push(["b", "типовий розкид μ ± 2σ/√n"]); }
+    build($("legend1"), l1);
+    build($("legend2"), [["", "сума результатів мінус n · μ"], ["b", "типовий розкид ± 2σ√n"], ["m", "нуль"]]);
+  }
+
+  /* ---------- Показники ---------- */
+  function update(full) {
+    var n = sim.n, m = mu(), sg = sd();
+    $("rN").textContent = group(n);
+    var mean0 = sim.series[0].S[n] / n;
+    $("rMean").textContent = fmtSig(mean0);
+    $("rMu").textContent = m === null ? "не існує" : fmtSig(m);
+    var sp = "—";
+    if (sim.series.length > 1) {
+      var ms = sim.series.map(function (s) { return s.S[n] / n; });
+      var avg = ms.reduce(function (a, b) { return a + b; }, 0) / ms.length;
+      var v = ms.reduce(function (a, b) { return a + (b - avg) * (b - avg); }, 0) / (ms.length - 1);
+      sp = fmtSig(Math.sqrt(v));
+    }
+    $("rSpread").textContent = sp;
+    $("rTheory").textContent = sg === null ? "не існує" : fmtSig(sg / Math.sqrt(n));
+    draw();
+    if (full || ticks % 20 === 0) renderTable();
+    if (full) {
+      $("c1").setAttribute("aria-label", "Графік середніх. " + announce());
+      if (!$("c2").hidden) $("c2").setAttribute("aria-label", "Графік відхилення суми від n · μ для першої серії.");
+    }
+  }
+  function renderTable() {
+    if (!$("tableBox").open) return;
+    var tb = $("tbody"); tb.textContent = "";
+    var marks = [10, 100, 1000, 10000, 100000];
+    marks.forEach(function (nn) {
+      if (nn > sim.n) return;
+      var ms = sim.series.map(function (s) { return s.S[nn] / nn; });
+      var cells = [group(nn), fmtSig(ms[0]), fmtSig(Math.min.apply(null, ms)), fmtSig(Math.max.apply(null, ms))];
+      var tr = document.createElement("tr");
+      cells.forEach(function (t, i) {
+        var cell = document.createElement(i === 0 ? "th" : "td");
+        if (i === 0) cell.scope = "row";
+        cell.textContent = t; tr.appendChild(cell);
+      });
+      tb.appendChild(tr);
+    });
+  }
+  $("tableBox").addEventListener("toggle", renderTable);
+
+  /* ---------- Розмір і тема ---------- */
+  function resizeAll() { c1.resize(); c2.resize(); draw(); }
+  if (window.ResizeObserver) { new ResizeObserver(resizeAll).observe($("c1")); new ResizeObserver(resizeAll).observe($("c2")); }
+  else window.addEventListener("resize", resizeAll);
+  new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  if (window.matchMedia) {
+    var mq = window.matchMedia("(prefers-color-scheme: dark)");
+    if (mq.addEventListener) mq.addEventListener("change", draw);
+  }
+
+  /* ---------- Старт ---------- */
+  buildChips();
+  choose("coin");
+  resizeAll();
+})();
+</script>
+</body>
+</html>

@@ -33,6 +33,8 @@
 }
 
 * { box-sizing: border-box; }
+/* Атрибут hidden має діяти навіть для елементів зі своїм display */
+[hidden] { display: none !important; }
 html { color-scheme: light; }
 body {
   margin: 0;

@@ -93,3 +93,32 @@ test("середнє середніх: закон великих чисел на
   for (let i = 0; i < n; i++) s += r.exp(1);
   assert.ok(Math.abs(s / n - 1) < 0.01, "середнє " + s / n);
 });
+
+test("арксинус: KS проти теоретичної F(x) = (2/π)·arcsin√x, середнє 1/2, дисперсія 1/8", () => {
+  const s = draw(11, (r) => r.arcsine());
+  assert.ok(s.every((v) => v >= 0 && v <= 1));
+  const d = ks(s, (x) => (2 / Math.PI) * Math.asin(Math.sqrt(Math.min(1, Math.max(0, x)))));
+  assert.ok(d < KS_CRIT, `D = ${d}`);
+  const m = s.reduce((p, v) => p + v, 0) / N;
+  const v = s.reduce((p, x) => p + (x - m) ** 2, 0) / N;
+  assert.ok(Math.abs(m - 0.5) < 0.01 && Math.abs(v - 0.125) < 0.004, `m=${m} v=${v}`);
+});
+
+test("суміш двох нормальних: KS проти F, середнє 0, дисперсія m² + s²", () => {
+  const s = draw(12, (r) => r.bimodal(2, 0.5));
+  const d = ks(s, (x) => 0.5 * Dist.normal.cdf(x, { mu: -2, sigma: 0.5 }) + 0.5 * Dist.normal.cdf(x, { mu: 2, sigma: 0.5 }));
+  assert.ok(d < KS_CRIT, `D = ${d}`);
+  const m = s.reduce((p, v) => p + v, 0) / N;
+  const v = s.reduce((p, x) => p + (x - m) ** 2, 0) / N;
+  assert.ok(Math.abs(m) < 0.06 && Math.abs(v - 4.25) < 0.15, `m=${m} v=${v}`);
+});
+
+test("центральна гранична теорема на практиці: середні n = 30 показникових мають SD ≈ 1/√30 і асиметрію ≈ 2/√30", () => {
+  const r = Rand.create(13), n = 30, M = 40000, xs = [];
+  for (let i = 0; i < M; i++) { let t = 0; for (let j = 0; j < n; j++) t += r.exp(1); xs.push(t / n); }
+  const m = xs.reduce((p, v) => p + v, 0) / M;
+  const m2 = xs.reduce((p, x) => p + (x - m) ** 2, 0) / M;
+  const m3 = xs.reduce((p, x) => p + (x - m) ** 3, 0) / M;
+  assert.ok(Math.abs(Math.sqrt(m2) - 1 / Math.sqrt(n)) < 0.005, "SD " + Math.sqrt(m2));
+  assert.ok(Math.abs(m3 / m2 ** 1.5 - 2 / Math.sqrt(n)) < 0.06, "асиметрія " + m3 / m2 ** 1.5);
+});

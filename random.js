@@ -35,7 +35,14 @@ var Rand = (function () {
       /** Показникове число з інтенсивністю rate (середнє 1/rate). */
       exp: function (rate) { return -Math.log(1 - self.next()) / (rate === undefined ? 1 : rate); },
       /** Число з розподілу Коші (Стьюдента з ν = 1). */
-      cauchy: function () { return Math.tan(Math.PI * (self.next() - 0.5)); }
+      cauchy: function () { return Math.tan(Math.PI * (self.next() - 0.5)); },
+      /** Число з U-подібного розподілу (арксинуса) на [0, 1]: щільність найбільша біля країв. */
+      arcsine: function () { var s = Math.sin(Math.PI * self.next() / 2); return s * s; },
+      /** Суміш двох нормальних N(−m; s²) і N(m; s²) порівну: розподіл із двома вершинами. */
+      bimodal: function (m, s) {
+        m = m === undefined ? 2 : m; s = s === undefined ? 0.5 : s;
+        return (self.next() < 0.5 ? -m : m) + s * self.normal();
+      }
     };
     return self;
   }

@@ -1,0 +1,631 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Центральна гранична теорема</title>
+<meta name="description" content="Беріть середнє n випадкових чисел із будь-якого розподілу й дивіться, як розподіл середніх стає схожим на нормальний.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="common.css">
+<style>
+.app {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "head" "choose" "run" "charts" "readout" "explain" "table";
+}
+.head { grid-area: head; }
+.backlink { display: inline-block; margin-bottom: 10px; font-size: 13px; }
+.choose { grid-area: choose; }
+.run { grid-area: run; display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: center; }
+.charts { grid-area: charts; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.readout { grid-area: readout; }
+.explain { grid-area: explain; }
+.tablebox { grid-area: table; }
+.side { display: contents; }
+
+.srcnote { margin: 10px 0 0; font-size: 14px; color: var(--muted); max-width: 70ch; text-wrap: pretty; }
+.cfg { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-top: 14px; align-items: end; }
+.fld { display: grid; gap: 4px; min-width: 220px; flex: 1 1 220px; max-width: 380px; }
+.fld label, .cfg .lbl { font-size: 13.5px; }
+.fld .row { display: grid; grid-template-columns: minmax(0, 1fr) 64px; gap: 10px; align-items: center; }
+.fld input[type="range"] { width: 100%; margin: 0; accent-color: var(--pos); }
+.fld output {
+  font-family: var(--font-data); font-size: 13.5px; font-variant-numeric: tabular-nums; text-align: right;
+  color: var(--ink); background: var(--bg); border: 1px solid var(--grid-strong); border-radius: 4px; padding: 5px 7px;
+}
+.statbox { display: grid; gap: 4px; }
+
+.chart h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; text-wrap: balance; }
+.chart canvas {
+  display: block; width: 100%; background: var(--panel);
+  border: 1px solid var(--grid-strong); border-radius: 6px;
+}
+#c0 { aspect-ratio: 16 / 5; max-height: 30vh; }
+#c1 { aspect-ratio: 16 / 9; max-height: 55vh; }
+.legend { margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; }
+.legend .sw { display: inline-block; width: 22px; height: 0; border-top: 3px solid var(--ink); vertical-align: middle; margin-right: 6px; }
+.legend .sw.b { height: 10px; border: 0; background: var(--pos); opacity: .55; }
+.legend .sw.m { border-top: 2px dashed var(--ink); }
+.cmsg { margin: 8px 0 0; font-size: 13.5px; color: var(--muted); max-width: 70ch; text-wrap: pretty; }
+
+.readout dl { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; margin: 10px 0 0; }
+.readout dt { font-size: 12px; color: var(--muted); }
+.readout dd { margin: 0; font-family: var(--font-data); font-size: 18px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.readout .big { grid-column: 1 / -1; }
+.readout .big dd { font-size: clamp(30px, 8vw, 40px); line-height: 1.1; letter-spacing: -0.02em; color: var(--pos); }
+
+.explain h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
+.explain p { margin: 8px 0 0; font-size: 14.5px; max-width: 68ch; text-wrap: pretty; }
+.explain p.key { margin-top: 0; }
+
+.tablebox summary { cursor: pointer; font-weight: 500; }
+.tablebox .tnote { margin: 8px 0 10px; font-size: 13px; color: var(--muted); }
+.twrap { overflow: auto; max-height: 340px; border: 1px solid var(--grid-strong); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+th, td { padding: 4px 10px; text-align: right; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500; color: var(--muted); border-bottom: 1px solid var(--grid-strong); }
+
+@media (min-width: 900px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    column-gap: 24px;
+    grid-template-areas: "head head" "choose choose" "run run" "charts side" "table side";
+  }
+  .side { grid-area: side; display: flex; flex-direction: column; gap: 16px; align-self: start; min-width: 0; }
+}
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="head">
+    <a class="backlink" href="index.html">← Усі сторінки</a>
+    <h1>Центральна гранична теорема</h1>
+    <p class="lead">Беремо n випадкових чисел і рахуємо їх середнє. Повторюємо багато разів. Які б не були самі числа, розподіл середніх дедалі більше нагадує нормальний.</p>
+  </header>
+
+  <section class="choose panel" aria-label="Налаштування">
+    <p class="eyebrow">Звідки беруться числа</p>
+    <div class="chips" id="chips"></div>
+    <p class="srcnote" id="srcNote"></p>
+    <div class="cfg">
+      <div class="fld">
+        <label for="nRange">Скільки чисел у кожному середньому, n</label>
+        <div class="row"><input type="range" id="nRange" min="1" max="100" step="1" value="1"><output id="nOut" for="nRange">1</output></div>
+      </div>
+      <div class="statbox">
+        <span class="lbl" id="statLbl">Що рахуємо з n чисел</span>
+        <div class="seg" role="group" aria-labelledby="statLbl">
+          <button type="button" id="stMean" aria-pressed="true">Середнє</button>
+          <button type="button" id="stMed" aria-pressed="false">Медіана</button>
+          <button type="button" id="stMax" aria-pressed="false">Максимум</button>
+        </div>
+      </div>
+      <label class="check"><input type="checkbox" id="showNorm" checked> Нормальна крива N(μ; σ²/n)</label>
+    </div>
+  </section>
+
+  <div class="run" role="group" aria-label="Керування дослідами">
+    <button type="button" class="btn primary" id="play">▶ Запустити</button>
+    <button type="button" class="btn" id="add10">+10</button>
+    <button type="button" class="btn" id="add100">+100</button>
+    <button type="button" class="btn" id="add1000">+1 000</button>
+    <button type="button" class="btn" id="fresh">Нова симуляція</button>
+  </div>
+
+  <div class="charts">
+    <section class="chart" aria-labelledby="h0">
+      <h2 id="h0">Одне число: розподіл, з якого беремо</h2>
+      <canvas id="c0" role="img" aria-label="Розподіл вихідних чисел"></canvas>
+    </section>
+    <section class="chart" aria-labelledby="h1">
+      <h2 id="h1">Середні n чисел: що вийшло після багатьох повторів</h2>
+      <canvas id="c1" role="img" aria-label="Гістограма середніх"></canvas>
+      <p class="legend" id="legend1"></p>
+      <p class="cmsg" id="outMsg" hidden></p>
+    </section>
+  </div>
+
+  <div class="side">
+    <section class="readout panel" aria-labelledby="rTitle">
+      <p class="eyebrow" id="rTitle">Зараз</p>
+      <dl>
+        <div class="big"><dt>Накопичено середніх</dt><dd id="rM">0</dd></div>
+        <div><dt>Середнє середніх</dt><dd id="rMean">—</dd></div>
+        <div><dt>Очікуване μ</dt><dd id="rMu">—</dd></div>
+        <div><dt>Розкид середніх (SD)</dt><dd id="rSd">—</dd></div>
+        <div><dt>Очікуваний σ/√n</dt><dd id="rSdT">—</dd></div>
+        <div><dt>Асиметрія середніх</dt><dd id="rSk">—</dd></div>
+        <div><dt>Очікувана γ/√n</dt><dd id="rSkT">—</dd></div>
+        <div class="big"><dt>Середні в межах μ ± 1,96σ/√n (за нормальністю це 95 %)</dt><dd id="rIn">—</dd></div>
+      </dl>
+    </section>
+
+    <section class="explain panel" aria-labelledby="eTitle">
+      <h2 id="eTitle">Що тут відбувається</h2>
+      <div id="expMain">
+        <p class="key"><strong>Верхній графік — одне число, нижній — середнє n чисел.</strong> При n = 1 вони однакові. Збільшуйте n і дивіться на нижній графік: він вужчий і дедалі більше схожий на дзвін, хоч би яким дивним був верхній.</p>
+        <p><strong>Ширина зменшується як 1/√n.</strong> Розкид середніх приблизно σ/√n, де σ — розкид одного числа. Щоб розкид став удвічі меншим, потрібно вчетверо більше чисел.</p>
+        <p><strong>Це і є теорема:</strong> середнє багатьох незалежних чисел з одного розподілу (зі скінченними μ і σ) розподілене майже нормально, N(μ; σ²/n). Що більше n, то краще наближення.</p>
+        <p><strong>Скошені розподіли потребують більшого n.</strong> Для симетричного розподілу дзвін виходить уже при n = 3–5. Для показникового чи монети з p = 0,1 треба помітно більше. Асиметрія середніх зменшується як γ/√n. «n = 30 завжди досить» — лише приблизне правило.</p>
+      </div>
+      <div id="expCauchy" hidden>
+        <p class="key"><strong>Для розподілу Коші теорема не працює.</strong> У нього немає ні μ, ні σ, бо іноді випадають дуже великі значення. Середнє n чисел розподілене так само, як одне число: гістограма не звужується, скільки б n не було.</p>
+        <p>Спробуйте переключити на медіану: вона з ростом n стискається до центру. Тобто медіана тут добра оцінка, а середнє безкорисне.</p>
+      </div>
+      <div id="expMed" hidden>
+        <p class="key"><strong>Медіана n чисел.</strong> Теорема стосується середнього й суми. Для медіани розподіл теж майже нормальний, але його ширина інша, тому крива N(μ; σ²/n) тут не показана.</p>
+      </div>
+      <div id="expMax" hidden>
+        <p class="key"><strong>Максимум n чисел не стає нормальним.</strong> Він збирається біля найбільших можливих значень і зсувається вбік. Це показує, що теорема стосується саме середніх і сум, а не будь-якої величини з n чисел.</p>
+      </div>
+    </section>
+  </div>
+
+  <details class="tablebox panel" id="tableBox">
+    <summary>Таблиця: як змінюється розкид і асиметрія з n</summary>
+    <p class="tnote">Для кожного n зроблено окремо по 2 000 повторів. Для середнього порівняно з теорією σ/√n та γ/√n (γ — асиметрія одного числа).</p>
+    <div class="twrap">
+      <table>
+        <caption class="sr-only">Розкид і асиметрія залежно від n</caption>
+        <thead><tr><th scope="col">n</th><th scope="col">SD</th><th scope="col">σ/√n</th><th scope="col">Асиметрія</th><th scope="col">γ/√n</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </details>
+</main>
+
+<div class="sr-only" id="sr" role="status" aria-live="polite"></div>
+
+<script src="common.js"></script>
+<script src="random.js"></script>
+<script>
+(function () {
+  "use strict";
+  var S = Stat, fmt = S.fmt, fmtSig = S.fmtSig, clamp = S.clamp;
+  var CAP = 20000, INITIAL = 500, PILOT = 2000, TABLE_N = [1, 2, 5, 10, 30, 100];
+
+  function normPdf(x, m, s) { var z = (x - m) / s; return Math.exp(-0.5 * z * z) / (s * Math.sqrt(2 * Math.PI)); }
+
+  /* ---------- Звідки беруться числа ----------
+     mu, sd, skew — теоретичні значення (null, якщо їх не існує); lo, hi — межі можливих значень;
+     view — діапазон верхнього графіка; pdf — щільність (для дискретних bars); draw — одне число. */
+  var SOURCES = [
+    { id: "uniform", name: "Рівномірний",
+      mu: 0.5, sd: Math.sqrt(1 / 12), skew: 0, lo: 0, hi: 1, view: [-0.25, 1.25],
+      pdf: function (x) { return x >= 0 && x <= 1 ? 1 : 0; }, draw: function (r) { return r.next(); },
+      note: "Будь-яке число від 0 до 1 однаково можливе. Симетричний розподіл: дзвін з'являється дуже швидко." },
+    { id: "exp", name: "Показниковий",
+      mu: 1, sd: 1, skew: 2, lo: 0, hi: Infinity, view: [-0.5, 6],
+      pdf: function (x) { return x >= 0 ? Math.exp(-x) : 0; }, draw: function (r) { return r.exp(1); },
+      note: "Багато малих значень і зрідка великі (як час очікування). Сильно скошений праворуч: дзвін з'являється повільніше." },
+    { id: "arcsine", name: "U-подібний",
+      mu: 0.5, sd: Math.sqrt(1 / 8), skew: 0, lo: 0, hi: 1, view: [-0.25, 1.25], ymax: 3,
+      pdf: function (x) { return x > 0 && x < 1 ? 1 / (Math.PI * Math.sqrt(x * (1 - x))) : 0; }, draw: function (r) { return r.arcsine(); },
+      note: "Числа найчастіше близькі до 0 або 1 і рідко посередині. Зовсім не схоже на дзвін, а середнє все одно його утворює." },
+    { id: "bimodal", name: "Дві вершини",
+      mu: 0, sd: Math.sqrt(4.25), skew: 0, lo: -Infinity, hi: Infinity, view: [-4.5, 4.5],
+      pdf: function (x) { return 0.5 * normPdf(x, -2, 0.5) + 0.5 * normPdf(x, 2, 0.5); }, draw: function (r) { return r.bimodal(2, 0.5); },
+      note: "Суміш двох нормальних розподілів із центрами в −2 та 2. Середнє μ = 0 припадає якраз на провал між вершинами." },
+    { id: "coin", name: "Монета p = 0,1", discrete: true,
+      mu: 0.1, sd: 0.3, skew: 8 / 3, lo: 0, hi: 1, view: [-0.5, 1.5],
+      pdf: function (x) { return x === 0 ? 0.9 : x === 1 ? 0.1 : 0; }, draw: function (r) { return r.next() < 0.1 ? 1 : 0; },
+      note: "Число 1 з імовірністю 0,1 і 0 з імовірністю 0,9. Середнє n чисел це частка одиниць. Дуже скошений розподіл, тож потрібно велике n." },
+    { id: "cauchy", name: "Коші (виняток)",
+      mu: null, sd: null, skew: null, lo: -Infinity, hi: Infinity, view: [-10, 10],
+      pdf: function (x) { return 1 / (Math.PI * (1 + x * x)); }, draw: function (r) { return r.cauchy(); },
+      note: "Схожий на нормальний, але іноді дає дуже великі значення. Очікуваного значення в нього немає, тож умови теореми не виконано. Графік показує від −10 до 10." }
+  ];
+  var BY_ID = {};
+  SOURCES.forEach(function (s) { BY_ID[s.id] = s; });
+
+  var STATS = { mean: "Середнє", median: "Медіана", max: "Максимум" };
+
+  /* ---------- Стан ---------- */
+  var state = { src: "uniform", stat: "mean", n: 1, seed: 2026, norm: true, running: false };
+  var sim = null, spec = null, raf = 0, tableDirty = true;
+
+  function $(id) { return document.getElementById(id); }
+  function src() { return BY_ID[state.src]; }
+  function group(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " "); }
+  var sayTimer = null;
+  function say(text, delay) {
+    clearTimeout(sayTimer);
+    sayTimer = setTimeout(function () { $("sr").textContent = ""; $("sr").textContent = text; }, delay || 0);
+  }
+  /* теорія для середнього діє, лише якщо обрано середнє й існують μ та σ */
+  function hasTheory() { return state.stat === "mean" && src().mu !== null; }
+
+  /* ---------- Симуляція ---------- */
+  var buf = new Float64Array(100);
+  function oneStat(rng, n, stat) {
+    var d = src().draw, i;
+    if (stat === "mean") { var s = 0; for (i = 0; i < n; i++) s += d(rng); return s / n; }
+    for (i = 0; i < n; i++) buf[i] = d(rng);
+    if (stat === "max") { var mx = buf[0]; for (i = 1; i < n; i++) if (buf[i] > mx) mx = buf[i]; return mx; }
+    var a = buf.subarray(0, n); a.sort();
+    return n % 2 ? a[(n - 1) / 2] : (a[n / 2 - 1] + a[n / 2]) / 2;
+  }
+
+  /* Діапазон і стовпчики гістограми фіксуємо на старті, щоб картинка не стрибала під час накопичення */
+  function makeSpec() {
+    var s = src(), n = state.n, lo, hi, i;
+    if (hasTheory()) {
+      lo = Math.max(s.lo, s.mu - 4 * s.sd / Math.sqrt(n));
+      hi = Math.min(s.hi, s.mu + 4 * s.sd / Math.sqrt(n));
+    } else {
+      var rng = Rand.create(777), xs = new Float64Array(PILOT);
+      for (i = 0; i < PILOT; i++) xs[i] = oneStat(rng, n, state.stat);
+      xs.sort();
+      var cauchy = s.id === "cauchy", ql = cauchy ? 0.03 : 0.005, qh = cauchy ? 0.97 : 0.995;
+      lo = xs[Math.floor(ql * (PILOT - 1))]; hi = xs[Math.ceil(qh * (PILOT - 1))];
+      var pad = Math.max(0.08 * (hi - lo), 1e-9);
+      lo = Math.max(s.lo, lo - pad); hi = Math.min(s.hi, hi + pad);
+      if (hi - lo < 1e-9) { lo -= 0.5; hi += 0.5; }
+    }
+    var e0, w, nb;
+    if (s.discrete && state.stat === "mean") {
+      var u = 1 / n;
+      w = Math.max(1, Math.round((hi - lo) / 40 / u)) * u;
+      e0 = (Math.floor(lo / u + 1e-9) - 0.5) * u;
+      nb = Math.max(1, Math.ceil((hi - e0) / w - 1e-9));
+    } else {
+      nb = 40; w = (hi - lo) / nb; e0 = lo;
+    }
+    return { e0: e0, w: w, nb: nb, x0: e0, x1: e0 + nb * w };
+  }
+
+  function newSim(seed, keepSpec) {
+    state.seed = seed;
+    sim = { M: 0, v: new Float64Array(CAP), rng: Rand.create(seed) };
+    if (!keepSpec || !spec) spec = makeSpec();
+    advance(INITIAL);
+  }
+  function advance(k) {
+    k = Math.min(k, CAP - sim.M);
+    for (var i = 0; i < k; i++) sim.v[sim.M + i] = oneStat(sim.rng, state.n, state.stat);
+    sim.M += k;
+    return k;
+  }
+
+  function moments() {
+    var M = sim.M, v = sim.v, i, m = 0;
+    for (i = 0; i < M; i++) m += v[i];
+    m /= M;
+    var m2 = 0, m3 = 0;
+    for (i = 0; i < M; i++) { var d = v[i] - m; m2 += d * d; m3 += d * d * d; }
+    m2 /= M; m3 /= M;
+    return { mean: m, sd: Math.sqrt(m2), skew: m2 > 0 ? m3 / Math.pow(m2, 1.5) : 0 };
+  }
+
+  /* ---------- Вибір і керування ---------- */
+  var chipEls = {};
+  function buildChips() {
+    SOURCES.forEach(function (s) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "chip"; b.textContent = s.name;
+      b.setAttribute("aria-pressed", "false");
+      b.addEventListener("click", function () { chooseSrc(s.id); });
+      $("chips").appendChild(b);
+      chipEls[s.id] = b;
+    });
+  }
+  function syncUi() {
+    for (var k in chipEls) chipEls[k].setAttribute("aria-pressed", String(k === state.src));
+    $("stMean").setAttribute("aria-pressed", String(state.stat === "mean"));
+    $("stMed").setAttribute("aria-pressed", String(state.stat === "median"));
+    $("stMax").setAttribute("aria-pressed", String(state.stat === "max"));
+    $("stMax").disabled = state.src === "cauchy";
+    $("showNorm").disabled = !hasTheory();
+    $("srcNote").textContent = src().note;
+    var c = state.src === "cauchy", st = state.stat;
+    $("expCauchy").hidden = !(c && st === "mean");
+    $("expMed").hidden = st !== "median";
+    $("expMax").hidden = st !== "max";
+    $("expMain").hidden = (c && st === "mean") || st !== "mean";
+  }
+  function restart(msg) {
+    stop();
+    spec = null;
+    newSim(state.seed);
+    tableDirty = true;
+    syncUi();
+    renderLegend();
+    update(true);
+    if (msg) say(msg);
+  }
+  function chooseSrc(id) {
+    state.src = id;
+    if (id === "cauchy" && state.stat === "max") state.stat = "mean";
+    restart(src().name + ". " + announce());
+  }
+  function chooseStat(st) { state.stat = st; restart(STATS[st] + ". " + announce()); }
+
+  function stop() {
+    state.running = false;
+    cancelAnimationFrame(raf);
+    $("play").textContent = "▶ Запустити";
+    $("play").classList.add("primary");
+  }
+  function frame() {
+    if (!state.running) return;
+    advance(Math.max(5, Math.round(sim.M * 0.03)));
+    update(false);
+    if (sim.M >= CAP) { stop(); update(true); say(announce()); return; }
+    raf = requestAnimationFrame(frame);
+  }
+  function play() {
+    if (state.running) { stop(); update(true); say(announce()); return; }
+    if (sim.M >= CAP) return;
+    state.running = true;
+    $("play").textContent = "❚❚ Пауза";
+    $("play").classList.remove("primary");
+    raf = requestAnimationFrame(frame);
+  }
+  function step(k) {
+    stop();
+    if (sim.M >= CAP) { say("Досягнуто межу: " + group(CAP) + " середніх."); return; }
+    advance(k);
+    update(true);
+    say(announce(), 400);
+  }
+  function announce() {
+    var m = moments();
+    return "n = " + state.n + ", накопичено " + group(sim.M) + ". Розкид " + fmtSig(m.sd) + (hasTheory() ? ", очікуваний " + fmtSig(src().sd / Math.sqrt(state.n)) : "") + ".";
+  }
+  $("play").addEventListener("click", play);
+  $("add10").addEventListener("click", function () { step(10); });
+  $("add100").addEventListener("click", function () { step(100); });
+  $("add1000").addEventListener("click", function () { step(1000); });
+  $("fresh").addEventListener("click", function () {
+    stop();
+    newSim(Math.floor(Math.random() * 1e9), true);
+    update(true);
+    say("Нова симуляція.");
+  });
+  $("stMean").addEventListener("click", function () { chooseStat("mean"); });
+  $("stMed").addEventListener("click", function () { chooseStat("median"); });
+  $("stMax").addEventListener("click", function () { chooseStat("max"); });
+  $("showNorm").addEventListener("change", function (e) { state.norm = e.target.checked; draw(); });
+  $("nRange").addEventListener("input", function (e) {
+    state.n = Number(e.target.value);
+    $("nOut").textContent = String(state.n);
+    restart();
+    say("n = " + state.n + ". " + announce(), 500);
+  });
+
+  /* ---------- Малювання ---------- */
+  function Chart(el) { this.el = el; this.ctx = el.getContext("2d"); this.W = 0; this.H = 0; this.M = { l: 44, r: 16, t: 14, b: 34 }; }
+  Chart.prototype.resize = function () {
+    var rect = this.el.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    this.W = rect.width; this.H = rect.height;
+    this.el.width = Math.max(1, Math.round(this.W * dpr));
+    this.el.height = Math.max(1, Math.round(this.H * dpr));
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  };
+  var c0 = new Chart($("c0")), c1 = new Chart($("c1"));
+  function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  function colors() {
+    return { panel: cssVar("--panel"), grid: cssVar("--grid"), strong: cssVar("--grid-strong"), muted: cssVar("--muted"),
+      ink: cssVar("--ink"), pt: cssVar("--pt"), pos: cssVar("--pos"), data: cssVar("--font-data"), body: cssVar("--font-body") };
+  }
+
+  /* Осі: x у [x0, x1], y від 0 до y1 (щільність) */
+  function frameChart(ch, x0, x1, y1, k, xlabel) {
+    var ctx = ch.ctx, M = ch.M, W = ch.W, H = ch.H;
+    ctx.font = "11px " + k.data;
+    var ty = S.ticksFor(0, y1, clamp((H - M.t - M.b) / 40, 2, 6));
+    var tx = S.ticksFor(x0, x1, clamp((W - 60) / 80, 3, 9));
+    var wmax = 0;
+    ty.major.forEach(function (v) { wmax = Math.max(wmax, ctx.measureText(fmt(v, ty.decimals)).width); });
+    M.l = Math.max(30, Math.ceil(wmax) + 16);
+    var pw = W - M.l - M.r, ph = H - M.t - M.b;
+    function px(v) { return M.l + (v - x0) / (x1 - x0) * pw; }
+    function py(v) { return M.t + (1 - v / y1) * ph; }
+    ch.px = px; ch.py = py; ch.pw = pw; ch.ph = ph;
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = k.panel; ctx.fillRect(0, 0, W, H);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = k.grid; ctx.beginPath();
+    tx.minor.forEach(function (v) { if (v < x0 || v > x1) return; var x = Math.round(px(v)) + 0.5; ctx.moveTo(x, M.t); ctx.lineTo(x, H - M.b); });
+    ty.minor.forEach(function (v) { var y = Math.round(py(v)) + 0.5; ctx.moveTo(M.l, y); ctx.lineTo(W - M.r, y); });
+    ctx.stroke();
+    ctx.strokeStyle = k.strong; ctx.beginPath();
+    tx.major.forEach(function (v) { if (v < x0 || v > x1) return; var x = Math.round(px(v)) + 0.5; ctx.moveTo(x, M.t); ctx.lineTo(x, H - M.b); });
+    ty.major.forEach(function (v) { var y = Math.round(py(v)) + 0.5; ctx.moveTo(M.l, y); ctx.lineTo(W - M.r, y); });
+    ctx.stroke();
+    ctx.strokeStyle = k.ink; ctx.lineWidth = 1.2; ctx.beginPath();
+    ctx.moveTo(M.l + 0.5, M.t); ctx.lineTo(M.l + 0.5, H - M.b + 0.5); ctx.lineTo(W - M.r, H - M.b + 0.5);
+    ctx.stroke();
+
+    ctx.fillStyle = k.muted; ctx.font = "11px " + k.data;
+    ctx.textBaseline = "top";
+    tx.major.forEach(function (v) {
+      if (v < x0 || v > x1) return;
+      var label = fmt(v, tx.decimals), w = ctx.measureText(label).width, x = px(v);
+      if (x + w / 2 > W - 2) { ctx.textAlign = "right"; x = W - 2; }
+      else if (x - w / 2 < M.l - 6) { ctx.textAlign = "left"; x = M.l - 6; }
+      else ctx.textAlign = "center";
+      ctx.fillText(label, x, H - M.b + 7);
+    });
+    ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    ty.major.forEach(function (v) { ctx.fillText(fmt(v, ty.decimals), M.l - 7, py(v)); });
+    ctx.fillStyle = k.ink; ctx.font = "500 12px " + k.body;
+    ctx.textAlign = "right"; ctx.textBaseline = "bottom";
+    ctx.fillText(xlabel, W - M.r, H - 4);
+  }
+
+  function drawSource(k) {
+    var s = src(), ch = c0, v = s.view, ctx;
+    var ymax = s.ymax || (s.discrete ? 1 : 0);
+    var i, x;
+    if (!s.discrete && !s.ymax) {
+      for (i = 0; i <= 200; i++) { x = v[0] + (v[1] - v[0]) * i / 200; ymax = Math.max(ymax, s.pdf(x)); }
+    }
+    ymax *= 1.12;
+    frameChart(ch, v[0], v[1], ymax, k, "значення одного числа");
+    ctx = ch.ctx;
+    ctx.save(); ctx.beginPath(); ctx.rect(ch.M.l, ch.M.t, ch.pw, ch.ph); ctx.clip();
+    if (s.discrete) {
+      [0, 1].forEach(function (val) {
+        var bw = Math.max(10, ch.pw * 0.06), cx = ch.px(val), top = ch.py(s.pdf(val));
+        ctx.fillStyle = k.pos; ctx.globalAlpha = 0.55;
+        ctx.fillRect(cx - bw / 2, top, bw, ch.py(0) - top); ctx.globalAlpha = 1;
+      });
+    } else {
+      ctx.beginPath();
+      var steps = 300;
+      for (i = 0; i <= steps; i++) {
+        x = v[0] + (v[1] - v[0]) * i / steps;
+        var X = ch.px(x), Y = ch.py(Math.min(s.pdf(x), ymax));
+        if (i === 0) ctx.moveTo(X, Y); else ctx.lineTo(X, Y);
+      }
+      ctx.strokeStyle = k.ink; ctx.lineWidth = 2; ctx.lineJoin = "round"; ctx.stroke();
+      ctx.lineTo(ch.px(v[1]), ch.py(0)); ctx.lineTo(ch.px(v[0]), ch.py(0)); ctx.closePath();
+      ctx.fillStyle = k.pos; ctx.globalAlpha = 0.18; ctx.fill(); ctx.globalAlpha = 1;
+    }
+    if (s.mu !== null) {
+      ctx.strokeStyle = k.ink; ctx.lineWidth = 1.5; ctx.setLineDash([6, 5]);
+      ctx.beginPath(); ctx.moveTo(ch.px(s.mu), ch.M.t); ctx.lineTo(ch.px(s.mu), ch.py(0)); ctx.stroke(); ctx.setLineDash([]);
+    }
+    ctx.restore();
+  }
+
+  function histogram() {
+    var cnt = new Float64Array(spec.nb), out = 0, M = sim.M, v = sim.v;
+    for (var i = 0; i < M; i++) {
+      var b = Math.floor((v[i] - spec.e0) / spec.w + 1e-9);
+      if (v[i] < spec.x0 - 1e-9 || v[i] > spec.x1 + 1e-9) { out++; continue; }
+      if (b < 0) b = 0; if (b >= spec.nb) b = spec.nb - 1;
+      cnt[b]++;
+    }
+    return { cnt: cnt, out: out };
+  }
+
+  function draw() {
+    if (!sim || !c1.W || !c0.W) return;
+    var k = colors(), s = src(), n = state.n, th = hasTheory() && state.norm;
+    drawSource(k);
+
+    var h = histogram(), M = sim.M, dens = [], ymax = 0, i;
+    for (i = 0; i < spec.nb; i++) { dens.push(h.cnt[i] / (M * spec.w)); ymax = Math.max(ymax, dens[i]); }
+    var sg = th ? s.sd / Math.sqrt(n) : 0;
+    if (th) ymax = Math.max(ymax, normPdf(s.mu, s.mu, sg));
+    ymax = Math.max(ymax * 1.12, 1e-9);
+    frameChart(c1, spec.x0, spec.x1, ymax, k, STATS[state.stat].toLowerCase() + " n чисел");
+    var ctx = c1.ctx;
+    ctx.save(); ctx.beginPath(); ctx.rect(c1.M.l, c1.M.t, c1.pw, c1.ph); ctx.clip();
+    for (i = 0; i < spec.nb; i++) {
+      var xa = c1.px(spec.e0 + i * spec.w), xb = c1.px(spec.e0 + (i + 1) * spec.w), top = c1.py(dens[i]);
+      ctx.fillStyle = k.pos; ctx.globalAlpha = 0.55;
+      ctx.fillRect(xa + 0.5, top, Math.max(1, xb - xa - 1), c1.py(0) - top);
+      ctx.globalAlpha = 1;
+    }
+    if (th) {
+      ctx.beginPath();
+      var steps = 240;
+      for (i = 0; i <= steps; i++) {
+        var x = spec.x0 + (spec.x1 - spec.x0) * i / steps;
+        var X = c1.px(x), Y = c1.py(normPdf(x, s.mu, sg));
+        if (i === 0) ctx.moveTo(X, Y); else ctx.lineTo(X, Y);
+      }
+      ctx.strokeStyle = k.ink; ctx.lineWidth = 2.2; ctx.lineJoin = "round"; ctx.stroke();
+    }
+    if (s.mu !== null && state.stat === "mean") {
+      ctx.strokeStyle = k.ink; ctx.lineWidth = 1.2; ctx.setLineDash([6, 5]);
+      ctx.beginPath(); ctx.moveTo(c1.px(s.mu), c1.M.t); ctx.lineTo(c1.px(s.mu), c1.py(0)); ctx.stroke(); ctx.setLineDash([]);
+    }
+    ctx.restore();
+
+    var msg = $("outMsg");
+    if (h.out > 0) {
+      msg.hidden = false;
+      msg.textContent = "За межами графіка: " + fmt(100 * h.out / M, 1) + " % значень (" + group(h.out) + " із " + group(M) + ").";
+    } else msg.hidden = true;
+  }
+
+  function renderLegend() {
+    var el = $("legend1"); el.textContent = "";
+    var items = [["b", "гістограма (частка значень на одиницю довжини)"]];
+    if (hasTheory()) { items.push(["", "нормальна крива N(μ; σ²/n)"]); items.push(["m", "очікуване значення μ"]); }
+    items.forEach(function (it) {
+      var span = document.createElement("span"), sw = document.createElement("span");
+      sw.className = "sw " + it[0]; span.appendChild(sw); span.appendChild(document.createTextNode(it[1]));
+      el.appendChild(span);
+    });
+  }
+
+  /* ---------- Показники ---------- */
+  function update(full) {
+    var s = src(), n = state.n, m = moments(), th = hasTheory(), cm = s.id === "cauchy" && state.stat === "mean";
+    $("rM").textContent = group(sim.M);
+    $("rMean").textContent = cm ? "—" : fmtSig(m.mean);
+    $("rMu").textContent = state.stat !== "mean" ? "—" : s.mu === null ? "не існує" : fmtSig(s.mu);
+    $("rSd").textContent = cm ? "—" : fmtSig(m.sd);
+    $("rSdT").textContent = !th ? (state.stat === "mean" ? "не існує" : "—") : fmtSig(s.sd / Math.sqrt(n));
+    $("rSk").textContent = cm ? "—" : fmtSig(m.skew);
+    $("rSkT").textContent = !th ? (state.stat === "mean" ? "не існує" : "—") : fmtSig(s.skew / Math.sqrt(n));
+    if (th) {
+      var sg = s.sd / Math.sqrt(n), inn = 0;
+      for (var i = 0; i < sim.M; i++) if (Math.abs(sim.v[i] - s.mu) <= 1.96 * sg) inn++;
+      $("rIn").textContent = fmt(100 * inn / sim.M, 1) + " %";
+    } else $("rIn").textContent = "—";
+    draw();
+    if (full) {
+      $("c1").setAttribute("aria-label", "Гістограма: " + STATS[state.stat].toLowerCase() + " n чисел, n = " + n + ". " + announce());
+      $("c0").setAttribute("aria-label", "Розподіл одного числа: " + s.name + ".");
+      renderTable();
+    }
+  }
+
+  function renderTable() {
+    if (!$("tableBox").open || !tableDirty) return;
+    tableDirty = false;
+    var s = src(), tb = $("tbody"), th = hasTheory();
+    tb.textContent = "";
+    TABLE_N.forEach(function (nn) {
+      var rng = Rand.create(Rand.seedFor(555, nn)), saveN = state.n, xs = [], i, m = 0;
+      state.n = nn;
+      for (i = 0; i < PILOT; i++) { xs.push(oneStat(rng, nn, state.stat)); m += xs[i]; }
+      state.n = saveN;
+      m /= PILOT;
+      var m2 = 0, m3 = 0;
+      xs.forEach(function (x) { var d = x - m; m2 += d * d; m3 += d * d * d; });
+      m2 /= PILOT; m3 /= PILOT;
+      var cm = s.id === "cauchy" && state.stat === "mean";
+      var cells = [String(nn), cm ? "—" : fmtSig(Math.sqrt(m2)), th ? fmtSig(s.sd / Math.sqrt(nn)) : "—",
+        cm ? "—" : fmtSig(m2 > 0 ? m3 / Math.pow(m2, 1.5) : 0), th ? fmtSig(s.skew / Math.sqrt(nn)) : "—"];
+      var tr = document.createElement("tr");
+      cells.forEach(function (t, j) {
+        var cell = document.createElement(j === 0 ? "th" : "td");
+        if (j === 0) cell.scope = "row";
+        cell.textContent = t; tr.appendChild(cell);
+      });
+      tb.appendChild(tr);
+    });
+  }
+  $("tableBox").addEventListener("toggle", renderTable);
+
+  /* ---------- Розмір і тема ---------- */
+  function resizeAll() { c0.resize(); c1.resize(); draw(); }
+  if (window.ResizeObserver) { new ResizeObserver(resizeAll).observe($("c0")); new ResizeObserver(resizeAll).observe($("c1")); }
+  else window.addEventListener("resize", resizeAll);
+  new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  if (window.matchMedia) {
+    var mq = window.matchMedia("(prefers-color-scheme: dark)");
+    if (mq.addEventListener) mq.addEventListener("change", draw);
+  }
+
+  /* ---------- Старт ---------- */
+  buildChips();
+  restart();
+  resizeAll();
+})();
+</script>
+</body>
+</html>

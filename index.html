@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Інтерактивні сторінки</title>
+<meta name="description" content="Навчальні сторінки, на яких можна самостійно змінювати дані й одразу бачити результат.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="common.css">
+<style>
+main { max-width: 760px; margin: 0 auto; }
+.subject { margin-top: 28px; }
+.subject-title { margin: 0; font-size: 13px; font-weight: 500; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
+.topics { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 12px; }
+.topic a {
+  display: block; text-decoration: none; color: var(--ink);
+  background: var(--panel); border: 1px solid var(--grid-strong); border-radius: 6px; padding: 14px 16px;
+}
+.topic a:hover { border-color: var(--pos); }
+.topic h3 { margin: 2px 0 4px; font-size: 18px; }
+.topic p { margin: 0; color: var(--muted); font-size: 14px; text-wrap: pretty; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Інтерактивні сторінки</h1>
+  <p class="lead">Навчальні сторінки, на яких можна самостійно змінювати дані й одразу бачити результат.</p>
+
+  <!--
+    Як додати сторінку: скопіюйте один блок <li class="topic"> і змініть посилання, назву та опис.
+    Як додати нову дисципліну: скопіюйте цілий блок <section class="subject"> і змініть заголовок.
+  -->
+  <section class="subject" aria-labelledby="s-stat">
+    <h2 class="subject-title" id="s-stat">Статистика</h2>
+    <ul class="topics">
+      <li class="topic">
+        <a href="correlation.html">
+          <p class="eyebrow">Кореляція</p>
+          <h3>Коефіцієнт кореляції</h3>
+          <p>Ставте точки на діаграмі розсіювання, а коефіцієнт Пірсона, p-значення й довірчий інтервал перераховуються одразу. Є готові набори: від сильного зв'язку до парадоксу Сімпсона, а також вставлення власних даних.</p>
+        </a>
+      </li>
+    </ul>
+  </section>
+</main>
+</body>
+</html>

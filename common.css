@@ -1,0 +1,108 @@
+/*
+ * Спільний вигляд для всіх сторінок: кольори, шрифти, кнопки, світла й темна тема.
+ * Кольори змінюються в одному місці, тут, і зміна діє на всіх сторінках.
+ */
+:root {
+  --bg: #eceff4;
+  --panel: #f8f9fc;
+  --ink: #14202e;
+  --muted: #566376;
+  --grid: #dde3ec;
+  --grid-strong: #c5cedb;
+  --pt: #2556d9;
+  --pos: #2556d9;
+  --neg: #d4521b;
+  --fit: #14202e;
+  --soft: #e3e8f0;
+  --font-body: "Onest", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-data: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e141c; --panel: #151d28; --ink: #e7ecf3; --muted: #97a4b6;
+    --grid: #212b38; --grid-strong: #32404f; --pt: #7ea1ff; --pos: #7ea1ff;
+    --neg: #ff8c5a; --fit: #e7ecf3; --soft: #1d2735;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e141c; --panel: #151d28; --ink: #e7ecf3; --muted: #97a4b6;
+  --grid: #212b38; --grid-strong: #32404f; --pt: #7ea1ff; --pos: #7ea1ff;
+  --neg: #ff8c5a; --fit: #e7ecf3; --soft: #1d2735;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { color-scheme: light; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+h1 {
+  margin: 0;
+  font-size: clamp(24px, 5vw, 32px);
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+a { color: var(--pos); }
+.lead { margin: 6px 0 0; color: var(--muted); max-width: 60ch; text-wrap: pretty; }
+.eyebrow {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--grid-strong);
+  border-radius: 6px;
+  padding: 14px 16px;
+  min-width: 0;
+}
+
+.btn {
+  font: inherit; font-size: 14px; color: var(--ink);
+  background: var(--panel); border: 1px solid var(--grid-strong); border-radius: 6px;
+  padding: 8px 14px; cursor: pointer;
+}
+.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.btn:disabled { opacity: .45; cursor: default; }
+.seg { display: inline-flex; border: 1px solid var(--grid-strong); border-radius: 6px; overflow: hidden; background: var(--panel); }
+.seg button {
+  font: inherit; font-size: 14px; color: var(--ink);
+  background: transparent; border: 0; padding: 8px 14px; cursor: pointer;
+}
+.seg button + button { border-left: 1px solid var(--grid-strong); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.check { display: inline-flex; align-items: center; gap: 7px; font-size: 14px; cursor: pointer; }
+.check input { width: 17px; height: 17px; accent-color: var(--pos); margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.chip {
+  font: inherit; font-size: 13.5px; color: var(--ink);
+  background: var(--bg); border: 1px solid var(--grid-strong); border-radius: 6px;
+  padding: 6px 10px; cursor: pointer;
+  display: inline-flex; align-items: baseline; gap: 8px;
+}
+.chip .cr { font-family: var(--font-data); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.chip[aria-pressed="true"] .cr { color: var(--bg); opacity: .8; }
+
+button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible, a:focus-visible, canvas:focus-visible {
+  outline: 2px solid var(--pos);
+  outline-offset: 2px;
+}
+.sr-only {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}

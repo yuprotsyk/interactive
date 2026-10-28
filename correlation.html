@@ -1,0 +1,1001 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Коефіцієнт кореляції</title>
+<meta name="description" content="Інтерактивна діаграма розсіювання: ставте точки, а коефіцієнт кореляції Пірсона, p-значення та довірчий інтервал рахуються одразу.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="common.css">
+<style>
+/* Розкладка: на телефоні один стовпчик (показник r, поле, інструменти, набори, свої дані, таблиця, деталі);
+   від 900px поле зліва, показники справа */
+.app {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "head" "readout" "plot" "tools" "presets" "mydata" "table" "details";
+}
+.head { grid-area: head; }
+.backlink { display: inline-block; margin-bottom: 10px; font-size: 13px; }
+.readout { grid-area: readout; }
+.details { grid-area: details; }
+.presets { grid-area: presets; }
+.mydata { grid-area: mydata; }
+.tablebox { grid-area: table; }
+.side { display: contents; }
+
+.rline { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-top: 4px; }
+.rval {
+  font-family: var(--font-data);
+  font-weight: 500;
+  font-size: clamp(40px, 11vw, 56px);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.rval.pos { color: var(--pos); }
+.rval.neg { color: var(--neg); }
+.rval.none { color: var(--muted); }
+.verdict { font-weight: 500; font-size: 16px; min-width: 0; text-wrap: balance; }
+.sig { margin: 8px 0 0; font-size: 14px; min-height: 1.5em; text-wrap: pretty; }
+.hint { margin: 2px 0 0; color: var(--muted); font-size: 13px; min-height: 1.5em; }
+
+.gauge { margin-top: 10px; }
+.track { position: relative; height: 10px; background: var(--soft); border-radius: 2px; }
+.fill {
+  position: absolute; top: 0; bottom: 0; left: 50%; width: 0;
+  background: var(--pos); border-radius: 2px;
+  transition: left .18s ease, width .18s ease;
+}
+.fill.neg { background: var(--neg); }
+.mid { position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--ink); opacity: .55; }
+.knob {
+  position: absolute; top: -4px; width: 4px; height: 18px; margin-left: -2px;
+  background: var(--ink); border-radius: 1px; transition: left .18s ease;
+}
+.ticks { display: flex; justify-content: space-between; margin-top: 8px; font-family: var(--font-data); font-size: 11px; color: var(--muted); }
+
+.plotwrap { grid-area: plot; min-width: 0; }
+#plot {
+  display: block; width: 100%; aspect-ratio: 1 / 1; max-height: 82vh;
+  background: var(--panel); border: 1px solid var(--grid-strong); border-radius: 6px;
+  touch-action: none; cursor: crosshair; user-select: none; -webkit-user-select: none;
+}
+.caption { display: flex; justify-content: space-between; gap: 4px 12px; flex-wrap: wrap; margin-top: 6px; font-size: 12px; color: var(--muted); }
+.caption .coords { font-family: var(--font-data); font-variant-numeric: tabular-nums; min-width: 9ch; text-align: right; }
+.keys { margin: 4px 0 0; font-size: 12px; color: var(--muted); max-width: 80ch; text-wrap: pretty; }
+kbd { font-family: var(--font-data); font-size: 11.5px; padding: 0 4px; border: 1px solid var(--grid-strong); border-radius: 3px; background: var(--panel); }
+
+.tools { grid-area: tools; display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+.group + .group { margin-top: 14px; }
+
+.mydata p.how { margin: 6px 0 10px; color: var(--muted); font-size: 13.5px; max-width: 70ch; text-wrap: pretty; }
+#pasteArea {
+  display: block; width: 100%; min-height: 116px; resize: vertical;
+  font-family: var(--font-data); font-size: 13px; line-height: 1.45;
+  color: var(--ink); background: var(--bg);
+  border: 1px solid var(--grid-strong); border-radius: 6px; padding: 10px 12px;
+}
+#pasteArea::placeholder { color: var(--muted); opacity: .8; }
+.datarow { display: flex; flex-wrap: wrap; gap: 8px 10px; margin-top: 10px; }
+.msg { margin: 10px 0 0; font-size: 13.5px; min-height: 1.5em; color: var(--muted); }
+.msg.err { color: var(--neg); }
+
+.tablebox summary { cursor: pointer; font-weight: 500; }
+.tablebox .tnote { margin: 8px 0 10px; font-size: 13px; color: var(--muted); }
+.twrap { overflow-x: auto; max-height: 340px; overflow-y: auto; border: 1px solid var(--grid-strong); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { padding: 4px 8px; text-align: left; border-bottom: 1px solid var(--grid); }
+thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500; color: var(--muted); border-bottom: 1px solid var(--grid-strong); }
+td input {
+  width: 100%; min-width: 7ch; font-family: var(--font-data); font-size: 13px;
+  color: var(--ink); background: var(--bg); border: 1px solid var(--grid-strong); border-radius: 4px; padding: 4px 6px;
+}
+.rowbtn { font: inherit; font-size: 12.5px; padding: 3px 8px; color: var(--ink); background: var(--panel); border: 1px solid var(--grid-strong); border-radius: 4px; cursor: pointer; }
+.tablebox .btn { margin-top: 10px; }
+
+.note { margin: 0 0 14px; padding-bottom: 14px; border-bottom: 1px solid var(--grid-strong); }
+.note h2 { margin: 2px 0 4px; font-size: 16px; font-weight: 700; }
+.note p { margin: 0; color: var(--muted); font-size: 14px; text-wrap: pretty; }
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; margin: 0; }
+.stats div { min-width: 0; }
+.stats .wide { grid-column: 1 / -1; }
+.stats dt { font-size: 12px; color: var(--muted); }
+.stats dd { margin: 0; font-family: var(--font-data); font-size: 17px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.eq { margin: 14px 0 0; font-family: var(--font-data); font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.foot { margin: 10px 0 0; font-size: 12.5px; color: var(--muted); text-wrap: pretty; }
+
+@media (min-width: 900px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    column-gap: 24px;
+    grid-template-areas: "head head" "plot side" "tools side" "presets side" "mydata side" "table side";
+  }
+  .side { grid-area: side; display: flex; flex-direction: column; gap: 16px; align-self: start; position: sticky; top: 16px; min-width: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .fill, .knob { transition: none; } }
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="head">
+    <a class="backlink" href="index.html">← Усі сторінки</a>
+    <h1>Коефіцієнт кореляції</h1>
+    <p class="lead">Клацайте по полю, щоб ставити точки, і перетягуйте їх. Коефіцієнт кореляції Пірсона перераховується одразу. Власні дані можна вставити знизу.</p>
+  </header>
+
+  <div class="side">
+    <section class="readout panel" aria-labelledby="rTitle">
+      <p class="eyebrow" id="rTitle">Коефіцієнт кореляції r</p>
+      <div class="rline">
+        <div class="rval none" id="rval">—</div>
+        <div class="verdict" id="verdict">Поставте щонайменше дві точки</div>
+      </div>
+      <p class="sig" id="sig"></p>
+      <p class="hint" id="hint"></p>
+      <div class="gauge" aria-hidden="true">
+        <div class="track">
+          <div class="fill" id="fill"></div>
+          <div class="mid"></div>
+          <div class="knob" id="knob" hidden></div>
+        </div>
+        <div class="ticks"><span>−1</span><span>0</span><span>+1</span></div>
+      </div>
+    </section>
+
+    <section class="details panel" aria-labelledby="dTitle">
+      <div class="note">
+        <p class="eyebrow" id="noteKicker">Набір</p>
+        <h2 id="noteTitle"></h2>
+        <p id="noteText"></p>
+      </div>
+      <h2 class="sr-only" id="dTitle">Показники</h2>
+      <dl class="stats">
+        <div><dt>Кількість точок, n</dt><dd id="sN">0</dd></div>
+        <div><dt>Коефіцієнт r²</dt><dd id="sR2">—</dd></div>
+        <div><dt>Ранговий ρ Спірмена</dt><dd id="sRho">—</dd></div>
+        <div><dt>p-значення</dt><dd id="sP">—</dd></div>
+        <div><dt>Нахил прямої, b</dt><dd id="sB">—</dd></div>
+        <div><dt>Зсув прямої, a</dt><dd id="sA">—</dd></div>
+        <div class="wide"><dt>Середні x̄ / ȳ</dt><dd id="sMean">—</dd></div>
+        <div class="wide"><dt>95 % довірчий інтервал для r</dt><dd id="sCI">—</dd></div>
+      </dl>
+      <p class="eq" id="eq">Пряма регресії: y = a + b·x</p>
+      <p class="foot">Кореляція не доводить причинність: показники можуть рухатися разом через третій чинник або випадково.</p>
+    </section>
+  </div>
+
+  <section class="plotwrap">
+    <canvas id="plot" tabindex="0" role="application" aria-describedby="keysHelp" aria-label="Діаграма розсіювання"></canvas>
+    <div class="caption">
+      <span id="rangeNote">Обидві осі від 0 до 100</span>
+      <span class="coords" id="coords"></span>
+    </div>
+    <p class="keys" id="keysHelp">З клавіатури: перейдіть на поле клавішею <kbd>Tab</kbd>. <kbd>←</kbd><kbd>↑</kbd><kbd>→</kbd><kbd>↓</kbd> рухають курсор (з <kbd>Shift</kbd> швидше), <kbd>Enter</kbd> додає точку, <kbd>[</kbd> і <kbd>]</kbd> вибирають точку, стрілки тоді рухають її, <kbd>Delete</kbd> видаляє, <kbd>Esc</kbd> скасовує вибір. Усі точки також є в таблиці нижче.</p>
+  </section>
+
+  <div class="tools">
+    <div class="seg" role="group" aria-label="Режим клацання">
+      <button type="button" id="modeAdd" aria-pressed="true">Додати / рухати</button>
+      <button type="button" id="modeDel" aria-pressed="false">Видалити</button>
+    </div>
+    <button type="button" class="btn" id="undo" disabled>Скасувати</button>
+    <button type="button" class="btn" id="clear">Очистити</button>
+    <label class="check"><input type="checkbox" id="showFit" checked> Лінія регресії</label>
+    <label class="check"><input type="checkbox" id="showRes"> Відхилення</label>
+  </div>
+
+  <section class="presets panel" aria-label="Готові набори">
+    <div class="group">
+      <p class="eyebrow">Сила зв'язку</p>
+      <div class="chips" id="chipsStrength"></div>
+    </div>
+    <div class="group">
+      <p class="eyebrow">Пастки та винятки</p>
+      <div class="chips" id="chipsTraps"></div>
+    </div>
+  </section>
+
+  <section class="mydata panel" aria-label="Свої дані">
+    <p class="eyebrow">Свої дані</p>
+    <p class="how">Вставте два стовпчики чисел, наприклад з Excel чи Google Таблиць: x і y в одному рядку, через табуляцію, крапку з комою, пробіл або кому. Перший рядок може містити назви осей. Поточні точки буде замінено, дію можна скасувати.</p>
+    <label class="sr-only" for="pasteArea">Дані: два стовпчики чисел</label>
+    <textarea id="pasteArea" spellcheck="false" placeholder="Температура;Продажі
+12;98
+15;118
+17;133"></textarea>
+    <div class="datarow">
+      <button type="button" class="btn primary" id="applyData">Показати на полі</button>
+      <button type="button" class="btn" id="sampleData">Вставити приклад</button>
+      <button type="button" class="btn" id="copyData">Скопіювати точки</button>
+    </div>
+    <p class="msg" id="dataMsg" role="status"></p>
+  </section>
+
+  <details class="tablebox panel" id="tableBox">
+    <summary>Таблиця точок</summary>
+    <p class="tnote" id="tableNote">Тут можна читати, змінювати й видаляти точки без миші.</p>
+    <div class="twrap">
+      <table>
+        <caption class="sr-only">Точки діаграми</caption>
+        <thead><tr><th scope="col">№</th><th scope="col" id="thX">x</th><th scope="col" id="thY">y</th><th scope="col"><span class="sr-only">Дія</span></th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <button type="button" class="btn" id="addRow">Додати точку</button>
+  </details>
+</main>
+
+<div class="sr-only" id="sr" role="status" aria-live="polite"></div>
+
+<script src="common.js"></script>
+<script>
+(function () {
+  "use strict";
+  var S = Stat;
+  var fmt = S.fmt, fmtSigned = S.fmtSigned, fmtSig = S.fmtSig, clamp = S.clamp;
+
+  /* ---------- Готові набори ---------- */
+  function rng(seed) {
+    return function () {
+      seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+      var t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  function gauss(rand) {
+    var u = 0, v = rand();
+    while (u === 0) u = rand();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  }
+  function standardize(a) {
+    var n = a.length, m = 0, i;
+    for (i = 0; i < n; i++) m += a[i];
+    m /= n;
+    var s = 0;
+    for (i = 0; i < n; i++) s += (a[i] - m) * (a[i] - m);
+    s = Math.sqrt(s / n) || 1;
+    return a.map(function (v) { return (v - m) / s; });
+  }
+  function r2(v) { return Math.round(v * 100) / 100; }
+  /* n точок із наперед заданим r (вибірковий r збігається із заданим) */
+  function corrSet(n, r, o) {
+    var rand = rng(o.seed), i;
+    var zx = standardize(Array.from({ length: n }, function () { return gauss(rand); }));
+    var zn = Array.from({ length: n }, function () { return gauss(rand); });
+    var d = 0;
+    for (i = 0; i < n; i++) d += zn[i] * zx[i];
+    d /= n;
+    zn = standardize(zn.map(function (v, k) { return v - d * zx[k]; }));
+    var k2 = Math.sqrt(1 - r * r);
+    return zx.map(function (x, j) {
+      return { x: r2(clamp(o.mx + o.sx * x, 2, 98)), y: r2(clamp(o.my + o.sy * (r * x + k2 * zn[j]), 2, 98)) };
+    });
+  }
+  function anscombe(ys, xs) { return xs.map(function (x, i) { return { x: x * 5, y: r2(ys[i] * 7) }; }); }
+  var AX = [10, 8, 13, 9, 11, 14, 6, 4, 12, 7, 5];
+  var AX4 = [8, 8, 8, 8, 8, 8, 8, 19, 8, 8, 8];
+  function parabola() {
+    var rand = rng(11), pts = [], n = 25;
+    for (var i = 0; i < n; i++) {
+      var x = 8 + 84 * i / (n - 1);
+      pts.push({ x: r2(x), y: r2(clamp(90 - Math.pow(x - 50, 2) / 21 + gauss(rand) * 2.5, 2, 98)) });
+    }
+    return pts;
+  }
+  function circle() {
+    var pts = [], n = 24;
+    for (var i = 0; i < n; i++) {
+      var a = 2 * Math.PI * i / n;
+      pts.push({ x: r2(50 + 38 * Math.cos(a)), y: r2(50 + 38 * Math.sin(a)) });
+    }
+    return pts;
+  }
+  function outlier() {
+    var pts = corrSet(18, 0, { seed: 5, mx: 34, my: 38, sx: 8, sy: 8 });
+    pts.push({ x: 92, y: 90 });
+    return pts;
+  }
+  function simpson() {
+    var pts = [];
+    [[24, 24], [50, 50], [76, 76]].forEach(function (c, ci) {
+      corrSet(10, -0.85, { seed: 30 + ci, mx: c[0], my: c[1], sx: 7, sy: 7 }).forEach(function (p) { pts.push(p); });
+    });
+    return pts;
+  }
+  var C50 = { mx: 50, my: 50, sx: 17, sy: 17 };
+  function withSeed(seed) { return { seed: seed, mx: C50.mx, my: C50.my, sx: C50.sx, sy: C50.sy }; }
+
+  /* Щоб додати набір, скопіюйте один із записів нижче й змініть назву, текст і точки */
+  var PRESETS = {
+    strong: [
+      { name: "Сильний додатний", title: "Сильний додатний зв'язок",
+        text: "Точки тісно лежать уздовж висхідної прямої. Коли x росте, y майже завжди росте разом із ним.",
+        pts: corrSet(28, 0.95, withSeed(1)) },
+      { name: "Помірний додатний", title: "Помірний додатний зв'язок",
+        text: "Тенденцію видно, але розкид великий: за однакового x значення y помітно відрізняються.",
+        pts: corrSet(30, 0.6, withSeed(2)) },
+      { name: "Слабкий додатний", title: "Слабкий додатний зв'язок",
+        text: "Хмара майже кругла з ледь помітним нахилом. На око такий зв'язок легко пропустити.",
+        pts: corrSet(30, 0.25, withSeed(3)) },
+      { name: "Немає зв'язку", title: "Зв'язку немає",
+        text: "Значення x нічого не говорять про y. На малих вибірках r усе одно трохи відхиляється від нуля випадково, спробуйте додати кілька точок.",
+        pts: corrSet(30, 0, withSeed(4)) },
+      { name: "Сильний від'ємний", title: "Сильний від'ємний зв'язок",
+        text: "Точки спадають: більше x означає менше y. Знак r показує напрям, а його модуль показує тісноту зв'язку.",
+        pts: corrSet(28, -0.9, withSeed(6)) }
+    ],
+    traps: [
+      { name: "Парабола", title: "Парабола: зв'язок є, а r ≈ 0",
+        text: "Залежність майже детермінована, проте r близький до нуля. Коефіцієнт Пірсона вловлює лише лінійний зв'язок.",
+        pts: parabola() },
+      { name: "Коло", title: "Коло: r = 0",
+        text: "Кожна точка лежить на одній і тій самій кривій, але лінійної залежності немає зовсім.",
+        pts: circle() },
+      { name: "Один викид", title: "Один викид створює кореляцію",
+        text: "Основна хмара не має зв'язку, але одна точка в правому верхньому куті піднімає r. Перетягніть її в хмару або видаліть і порівняйте.",
+        pts: outlier() },
+      { name: "Парадокс Сімпсона", title: "Парадокс Сімпсона",
+        text: "Усередині кожної з трьох груп зв'язок від'ємний, а в сукупності додатний і сильний. Змішування груп перевертає знак.",
+        pts: simpson() },
+      { name: "Анскомб I", title: "Квартет Анскомба, набір I",
+        text: "Типова лінійна картина. Усі чотири набори квартету мають r ≈ 0,816, однакові середні та майже однакову пряму регресії.",
+        pts: anscombe([8.04, 6.95, 7.58, 8.81, 8.33, 9.96, 7.24, 4.26, 10.84, 4.82, 5.68], AX) },
+      { name: "Анскомб II", title: "Квартет Анскомба, набір II",
+        text: "Точки лежать на гладкій кривій, а не біля прямої. r такий самий, як у наборі I.",
+        pts: anscombe([9.14, 8.14, 8.74, 8.77, 9.26, 8.10, 6.13, 3.10, 9.13, 7.26, 4.74], AX) },
+      { name: "Анскомб III", title: "Квартет Анскомба, набір III",
+        text: "Майже ідеальна пряма і один викид, який тягне r вниз. Без нього r був би близько 1.",
+        pts: anscombe([7.46, 6.77, 12.74, 7.11, 7.81, 8.84, 6.08, 5.39, 8.15, 6.42, 5.73], AX) },
+      { name: "Анскомб IV", title: "Квартет Анскомба, набір IV",
+        text: "Усі x однакові, крім однієї точки. Саме вона одна задає весь зв'язок.",
+        pts: anscombe([6.58, 5.76, 7.71, 8.84, 8.47, 7.04, 5.25, 12.50, 5.56, 7.91, 6.89], AX4) }
+    ]
+  };
+  var SAMPLE_TEXT = [
+    "Температура, °C;Продажі морозива, шт",
+    "12;98", "15;118", "17;133", "19;147", "21;171", "22;166",
+    "24;195", "26;204", "28;236", "30;243", "31;262", "33;270"
+  ].join("\n");
+
+  /* ---------- Стан ---------- */
+  var pts = [];
+  var view = defaultView();
+  var lx = "x", ly = "y";
+  var history = [];
+  var mode = "add";
+  var active = null;
+  var dragIdx = null;
+  var pending = null;
+  var hover = -1;
+  var sel = -1;                 // вибрана з клавіатури точка
+  var kbd = { x: 50, y: 50, on: false };
+  var kbdSnapDone = false;      // чи вже збережено крок «скасувати» для серії стрілок
+  var showFit = true, showRes = false;
+  var MAXPTS = 2000, TABLE_CAP = 200;
+  var ready = false;
+
+  function $(id) { return document.getElementById(id); }
+  var canvas = $("plot"), ctx = canvas.getContext("2d");
+  var W = 0, H = 0;
+  var M = { l: 40, r: 14, t: 26, b: 44 };
+
+  function defaultView() { return { xmin: 0, xmax: 100, ymin: 0, ymax: 100 }; }
+  function copyPts(a) { return a.map(function (p) { return { x: p.x, y: p.y }; }); }
+  function snap() { return { pts: copyPts(pts), view: { xmin: view.xmin, xmax: view.xmax, ymin: view.ymin, ymax: view.ymax }, lx: lx, ly: ly }; }
+  function restore(s) {
+    pts = copyPts(s.pts);
+    view = { xmin: s.view.xmin, xmax: s.view.xmax, ymin: s.view.ymin, ymax: s.view.ymax };
+    lx = s.lx; ly = s.ly;
+  }
+  function pushHistory(s) {
+    history.push(s);
+    if (history.length > 100) history.shift();
+    $("undo").disabled = false;
+  }
+  function edited() { active = null; markChips(); }
+  function spanX() { return view.xmax - view.xmin; }
+  function spanY() { return view.ymax - view.ymin; }
+  function resetKbd() {
+    kbd.x = (view.xmin + view.xmax) / 2;
+    kbd.y = (view.ymin + view.ymax) / 2;
+  }
+
+  /* ---------- Геометрія ---------- */
+  function pw() { return W - M.l - M.r; }
+  function ph() { return H - M.t - M.b; }
+  function px(x) { return M.l + (x - view.xmin) / spanX() * pw(); }
+  function py(y) { return M.t + (1 - (y - view.ymin) / spanY()) * ph(); }
+  function toData(cx, cy) {
+    return {
+      x: clamp(view.xmin + (cx - M.l) / pw() * spanX(), view.xmin, view.xmax),
+      y: clamp(view.ymin + (1 - (cy - M.t) / ph()) * spanY(), view.ymin, view.ymax)
+    };
+  }
+  function inPlot(cx, cy) { return cx >= M.l - 6 && cx <= W - M.r + 6 && cy >= M.t - 6 && cy <= H - M.b + 6; }
+  function hit(cx, cy) {
+    var best = -1, bd = 16 * 16;
+    for (var i = pts.length - 1; i >= 0; i--) {
+      var dx = px(pts[i].x) - cx, dy = py(pts[i].y) - cy, d = dx * dx + dy * dy;
+      if (d <= bd) { bd = d; best = i; }
+    }
+    return best;
+  }
+  function local(e) {
+    var rect = canvas.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+  function coordText(d) { return lx + " " + fmt(d.x, S.decimalsFor(spanX())) + " · " + ly + " " + fmt(d.y, S.decimalsFor(spanY())); }
+
+  /* ---------- Озвучення для скрінрідерів ---------- */
+  var sayTimer = null;
+  function say(text, delay) {
+    clearTimeout(sayTimer);
+    sayTimer = setTimeout(function () { $("sr").textContent = ""; $("sr").textContent = text; }, delay || 0);
+  }
+  function summaryText(st) {
+    if (st.r === null) return "Точок: " + st.n + ". Коефіцієнт кореляції не визначений.";
+    return "Точок: " + st.n + ". r дорівнює " + fmtSigned(st.r, 3) + ". " + $("verdict").textContent + ".";
+  }
+
+  /* ---------- Малювання ---------- */
+  function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+  function resize() {
+    var rect = canvas.getBoundingClientRect();
+    var dpr = window.devicePixelRatio || 1;
+    W = rect.width; H = rect.height;
+    canvas.width = Math.max(1, Math.round(W * dpr));
+    canvas.height = Math.max(1, Math.round(H * dpr));
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    draw();
+  }
+
+  function draw() {
+    if (!W) return;
+    var cPanel = cssVar("--panel"), cGrid = cssVar("--grid"), cStrong = cssVar("--grid-strong");
+    var cMuted = cssVar("--muted"), cInk = cssVar("--ink"), cPt = cssVar("--pt"), cNeg = cssVar("--neg");
+    var fData = cssVar("--font-data"), fBody = cssVar("--font-body");
+
+    ctx.font = "11px " + fData;
+    var ty = S.ticksFor(view.ymin, view.ymax, clamp(ph() / 60, 3, 8));
+    var tx = S.ticksFor(view.xmin, view.xmax, clamp((W - 60) / 70, 3, 8));
+    var wmax = 0;
+    ty.major.forEach(function (v) { wmax = Math.max(wmax, ctx.measureText(fmt(v, ty.decimals)).width); });
+    M.l = Math.max(30, Math.ceil(wmax) + 16);
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = cPanel;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = cGrid;
+    ctx.beginPath();
+    tx.minor.forEach(function (v) { var x = Math.round(px(v)) + 0.5; ctx.moveTo(x, M.t); ctx.lineTo(x, H - M.b); });
+    ty.minor.forEach(function (v) { var y = Math.round(py(v)) + 0.5; ctx.moveTo(M.l, y); ctx.lineTo(W - M.r, y); });
+    ctx.stroke();
+    ctx.strokeStyle = cStrong;
+    ctx.beginPath();
+    tx.major.forEach(function (v) { var x = Math.round(px(v)) + 0.5; ctx.moveTo(x, M.t); ctx.lineTo(x, H - M.b); });
+    ty.major.forEach(function (v) { var y = Math.round(py(v)) + 0.5; ctx.moveTo(M.l, y); ctx.lineTo(W - M.r, y); });
+    ctx.stroke();
+
+    ctx.strokeStyle = cInk;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(M.l + 0.5, M.t); ctx.lineTo(M.l + 0.5, H - M.b + 0.5); ctx.lineTo(W - M.r, H - M.b + 0.5);
+    ctx.stroke();
+
+    ctx.fillStyle = cMuted;
+    ctx.font = "11px " + fData;
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    tx.major.forEach(function (v) { ctx.fillText(fmt(v, tx.decimals), px(v), H - M.b + 8); });
+    ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    ty.major.forEach(function (v) { ctx.fillText(fmt(v, ty.decimals), M.l - 7, py(v)); });
+
+    ctx.fillStyle = cInk;
+    ctx.font = "500 12px " + fBody;
+    ctx.textAlign = "right"; ctx.textBaseline = "bottom";
+    ctx.fillText(lx, W - M.r, H - 5, Math.max(40, pw()));
+    ctx.textAlign = "left"; ctx.textBaseline = "top";
+    ctx.fillText(ly, M.l, 5, Math.max(40, pw()));
+
+    var st = S.analyze(pts);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(M.l, M.t, pw(), ph());
+    ctx.clip();
+    if (showRes && st.slope !== null) {
+      ctx.strokeStyle = cNeg;
+      ctx.globalAlpha = 0.6;
+      ctx.lineWidth = 1.3;
+      ctx.beginPath();
+      pts.forEach(function (p) {
+        ctx.moveTo(px(p.x), py(p.y)); ctx.lineTo(px(p.x), py(st.intercept + st.slope * p.x));
+      });
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    if (showFit && st.slope !== null) {
+      ctx.strokeStyle = cssVar("--fit");
+      ctx.lineWidth = 1.8;
+      ctx.setLineDash([7, 5]);
+      ctx.beginPath();
+      ctx.moveTo(px(view.xmin), py(st.intercept + st.slope * view.xmin));
+      ctx.lineTo(px(view.xmax), py(st.intercept + st.slope * view.xmax));
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    ctx.restore();
+
+    var many = pts.length > 300;
+    pts.forEach(function (p, idx) {
+      var cx = px(p.x), cy = py(p.y);
+      if (idx === hover || idx === dragIdx || idx === sel) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, idx === sel ? 12 : 11, 0, Math.PI * 2);
+        ctx.strokeStyle = mode === "del" && idx !== sel ? cNeg : cPt;
+        ctx.lineWidth = idx === sel ? 3 : 2;
+        ctx.stroke();
+      }
+      ctx.beginPath();
+      ctx.arc(cx, cy, many ? 3.5 : 6, 0, Math.PI * 2);
+      ctx.fillStyle = cPt;
+      ctx.globalAlpha = many ? 0.7 : 1;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = cPanel;
+      ctx.stroke();
+    });
+
+    // курсор клавіатури: хрестик, коли жодну точку не вибрано
+    if (kbd.on && sel < 0 && document.activeElement === canvas) {
+      var kx = px(kbd.x), ky = py(kbd.y);
+      ctx.strokeStyle = cInk;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(kx - 9, ky); ctx.lineTo(kx + 9, ky);
+      ctx.moveTo(kx, ky - 9); ctx.lineTo(kx, ky + 9);
+      ctx.stroke();
+    }
+  }
+
+  /* ---------- Показники ---------- */
+  function strengthWord(a) {
+    if (a < 0.1) return null;
+    if (a < 0.3) return "Слабкий";
+    if (a < 0.5) return "Помірний";
+    if (a < 0.7) return "Виражений";
+    if (a < 0.9) return "Сильний";
+    return "Дуже сильний";
+  }
+  function fmtP(p) { return p < 0.001 ? "< 0,001" : fmt(p, 3); }
+
+  function update() {
+    var st = S.analyze(pts);
+    var rv = $("rval"), fill = $("fill"), knob = $("knob");
+    $("sN").textContent = String(st.n);
+    $("sR2").textContent = st.r === null ? "—" : fmt(st.r * st.r, 3);
+    $("sRho").textContent = fmtSigned(st.rho, 3);
+    $("sP").textContent = st.p === null ? "—" : fmtP(st.p);
+    $("sB").textContent = fmtSig(st.slope);
+    $("sA").textContent = fmtSig(st.intercept);
+    $("sMean").textContent = st.meanX === null ? "—" : fmtSig(st.meanX) + " / " + fmtSig(st.meanY);
+    $("sCI").textContent = st.ci === null ? "—" : "[" + fmt(st.ci[0], 3) + "; " + fmt(st.ci[1], 3) + "]";
+    $("eq").textContent = st.slope === null
+      ? "Пряма регресії: y = a + b·x"
+      : "y = " + fmtSig(st.intercept) + (st.slope < 0 ? " − " : " + ") + fmtSig(Math.abs(st.slope)) + "·x";
+    $("rangeNote").textContent = "Осі: " + lx + " від " + fmtSig(view.xmin) + " до " + fmtSig(view.xmax) +
+      ", " + ly + " від " + fmtSig(view.ymin) + " до " + fmtSig(view.ymax);
+    $("thX").textContent = lx;
+    $("thY").textContent = ly;
+
+    var hint = "", sig = "";
+    if (st.r === null) {
+      rv.textContent = "—"; rv.className = "rval none";
+      fill.style.width = "0"; knob.hidden = true;
+      $("verdict").textContent = st.n < 2 ? "Поставте щонайменше дві точки" : "Усі точки мають однаковий x або y, тому r не визначений";
+    } else {
+      var r = st.r, a = Math.abs(r);
+      rv.textContent = fmtSigned(r, 3);
+      rv.className = "rval " + (a < 0.0005 ? "none" : r > 0 ? "pos" : "neg");
+      var w = strengthWord(a);
+      $("verdict").textContent = w ? w + " " + (r > 0 ? "додатний" : "від'ємний") + " зв'язок" : "Лінійного зв'язку майже немає";
+      knob.hidden = false;
+      knob.style.left = ((r + 1) / 2 * 100) + "%";
+      fill.className = "fill" + (r < 0 ? " neg" : "");
+      fill.style.left = (r >= 0 ? 50 : 50 + r * 50) + "%";
+      fill.style.width = (a * 50) + "%";
+      if (st.p !== null) {
+        var ps = st.p < 0.001 ? "< 0,001" : "= " + fmt(st.p, 3);
+        sig = st.p < 0.05
+          ? "Зв'язок статистично значущий на рівні 5 % (p " + ps + ")."
+          : "Зв'язок не значущий на рівні 5 % (p " + ps + "): такий r легко отримати випадково.";
+      }
+      if (st.n < 5) hint = "Точок мало: r на такій вибірці ненадійний.";
+      else if (a > 0.5 && st.rho !== null && Math.abs(st.rho - r) > 0.25) hint = "r і ρ Спірмена помітно відрізняються: у даних є викид або крива.";
+    }
+    $("sig").textContent = sig;
+    $("hint").textContent = hint;
+    canvas.setAttribute("aria-label", "Діаграма розсіювання. " + summaryText(st));
+
+    if (active) {
+      $("noteKicker").textContent = "Готовий набір";
+      $("noteTitle").textContent = active.title;
+      $("noteText").textContent = active.text;
+    } else {
+      $("noteKicker").textContent = "Ваші точки";
+      $("noteTitle").textContent = st.n ? "Власний набір" : "Поле порожнє";
+      $("noteText").textContent = st.n
+        ? "Додавайте, перетягуйте й видаляйте точки та стежте, як рухається r."
+        : "Клацніть по полю, щоб поставити першу точку, вставте свої дані знизу або оберіть готовий набір.";
+    }
+    renderTable(false);
+    draw();
+    if (ready && dragIdx === null) say(summaryText(st), 700);
+  }
+
+  /* ---------- Таблиця точок ---------- */
+  var tbody = $("tbody");
+  /* У клітинках звичайний мінус, щоб число було зручно редагувати; кома лишається десятковим знаком */
+  function cellText(v, span) { return fmt(v, S.decimalsFor(span)).replace("−", "-"); }
+  function renderTable(force) {
+    if (!$("tableBox").open) return;
+    var shown = Math.min(pts.length, TABLE_CAP);
+    $("tableNote").textContent = pts.length > TABLE_CAP
+      ? "Показано перші " + TABLE_CAP + " із " + pts.length + " точок."
+      : "Тут можна читати, змінювати й видаляти точки без миші. Число запишіть із комою чи крапкою.";
+    if (force || tbody.children.length !== shown) {
+      tbody.textContent = "";
+      for (var i = 0; i < shown; i++) tbody.appendChild(makeRow(i));
+    }
+    for (var j = 0; j < shown; j++) {
+      var row = tbody.children[j];
+      var ix = row.querySelector(".cx"), iy = row.querySelector(".cy");
+      if (document.activeElement !== ix) ix.value = cellText(pts[j].x, spanX());
+      if (document.activeElement !== iy) iy.value = cellText(pts[j].y, spanY());
+      row.classList.toggle("sel", j === sel);
+    }
+  }
+  function makeRow(i) {
+    var tr = document.createElement("tr");
+    var th = document.createElement("th");
+    th.scope = "row"; th.textContent = String(i + 1);
+    tr.appendChild(th);
+    ["x", "y"].forEach(function (axis) {
+      var td = document.createElement("td");
+      var inp = document.createElement("input");
+      inp.type = "text"; inp.inputMode = "decimal"; inp.className = axis === "x" ? "cx" : "cy";
+      inp.setAttribute("aria-label", "Точка " + (i + 1) + ", " + (axis === "x" ? lx : ly));
+      inp.addEventListener("change", function () {
+        var v = S.toNumber(inp.value), idx = Array.prototype.indexOf.call(tbody.children, tr);
+        if (v === null || idx < 0 || idx >= pts.length) { renderTable(false); inp.value = cellText(pts[idx][axis], axis === "x" ? spanX() : spanY()); return; }
+        pushHistory(snap());
+        pts[idx][axis] = v;
+        widenView();
+        edited(); update();
+      });
+      td.appendChild(inp);
+      tr.appendChild(td);
+    });
+    var tdb = document.createElement("td");
+    var del = document.createElement("button");
+    del.type = "button"; del.className = "rowbtn"; del.textContent = "Видалити";
+    del.setAttribute("aria-label", "Видалити точку " + (i + 1));
+    del.addEventListener("click", function () {
+      var idx = Array.prototype.indexOf.call(tbody.children, tr);
+      if (idx < 0 || idx >= pts.length) return;
+      pushHistory(snap());
+      pts.splice(idx, 1);
+      if (sel >= pts.length) sel = pts.length - 1;
+      edited(); update();
+      say("Точку " + (idx + 1) + " видалено. Залишилось: " + pts.length + ".");
+      var next = tbody.children[Math.min(idx, tbody.children.length - 1)];
+      var focusEl = next && next.querySelector(".rowbtn");
+      if (focusEl) focusEl.focus(); else $("addRow").focus();
+    });
+    tdb.appendChild(del);
+    tr.appendChild(tdb);
+    return tr;
+  }
+  /* Якщо значення з таблиці вийшло за межі осей, розширюємо осі */
+  function widenView() {
+    var lo = { x: Infinity, y: Infinity }, hi = { x: -Infinity, y: -Infinity };
+    pts.forEach(function (p) {
+      lo.x = Math.min(lo.x, p.x); hi.x = Math.max(hi.x, p.x);
+      lo.y = Math.min(lo.y, p.y); hi.y = Math.max(hi.y, p.y);
+    });
+    if (lo.x < view.xmin || hi.x > view.xmax) { var ex = extent([lo.x, hi.x]); view.xmin = Math.min(view.xmin, ex[0]); view.xmax = Math.max(view.xmax, ex[1]); }
+    if (lo.y < view.ymin || hi.y > view.ymax) { var ey = extent([lo.y, hi.y]); view.ymin = Math.min(view.ymin, ey[0]); view.ymax = Math.max(view.ymax, ey[1]); }
+  }
+  $("tableBox").addEventListener("toggle", function () { renderTable(true); });
+  $("addRow").addEventListener("click", function () {
+    if (pts.length >= MAXPTS) return;
+    pushHistory(snap());
+    pts.push({ x: S.snapToSpan((view.xmin + view.xmax) / 2, spanX()), y: S.snapToSpan((view.ymin + view.ymax) / 2, spanY()) });
+    edited(); update();
+    var last = tbody.children[Math.min(pts.length, TABLE_CAP) - 1];
+    if (last) last.querySelector(".cx").focus();
+    say("Додано точку " + pts.length + " у центрі поля.");
+  });
+
+  /* ---------- Набори ---------- */
+  var chipEls = [];
+  function buildChips() {
+    [[PRESETS.strong, "chipsStrength"], [PRESETS.traps, "chipsTraps"]].forEach(function (pair) {
+      var box = $(pair[1]);
+      pair[0].forEach(function (p) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "chip";
+        b.setAttribute("aria-pressed", "false");
+        var name = document.createElement("span");
+        name.textContent = p.name;
+        var cr = document.createElement("span");
+        cr.className = "cr";
+        cr.textContent = fmt(S.analyze(p.pts).r, 2);
+        cr.setAttribute("aria-label", "r " + cr.textContent);
+        b.appendChild(name); b.appendChild(cr);
+        b.addEventListener("click", function () { loadPreset(p); });
+        box.appendChild(b);
+        chipEls.push({ el: b, preset: p });
+      });
+    });
+  }
+  function markChips() {
+    chipEls.forEach(function (c) { c.el.setAttribute("aria-pressed", c.preset === active ? "true" : "false"); });
+  }
+  function loadPreset(p) {
+    pushHistory(snap());
+    pts = copyPts(p.pts);
+    view = defaultView(); lx = "x"; ly = "y";
+    active = p;
+    hover = -1; dragIdx = null; sel = -1; resetKbd();
+    setMsg("");
+    markChips();
+    update();
+    say("Набір «" + p.name + "». " + summaryText(S.analyze(pts)));
+  }
+
+  /* ---------- Свої дані ---------- */
+  function setMsg(text, isErr) {
+    var m = $("dataMsg");
+    m.textContent = text;
+    m.className = "msg" + (isErr ? " err" : "");
+  }
+  function extent(vals) {
+    var lo = Infinity, hi = -Infinity;
+    for (var i = 0; i < vals.length; i++) { if (vals[i] < lo) lo = vals[i]; if (vals[i] > hi) hi = vals[i]; }
+    var span = hi - lo;
+    if (span === 0) { span = Math.abs(lo) * 0.2 || 1; lo -= span / 2; hi += span / 2; }
+    var pad = span * 0.08;
+    return [lo - pad, hi + pad];
+  }
+  function applyData() {
+    var res = S.parseData($("pasteArea").value);
+    if (res.points.length < 2) {
+      setMsg("Не вдалося знайти щонайменше два рядки з двома числами. Приклад рядка: 12;98", true);
+      return;
+    }
+    var arr = res.points, cut = 0;
+    if (arr.length > MAXPTS) { cut = arr.length - MAXPTS; arr = arr.slice(0, MAXPTS); }
+    pushHistory(snap());
+    pts = arr;
+    var ex = extent(arr.map(function (p) { return p.x; }));
+    var ey = extent(arr.map(function (p) { return p.y; }));
+    view = { xmin: ex[0], xmax: ex[1], ymin: ey[0], ymax: ey[1] };
+    lx = res.header ? res.header[0] : "x";
+    ly = res.header ? res.header[1] : "y";
+    hover = -1; dragIdx = null; sel = -1; resetKbd();
+    edited();
+    var msg = "Показано точок: " + arr.length + ".";
+    if (res.skipped) msg += " Пропущено рядків: " + res.skipped + ".";
+    if (cut) msg += " Зайві " + cut + " рядків відкинуто (ліміт " + MAXPTS + ").";
+    setMsg(msg, false);
+    update();
+  }
+  function tsvOf() {
+    var rows = pts.map(function (p) { return String(p.x).replace(".", ",") + "\t" + String(p.y).replace(".", ","); });
+    return [lx + "\t" + ly].concat(rows).join("\n");
+  }
+  function copyData() {
+    if (!pts.length) { setMsg("Спершу поставте хоча б одну точку.", true); return; }
+    var text = tsvOf();
+    function fallback() {
+      var ta = $("pasteArea");
+      ta.value = text;
+      ta.focus();
+      ta.select();
+      setMsg("Автоматичне копіювання тут недоступне. Точки вставлено в поле вище й виділено, скопіюйте їх вручну.", false);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        setMsg("Скопійовано точок: " + pts.length + ". Формат підходить для вставки в Excel.", false);
+      }, fallback);
+    } else fallback();
+  }
+  $("applyData").addEventListener("click", applyData);
+  $("sampleData").addEventListener("click", function () {
+    $("pasteArea").value = SAMPLE_TEXT;
+    setMsg("Приклад вставлено: температура й продажі морозива. Натисніть «Показати на полі».", false);
+  });
+  $("copyData").addEventListener("click", copyData);
+
+  /* ---------- Миша й дотик ---------- */
+  canvas.addEventListener("pointerdown", function (e) {
+    kbd.on = false; sel = -1;
+    var c = local(e), i = hit(c.x, c.y);
+    if (mode === "del") {
+      if (i >= 0) {
+        pushHistory(snap());
+        pts.splice(i, 1);
+        hover = -1;
+        edited(); update();
+      }
+      return;
+    }
+    if (i < 0 && !inPlot(c.x, c.y)) return;
+    if (i < 0 && pts.length >= MAXPTS) return;
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* не критично */ }
+    if (i >= 0) {
+      pending = snap();
+      dragIdx = i;
+    } else {
+      pushHistory(snap());
+      var d = toData(c.x, c.y);
+      pts.push({ x: S.snapToSpan(d.x, spanX()), y: S.snapToSpan(d.y, spanY()) });
+      dragIdx = pts.length - 1;
+      pending = null;
+      edited();
+    }
+    update();
+  });
+  canvas.addEventListener("pointermove", function (e) {
+    var c = local(e);
+    if (dragIdx !== null) {
+      if (pending) { pushHistory(pending); pending = null; edited(); }
+      var d = toData(c.x, c.y);
+      pts[dragIdx].x = S.snapToSpan(d.x, spanX());
+      pts[dragIdx].y = S.snapToSpan(d.y, spanY());
+      $("coords").textContent = coordText(pts[dragIdx]);
+      update();
+      return;
+    }
+    var h = hit(c.x, c.y);
+    if (h !== hover) { hover = h; draw(); }
+    canvas.style.cursor = h >= 0 ? (mode === "del" ? "pointer" : "grab") : (mode === "del" ? "default" : "crosshair");
+    $("coords").textContent = inPlot(c.x, c.y) ? coordText(toData(c.x, c.y)) : "";
+  });
+  function endDrag() {
+    var was = dragIdx !== null;
+    dragIdx = null; pending = null;
+    draw();
+    if (was) say(summaryText(S.analyze(pts)), 300);
+  }
+  canvas.addEventListener("pointerup", endDrag);
+  canvas.addEventListener("pointercancel", endDrag);
+  canvas.addEventListener("pointerleave", function () {
+    if (dragIdx === null) { hover = -1; $("coords").textContent = ""; draw(); }
+  });
+
+  /* ---------- Клавіатура ---------- */
+  function pointText(i) {
+    return "Точка " + (i + 1) + " із " + pts.length + ": " + coordText(pts[i]) + ".";
+  }
+  canvas.addEventListener("focus", function () { kbd.on = true; draw(); say("Поле діаграми. Стрілки рухають курсор, Enter додає точку. Усі клавіші описано під полем."); });
+  canvas.addEventListener("blur", function () { kbdSnapDone = false; draw(); });
+  canvas.addEventListener("keydown", function (e) {
+    var key = e.key, stepFactor = e.shiftKey ? 0.1 : 0.01, handled = true;
+    var dx = 0, dy = 0;
+    if (key === "ArrowLeft") dx = -1; else if (key === "ArrowRight") dx = 1;
+    else if (key === "ArrowUp") dy = 1; else if (key === "ArrowDown") dy = -1;
+    kbd.on = true;
+    if (dx || dy) {
+      var sx = spanX() * stepFactor * dx, sy = spanY() * stepFactor * dy;
+      if (sel >= 0 && sel < pts.length) {
+        if (!kbdSnapDone) { pushHistory(snap()); kbdSnapDone = true; }
+        pts[sel].x = S.snapToSpan(clamp(pts[sel].x + sx, view.xmin, view.xmax), spanX());
+        pts[sel].y = S.snapToSpan(clamp(pts[sel].y + sy, view.ymin, view.ymax), spanY());
+        edited(); update();
+        say(pointText(sel) + " " + summaryText(S.analyze(pts)), 400);
+      } else {
+        kbd.x = clamp(kbd.x + sx, view.xmin, view.xmax);
+        kbd.y = clamp(kbd.y + sy, view.ymin, view.ymax);
+        $("coords").textContent = coordText(kbd);
+        draw();
+        say("Курсор: " + coordText(kbd), 150);
+      }
+    } else if (key === "Enter" || key === " ") {
+      if (pts.length >= MAXPTS) { say("Досягнуто ліміт точок."); }
+      else {
+        pushHistory(snap());
+        pts.push({ x: S.snapToSpan(kbd.x, spanX()), y: S.snapToSpan(kbd.y, spanY()) });
+        sel = -1; kbdSnapDone = false;
+        edited(); update();
+        say("Додано точку " + pts.length + ": " + coordText(pts[pts.length - 1]) + ". " + summaryText(S.analyze(pts)), 200);
+      }
+    } else if (key === "]" || key === "[" || key === "PageDown" || key === "PageUp") {
+      if (!pts.length) { say("Точок ще немає."); }
+      else {
+        var dir = (key === "]" || key === "PageDown") ? 1 : -1;
+        sel = sel < 0 ? (dir > 0 ? 0 : pts.length - 1) : (sel + dir + pts.length) % pts.length;
+        kbdSnapDone = false;
+        kbd.x = pts[sel].x; kbd.y = pts[sel].y;
+        draw(); renderTable(false);
+        say(pointText(sel) + " Стрілки рухають її, Delete видаляє.");
+      }
+    } else if (key === "Delete" || key === "Backspace") {
+      if (sel >= 0 && sel < pts.length) {
+        pushHistory(snap());
+        var gone = sel;
+        pts.splice(sel, 1);
+        sel = -1; kbdSnapDone = false;
+        edited(); update();
+        say("Точку " + (gone + 1) + " видалено. Залишилось: " + pts.length + ".", 200);
+      } else say("Спершу виберіть точку клавішами [ і ].");
+    } else if (key === "Escape") {
+      if (sel >= 0) { sel = -1; kbdSnapDone = false; draw(); say("Вибір скасовано."); } else handled = false;
+    } else if ((e.ctrlKey || e.metaKey) && (key === "z" || key === "Z")) {
+      undo();
+    } else handled = false;
+    if (handled) e.preventDefault();
+  });
+
+  /* ---------- Кнопки ---------- */
+  function setMode(m) {
+    mode = m;
+    $("modeAdd").setAttribute("aria-pressed", String(m === "add"));
+    $("modeDel").setAttribute("aria-pressed", String(m === "del"));
+    canvas.style.cursor = m === "del" ? "default" : "crosshair";
+    draw();
+  }
+  $("modeAdd").addEventListener("click", function () { setMode("add"); });
+  $("modeDel").addEventListener("click", function () { setMode("del"); });
+  function undo() {
+    if (!history.length) return;
+    restore(history.pop());
+    active = null; hover = -1; sel = -1; kbdSnapDone = false;
+    markChips();
+    $("undo").disabled = history.length === 0;
+    update();
+  }
+  $("undo").addEventListener("click", undo);
+  $("clear").addEventListener("click", function () {
+    if (!pts.length) return;
+    pushHistory(snap());
+    pts = []; hover = -1; sel = -1;
+    edited(); update();
+  });
+  $("showFit").addEventListener("change", function (e) { showFit = e.target.checked; draw(); });
+  $("showRes").addEventListener("change", function (e) { showRes = e.target.checked; draw(); });
+
+  /* ---------- Тема і розмір ---------- */
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(canvas);
+  else window.addEventListener("resize", resize);
+  new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  if (window.matchMedia) {
+    var mq = window.matchMedia("(prefers-color-scheme: dark)");
+    if (mq.addEventListener) mq.addEventListener("change", draw);
+  }
+
+  /* ---------- Старт ---------- */
+  buildChips();
+  pts = copyPts(PRESETS.strong[1].pts);
+  active = PRESETS.strong[1];
+  markChips();
+  resetKbd();
+  resize();
+  update();
+  ready = true;
+})();
+</script>
+</body>
+</html>

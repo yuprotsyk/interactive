@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Формула повної ймовірності</title>
+<meta name="description" content="Змінюйте ймовірності гіпотез і умовні ймовірності та дивіться, як із них складається повна ймовірність події: на квадраті й на дереві.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="common.css">
+<style>
+.app {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "head" "choose" "view" "chart" "result" "explain";
+}
+.head { grid-area: head; }
+.backlink { display: inline-block; margin-bottom: 10px; font-size: 13px; }
+.choose { grid-area: choose; }
+.viewbar { grid-area: view; display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+.chart { grid-area: chart; min-width: 0; }
+.result { grid-area: result; }
+.explain { grid-area: explain; }
+.side { display: contents; }
+
+.srcnote { margin: 10px 0 0; font-size: 14px; color: var(--muted); max-width: 72ch; text-wrap: pretty; }
+.cfgbar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin-top: 14px; }
+.cfgbar .lbl { font-size: 13.5px; }
+
+.hrows { display: grid; gap: 10px; margin-top: 14px; }
+.hrow {
+  display: grid; gap: 6px 18px; align-items: end;
+  grid-template-columns: minmax(0, 1fr);
+  padding: 10px 12px; border: 1px solid var(--grid-strong); border-radius: 6px; background: var(--bg);
+}
+.hname { display: flex; align-items: baseline; gap: 8px; font-size: 14px; }
+.hname .sw { width: 12px; height: 12px; border-radius: 3px; flex: none; align-self: center; }
+.hname strong { font-weight: 700; }
+.hname span.d { color: var(--muted); }
+.fld { display: grid; gap: 3px; min-width: 0; }
+.fld label { font-size: 13px; color: var(--muted); }
+.fld .row { display: grid; grid-template-columns: minmax(0, 1fr) 64px; gap: 10px; align-items: center; }
+.fld input[type="range"] { width: 100%; margin: 0; }
+.fld output {
+  font-family: var(--font-data); font-size: 13.5px; font-variant-numeric: tabular-nums; text-align: right;
+  color: var(--ink); background: var(--panel); border: 1px solid var(--grid-strong); border-radius: 4px; padding: 5px 7px;
+}
+@media (min-width: 700px) {
+  .hrow { grid-template-columns: 170px minmax(0, 1fr) minmax(0, 1fr); }
+}
+
+.chart h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
+.chart canvas {
+  display: block; width: 100%; aspect-ratio: 4 / 3; background: var(--panel);
+  border: 1px solid var(--grid-strong); border-radius: 6px;
+}
+.cmsg { margin: 8px 0 0; font-size: 13.5px; color: var(--muted); max-width: 72ch; text-wrap: pretty; }
+
+.result .big { margin: 6px 0 0; }
+.result .big dt { font-size: 12px; color: var(--muted); }
+.result .big dd { margin: 0; font-family: var(--font-data); font-size: clamp(30px, 8vw, 40px); line-height: 1.1; letter-spacing: -0.02em; color: var(--pos); font-variant-numeric: tabular-nums; }
+.formula { margin: 12px 0 0; font-family: var(--font-data); font-size: 13.5px; line-height: 1.9; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.formula .t { white-space: nowrap; font-weight: 500; }
+.twrap { margin-top: 12px; overflow: auto; border: 1px solid var(--grid-strong); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+th, td { padding: 4px 8px; text-align: right; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+thead th { background: var(--panel); font-weight: 500; color: var(--muted); border-bottom: 1px solid var(--grid-strong); }
+tbody tr:last-child td, tbody tr:last-child th { border-bottom: 0; }
+tfoot td, tfoot th { font-weight: 700; border-top: 1px solid var(--grid-strong); }
+
+.explain h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
+.explain p { margin: 8px 0 0; font-size: 14.5px; max-width: 68ch; text-wrap: pretty; }
+.explain p.key { margin-top: 0; }
+
+@media (min-width: 900px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr) 360px;
+    column-gap: 24px;
+    grid-template-areas: "head head" "choose choose" "view view" "chart side";
+  }
+  .side { grid-area: side; display: flex; flex-direction: column; gap: 16px; align-self: start; min-width: 0; }
+  .chart canvas { aspect-ratio: 16 / 11; }
+}
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="head">
+    <a class="backlink" href="index.html">← Усі сторінки</a>
+    <h1>Формула повної ймовірності</h1>
+    <p class="lead">Подія може настати різними шляхами. Задайте ймовірність кожного шляху й ймовірність події на ньому, і сторінка складе повну ймовірність.</p>
+  </header>
+
+  <section class="choose panel" aria-label="Що рахуємо">
+    <p class="eyebrow">Приклад</p>
+    <div class="chips" id="chips"></div>
+    <p class="srcnote" id="srcNote"></p>
+    <div class="cfgbar">
+      <span class="lbl" id="kLbl">Скільки гіпотез</span>
+      <div class="seg" role="group" aria-labelledby="kLbl">
+        <button type="button" data-k="2" aria-pressed="false">2</button>
+        <button type="button" data-k="3" aria-pressed="false">3</button>
+        <button type="button" data-k="4" aria-pressed="false">4</button>
+      </div>
+    </div>
+    <div class="hrows" id="hrows"></div>
+  </section>
+
+  <div class="viewbar">
+    <span class="lbl" id="vLbl">Як показати</span>
+    <div class="seg" role="group" aria-labelledby="vLbl">
+      <button type="button" id="vSq" aria-pressed="true">Квадрат</button>
+      <button type="button" id="vTree" aria-pressed="false">Дерево</button>
+    </div>
+  </div>
+
+  <section class="chart" aria-labelledby="chTitle">
+    <h2 id="chTitle">Квадрат ймовірностей</h2>
+    <canvas id="cv" role="img" aria-label="Квадрат ймовірностей"></canvas>
+    <p class="cmsg" id="chNote"></p>
+  </section>
+
+  <div class="side">
+    <section class="result panel" aria-labelledby="rTitle">
+      <p class="eyebrow" id="rTitle">Результат</p>
+      <dl style="margin:0"><div class="big"><dt id="rLbl">Повна ймовірність P(A)</dt><dd id="rVal">—</dd></div></dl>
+      <p class="formula" id="formula"></p>
+      <div class="twrap">
+        <table>
+          <caption class="sr-only">Внески гіпотез у повну ймовірність</caption>
+          <thead><tr><th scope="col">Гіпотеза</th><th scope="col">P(H)</th><th scope="col">P(A|H)</th><th scope="col">Добуток</th></tr></thead>
+          <tbody id="tbody"></tbody>
+          <tfoot id="tfoot"></tfoot>
+        </table>
+      </div>
+    </section>
+
+    <section class="explain panel" aria-labelledby="eTitle">
+      <h2 id="eTitle">Що тут відбувається</h2>
+      <p class="key"><strong>Гіпотези H₁…Hₖ</strong> не перетинаються й разом охоплюють усі можливості, тому їхні ймовірності в сумі дають 1. Змінюєте одну, решта підлаштовується.</p>
+      <p><strong>Квадрат.</strong> Ширина стовпчика це P(Hᵢ), заповнена частина по висоті це P(A | Hᵢ). Площа заповненої частини дорівнює P(Hᵢ)·P(A | Hᵢ). Справа всі ці площі складено в один стовпчик, і його висота є повною ймовірністю P(A).</p>
+      <p><strong>Дерево.</strong> Ймовірності вздовж шляху перемножуються, а шляхи, що закінчуються на A, додаються.</p>
+      <p><strong>Це зважене середнє.</strong> P(A) завжди лежить між найменшим і найбільшим із P(A | Hᵢ), а вагами є P(Hᵢ). Зробіть одну гіпотезу майже певною, і P(A) наблизиться до її P(A | H).</p>
+    </section>
+  </div>
+</main>
+
+<div class="sr-only" id="sr" role="status" aria-live="polite"></div>
+
+<script src="common.js"></script>
+<script src="probability.js"></script>
+<script>
+(function () {
+  "use strict";
+  var S = Stat, fmtSig = S.fmtSig, clamp = S.clamp;
+  var SUB = ["₁", "₂", "₃", "₄"];
+  function hName(i) { return "H" + SUB[i]; }
+
+  /* ---------- Приклади ----------
+     hyp — назви гіпотез, prior — їхні ймовірності, lik — P(A | Hᵢ), ev — що таке подія A.
+     Щоб додати приклад, скопіюйте один запис і змініть. */
+  var PRESETS = [
+    { id: "urns", name: "Дві урни", hyp: ["обрали першу урну", "обрали другу урну"],
+      prior: [0.5, 0.5], lik: [0.3, 0.8], ev: "витягли білу кулю",
+      note: "Урну обирають навмання. У першій 30 % білих куль, у другій 80 %. Яка ймовірність витягти білу кулю?" },
+    { id: "plants", name: "Три заводи", hyp: ["деталь з заводу №1", "деталь з заводу №2", "деталь з заводу №3"],
+      prior: [0.5, 0.3, 0.2], lik: [0.1, 0.15, 0.25], ev: "деталь бракована",
+      note: "Деталі приходять із трьох заводів: 50 %, 30 % і 20 %. Браку на заводах 10 %, 15 % і 25 %. Яка ймовірність, що навмання взята деталь бракована?" },
+    { id: "weather", name: "Погода і запізнення", hyp: ["дощ", "хмарно без дощу", "сонячно"],
+      prior: [0.3, 0.3, 0.4], lik: [0.5, 0.2, 0.05], ev: "студент запізнився",
+      note: "У дощ студент запізнюється з імовірністю 0,5, у хмарну погоду 0,2, у сонячну 0,05. Яка ймовірність запізнитися в довільний день?" }
+  ];
+  var BY_ID = {};
+  PRESETS.forEach(function (p) { BY_ID[p.id] = p; });
+
+  var state = { preset: "urns", k: 3, prior: [], lik: [], hyp: [], ev: "", view: "sq" };
+
+  function $(id) { return document.getElementById(id); }
+  var sayTimer = null;
+  function say(text, delay) {
+    clearTimeout(sayTimer);
+    sayTimer = setTimeout(function () { $("sr").textContent = ""; $("sr").textContent = text; }, delay || 0);
+  }
+  function hLabel(i) { return state.hyp[i] || ("гіпотеза " + (i + 1)); }
+
+  /* ---------- Вибір прикладу і кількості гіпотез ---------- */
+  var chipEls = {};
+  PRESETS.forEach(function (p) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "chip"; b.textContent = p.name;
+    b.setAttribute("aria-pressed", "false");
+    b.addEventListener("click", function () { choosePreset(p.id); });
+    $("chips").appendChild(b);
+    chipEls[p.id] = b;
+  });
+  function choosePreset(id) {
+    var p = BY_ID[id];
+    state.preset = id; state.k = p.prior.length;
+    state.prior = p.prior.slice(); state.lik = p.lik.slice(); state.hyp = p.hyp.slice(); state.ev = p.ev;
+    buildRows(); refresh(true);
+    say(p.name + ". Повна ймовірність " + fmtSig(Prob.total(state.prior, state.lik)) + ".");
+  }
+  document.querySelectorAll("[data-k]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var k = Number(b.getAttribute("data-k"));
+      if (k === state.k) return;
+      var old = state.k;
+      state.prior = Prob.resize(state.prior, k);
+      while (state.lik.length < k) state.lik.push(0.1 * (state.lik.length + 1) % 1 || 0.5);
+      state.lik = state.lik.slice(0, k);
+      state.k = k;
+      buildRows(); refresh(true);
+      say("Гіпотез: " + k + ". Повна ймовірність " + fmtSig(Prob.total(state.prior, state.lik)) + ".");
+    });
+  });
+
+  /* ---------- Рядки з повзунками ---------- */
+  var priorEls = [], likEls = [], priorOut = [], likOut = [];
+  function buildRows() {
+    var box = $("hrows");
+    box.textContent = "";
+    priorEls = []; likEls = []; priorOut = []; likOut = [];
+    for (var i = 0; i < state.k; i++) (function (i) {
+      var row = document.createElement("div"); row.className = "hrow";
+      var nm = document.createElement("div"); nm.className = "hname";
+      var sw = document.createElement("span"); sw.className = "sw"; sw.style.background = "var(--h" + (i + 1) + ")";
+      var st = document.createElement("strong"); st.textContent = hName(i);
+      var d = document.createElement("span"); d.className = "d"; d.textContent = state.hyp[i] || "";
+      nm.appendChild(sw); nm.appendChild(st); nm.appendChild(d);
+      row.appendChild(nm);
+      function field(label, aria, store, outStore, onInput) {
+        var f = document.createElement("div"); f.className = "fld";
+        var id = "s" + store.length + "_" + (outStore === priorOut ? "p" : "l") + i;
+        var lb = document.createElement("label"); lb.setAttribute("for", id); lb.textContent = label;
+        var r = document.createElement("div"); r.className = "row";
+        var inp = document.createElement("input"); inp.type = "range"; inp.min = "0"; inp.max = "1"; inp.step = "0.001"; inp.id = id;
+        inp.setAttribute("aria-label", aria);
+        inp.style.accentColor = "var(--h" + (i + 1) + ")";
+        var out = document.createElement("output"); out.setAttribute("for", id);
+        inp.addEventListener("input", function () { onInput(Number(inp.value)); });
+        r.appendChild(inp); r.appendChild(out); f.appendChild(lb); f.appendChild(r);
+        store.push(inp); outStore.push(out);
+        return f;
+      }
+      row.appendChild(field("P(" + hName(i) + ")", "Ймовірність гіпотези " + hName(i), priorEls, priorOut, function (v) {
+        state.prior = Prob.setWeight(state.prior, i, v); refresh(false);
+      }));
+      row.appendChild(field("P(A | " + hName(i) + ")", "Ймовірність події A за умови " + hName(i), likEls, likOut, function (v) {
+        state.lik[i] = v; refresh(false);
+      }));
+      box.appendChild(row);
+    })(i);
+  }
+  function syncRows() {
+    for (var i = 0; i < state.k; i++) {
+      priorEls[i].value = String(state.prior[i]); priorOut[i].textContent = fmtSig(state.prior[i]);
+      likEls[i].value = String(state.lik[i]); likOut[i].textContent = fmtSig(state.lik[i]);
+    }
+  }
+
+  /* ---------- Малювання ---------- */
+  var cv = $("cv"), ctx = cv.getContext("2d"), W = 0, H = 0;
+  function resize() {
+    var rect = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    W = rect.width; H = rect.height;
+    cv.width = Math.max(1, Math.round(W * dpr)); cv.height = Math.max(1, Math.round(H * dpr));
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    draw();
+  }
+  function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  function colors() {
+    var k = { panel: cssVar("--panel"), grid: cssVar("--grid"), strong: cssVar("--grid-strong"), muted: cssVar("--muted"),
+      ink: cssVar("--ink"), data: cssVar("--font-data"), body: cssVar("--font-body"), h: [] };
+    for (var i = 1; i <= 4; i++) k.h.push(cssVar("--h" + i));
+    return k;
+  }
+
+  function drawSquare(k) {
+    var n = state.k, pa = Prob.total(state.prior, state.lik);
+    var L = 40, T = 20, B = 46, zone = clamp(W * 0.3, 90, 170);
+    var s = Math.max(60, Math.min(H - T - B, W - L - zone - 8));
+    var x0 = L, y0 = T, i, cum = 0;
+    ctx.font = "11px " + k.data; ctx.textBaseline = "middle"; ctx.textAlign = "right"; ctx.fillStyle = k.muted;
+    [0, 0.5, 1].forEach(function (v) {
+      var y = y0 + s * (1 - v);
+      ctx.strokeStyle = k.grid; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x0, Math.round(y) + 0.5); ctx.lineTo(x0 + s, Math.round(y) + 0.5); ctx.stroke();
+      ctx.fillText(S.fmt(v, 1), x0 - 6, y);
+    });
+    for (i = 0; i < n; i++) {
+      var w = state.prior[i] * s, h = state.lik[i] * s, x = x0 + cum * s;
+      cum += state.prior[i];
+      if (w <= 0) continue;
+      ctx.fillStyle = k.h[i]; ctx.globalAlpha = 0.16; ctx.fillRect(x, y0, w, s - h);
+      ctx.globalAlpha = 0.9; ctx.fillRect(x, y0 + s - h, w, h);
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = k.panel; ctx.lineWidth = 1.5; ctx.strokeRect(x, y0, w, s);
+      if (w >= 40 && h >= 16) {
+        ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.font = "500 11px " + k.data;
+        ctx.fillText(fmtSig(state.lik[i]), x + w / 2, y0 + s - h / 2);
+      }
+      ctx.textAlign = "center"; ctx.textBaseline = "top"; ctx.fillStyle = k.ink; ctx.font = "500 12px " + k.body;
+      if (w >= 20) ctx.fillText(hName(i), x + w / 2, y0 + s + 6);
+      ctx.fillStyle = k.muted; ctx.font = "11px " + k.data;
+      if (w >= 44) ctx.fillText(fmtSig(state.prior[i]), x + w / 2, y0 + s + 22);
+      ctx.textBaseline = "middle";
+    }
+    ctx.strokeStyle = k.ink; ctx.lineWidth = 1.2; ctx.strokeRect(x0 + 0.5, y0 + 0.5, s, s);
+
+    /* стовпчик зі складених площ */
+    var bx = x0 + s + clamp(zone * 0.22, 14, 30), bw = clamp(zone * 0.22, 18, 30), acc = 0;
+    for (i = 0; i < n; i++) {
+      var seg = state.prior[i] * state.lik[i] * s;
+      if (seg <= 0) continue;
+      ctx.fillStyle = k.h[i]; ctx.globalAlpha = 0.9;
+      ctx.fillRect(bx, y0 + s - acc - seg, bw, seg); ctx.globalAlpha = 1;
+      ctx.strokeStyle = k.panel; ctx.lineWidth = 1; ctx.strokeRect(bx, y0 + s - acc - seg, bw, seg);
+      acc += seg;
+    }
+    var yTop = y0 + s - acc;
+    ctx.strokeStyle = k.ink; ctx.lineWidth = 1.5; ctx.beginPath();
+    ctx.moveTo(bx - 6, yTop); ctx.lineTo(bx + bw + 6, yTop); ctx.stroke();
+    ctx.setLineDash([3, 4]); ctx.strokeStyle = k.strong; ctx.lineWidth = 1; ctx.beginPath();
+    ctx.moveTo(x0 + s, yTop); ctx.lineTo(bx - 6, yTop); ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = k.ink; ctx.lineWidth = 1.2; ctx.beginPath();
+    ctx.moveTo(bx - 6, y0 + s + 0.5); ctx.lineTo(bx + bw + 6, y0 + s + 0.5); ctx.stroke();
+    ctx.fillStyle = k.ink; ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.font = "500 12px " + k.data;
+    var lx = bx + bw + 10, ly = Math.min(yTop, y0 + s - 20);
+    ctx.fillText("P(A)", lx, ly - 8);
+    ctx.fillText("= " + fmtSig(pa), lx, ly + 8);
+  }
+
+  /* текст з ореолом кольору панелі, щоб лінії не заважали читати */
+  function halo(text, x, y, k) {
+    ctx.lineJoin = "round"; ctx.lineWidth = 4; ctx.strokeStyle = k.panel; ctx.strokeText(text, x, y);
+    ctx.lineWidth = 1.4;
+  }
+  function drawTree(k) {
+    var n = state.k, rows = 2 * n, top = 18, bottom = H - 14;
+    var xr = 16, xh = W * 0.34, xl = W * 0.63, sp = (bottom - top) / (rows - 1 || 1), i, j;
+    var yRoot = (top + bottom) / 2;
+    ctx.lineWidth = 1.4; ctx.font = "11px " + k.data;
+    for (i = 0; i < n; i++) {
+      var ya = top + (2 * i) * sp, yn = top + (2 * i + 1) * sp, yh = (ya + yn) / 2;
+      var p = state.prior[i], l = state.lik[i];
+      ctx.strokeStyle = k.h[i]; ctx.globalAlpha = 0.9;
+      ctx.beginPath(); ctx.moveTo(xr, yRoot); ctx.lineTo(xh, yh); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(xh, yh); ctx.lineTo(xl, ya); ctx.stroke();
+      ctx.globalAlpha = 0.35;
+      ctx.beginPath(); ctx.moveTo(xh, yh); ctx.lineTo(xl, yn); ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = k.ink; ctx.textBaseline = "bottom"; ctx.textAlign = "center";
+      halo(fmtSig(p), xr + (xh - xr) * 0.55, yRoot + (yh - yRoot) * 0.55 - 3, k); ctx.fillText(fmtSig(p), xr + (xh - xr) * 0.55, yRoot + (yh - yRoot) * 0.55 - 3);
+      halo(fmtSig(l), xh + (xl - xh) * 0.5, (yh + ya) / 2 - 3, k); ctx.fillText(fmtSig(l), xh + (xl - xh) * 0.5, (yh + ya) / 2 - 3);
+      ctx.fillStyle = k.muted; ctx.textBaseline = "top";
+      halo(fmtSig(1 - l), xh + (xl - xh) * 0.5, (yh + yn) / 2 + 3, k); ctx.fillText(fmtSig(1 - l), xh + (xl - xh) * 0.5, (yh + yn) / 2 + 3);
+      /* вузли */
+      ctx.fillStyle = k.h[i]; ctx.beginPath(); ctx.arc(xh, yh, 5, 0, 7); ctx.fill();
+      ctx.textAlign = "center"; ctx.textBaseline = "bottom"; ctx.fillStyle = k.ink; ctx.font = "500 12px " + k.body;
+      halo(hName(i), xh, yh - 8, k); ctx.fillText(hName(i), xh, yh - 8);
+      ctx.font = "11px " + k.data;
+      ctx.fillStyle = k.h[i]; ctx.globalAlpha = 1; ctx.beginPath(); ctx.arc(xl, ya, 5, 0, 7); ctx.fill();
+      ctx.globalAlpha = 1; ctx.fillStyle = k.panel; ctx.strokeStyle = k.h[i]; ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.arc(xl, yn, 4.5, 0, 7); ctx.fill(); ctx.stroke();
+      ctx.textAlign = "left"; ctx.fillStyle = k.ink; ctx.font = "500 11.5px " + k.data;
+      ctx.fillText("A: " + fmtSig(p * l), xl + 11, ya);
+      ctx.fillStyle = k.muted; ctx.font = "11px " + k.data;
+      ctx.fillText("не A: " + fmtSig(p * (1 - l)), xl + 11, yn);
+    }
+    ctx.fillStyle = k.ink; ctx.beginPath(); ctx.arc(xr, yRoot, 5, 0, 7); ctx.fill();
+  }
+
+  function draw() {
+    if (!W || !state.prior.length) return;
+    var k = colors();
+    ctx.clearRect(0, 0, W, H); ctx.fillStyle = k.panel; ctx.fillRect(0, 0, W, H);
+    if (state.view === "sq") drawSquare(k); else drawTree(k);
+  }
+
+  /* ---------- Результат ---------- */
+  function refresh(full) {
+    syncRows();
+    var n = state.k, pa = Prob.total(state.prior, state.lik), tm = Prob.terms(state.prior, state.lik, true), i;
+    for (var id in chipEls) chipEls[id].setAttribute("aria-pressed", String(id === state.preset && isPresetValues()));
+    document.querySelectorAll("[data-k]").forEach(function (b) { b.setAttribute("aria-pressed", String(Number(b.getAttribute("data-k")) === n)); });
+    $("srcNote").textContent = BY_ID[state.preset].note + (isPresetValues() ? "" : " (значення змінено вами)");
+    $("rLbl").textContent = "Повна ймовірність P(A), де A — «" + state.ev + "»";
+    $("rVal").textContent = fmtSig(pa);
+
+    var f = $("formula"); f.textContent = "";
+    function line(parts) {
+      var d = document.createElement("div");
+      parts.forEach(function (p) {
+        var s = document.createElement("span");
+        if (p.i !== undefined) { s.className = "t"; s.style.color = "var(--h" + (p.i + 1) + ")"; }
+        s.textContent = p.t; d.appendChild(s);
+      });
+      f.appendChild(d);
+    }
+    function build(fn) {
+      var out = [{ t: "" }];
+      for (i = 0; i < n; i++) { if (i) out.push({ t: " + " }); out.push({ t: fn(i), i: i }); }
+      return out;
+    }
+    line([{ t: "P(A) = " }].concat(build(function (j) { return "P(" + hName(j) + ")·P(A|" + hName(j) + ")"; })));
+    line([{ t: "     = " }].concat(build(function (j) { return fmtSig(state.prior[j]) + "·" + fmtSig(state.lik[j]); })));
+    line([{ t: "     = " }].concat(build(function (j) { return fmtSig(tm[j]); })).concat([{ t: " = " + fmtSig(pa) }]));
+
+    var tb = $("tbody"); tb.textContent = "";
+    for (i = 0; i < n; i++) {
+      var tr = document.createElement("tr");
+      [hName(i), fmtSig(state.prior[i]), fmtSig(state.lik[i]), fmtSig(tm[i])].forEach(function (t, j) {
+        var c = document.createElement(j === 0 ? "th" : "td"); if (j === 0) { c.scope = "row"; }
+        c.textContent = t; tr.appendChild(c);
+      });
+      tr.firstChild.style.color = "var(--h" + (i + 1) + ")";
+      tb.appendChild(tr);
+    }
+    var tf = $("tfoot"); tf.textContent = "";
+    var fr = document.createElement("tr");
+    ["Разом", fmtSig(Prob.sum(state.prior)), "", fmtSig(pa)].forEach(function (t, j) {
+      var c = document.createElement(j === 0 ? "th" : "td"); if (j === 0) c.scope = "row"; c.textContent = t; fr.appendChild(c);
+    });
+    tf.appendChild(fr);
+
+    $("chTitle").textContent = state.view === "sq" ? "Квадрат ймовірностей" : "Дерево ймовірностей";
+    $("chNote").textContent = state.view === "sq"
+      ? "Заповнені частини стовпчиків відповідають події A. Їхні площі складено в стовпчик справа, його висота це P(A) = " + fmtSig(pa) + "."
+      : "Числа на гілках це ймовірності. Добуток чисел уздовж шляху стоїть біля кінця шляху. Шляхи до A (заповнені точки) додаються: P(A) = " + fmtSig(pa) + ".";
+    cv.setAttribute("aria-label", (state.view === "sq" ? "Квадрат ймовірностей. " : "Дерево ймовірностей. ") +
+      state.prior.map(function (p, j) { return hName(j) + ": P = " + fmtSig(p) + ", P(A|H) = " + fmtSig(state.lik[j]); }).join("; ") +
+      ". Повна ймовірність " + fmtSig(pa) + ".");
+    draw();
+    if (!full) say("Повна ймовірність " + fmtSig(pa) + ".", 600);
+  }
+  function isPresetValues() {
+    var p = BY_ID[state.preset];
+    if (p.prior.length !== state.k) return false;
+    for (var i = 0; i < state.k; i++) if (Math.abs(p.prior[i] - state.prior[i]) > 1e-9 || Math.abs(p.lik[i] - state.lik[i]) > 1e-9) return false;
+    return true;
+  }
+
+  $("vSq").addEventListener("click", function () { setView("sq"); });
+  $("vTree").addEventListener("click", function () { setView("tree"); });
+  function setView(v) {
+    state.view = v;
+    $("vSq").setAttribute("aria-pressed", String(v === "sq")); $("vTree").setAttribute("aria-pressed", String(v === "tree"));
+    refresh(true);
+  }
+
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(cv); else window.addEventListener("resize", resize);
+  new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  if (window.matchMedia) {
+    var mq = window.matchMedia("(prefers-color-scheme: dark)");
+    if (mq.addEventListener) mq.addEventListener("change", draw);
+  }
+
+  choosePreset("urns");
+  resize();
+})();
+</script>
+</body>
+</html>

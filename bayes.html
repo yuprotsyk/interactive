@@ -1,0 +1,628 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Формула Байєса</title>
+<meta name="description" content="Дізнайтеся, як нова інформація змінює ймовірність гіпотез: тисяча випадків на екрані, кілька тестів підряд і перевірка симуляцією.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="common.css">
+<style>
+.app {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "head" "choose" "mode" "dots" "result" "seq" "sim" "explain";
+}
+.head { grid-area: head; }
+.backlink { display: inline-block; margin-bottom: 10px; font-size: 13px; }
+.choose { grid-area: choose; }
+.modebar { grid-area: mode; display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+.dots { grid-area: dots; min-width: 0; }
+.result { grid-area: result; }
+.seq { grid-area: seq; min-width: 0; }
+.sim { grid-area: sim; min-width: 0; }
+.explain { grid-area: explain; }
+.main, .side { display: contents; }
+
+.srcnote { margin: 10px 0 0; font-size: 14px; color: var(--muted); max-width: 72ch; text-wrap: pretty; }
+.cfgbar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin-top: 14px; }
+.cfgbar .lbl, .modebar .lbl { font-size: 13.5px; }
+
+.hrows { display: grid; gap: 10px; margin-top: 14px; }
+.hrow {
+  display: grid; gap: 6px 18px; align-items: end;
+  grid-template-columns: minmax(0, 1fr);
+  padding: 10px 12px; border: 1px solid var(--grid-strong); border-radius: 6px; background: var(--bg);
+}
+.hname { display: flex; align-items: baseline; gap: 8px; font-size: 14px; }
+.hname .sw { width: 12px; height: 12px; border-radius: 3px; flex: none; align-self: center; }
+.hname strong { font-weight: 700; }
+.hname span.d { color: var(--muted); }
+.fld { display: grid; gap: 3px; min-width: 0; }
+.fld label { font-size: 13px; color: var(--muted); }
+.fld .row { display: grid; grid-template-columns: minmax(0, 1fr) 64px; gap: 10px; align-items: center; }
+.fld input[type="range"] { width: 100%; margin: 0; }
+.fld output {
+  font-family: var(--font-data); font-size: 13.5px; font-variant-numeric: tabular-nums; text-align: right;
+  color: var(--ink); background: var(--panel); border: 1px solid var(--grid-strong); border-radius: 4px; padding: 5px 7px;
+}
+@media (min-width: 700px) { .hrow { grid-template-columns: 190px minmax(0, 1fr) minmax(0, 1fr); } }
+
+.block h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; text-wrap: balance; }
+.block canvas {
+  display: block; width: 100%; background: var(--panel);
+  border: 1px solid var(--grid-strong); border-radius: 6px;
+}
+#cd { aspect-ratio: 50 / 21.5; }
+#cs { aspect-ratio: 4 / 3; max-height: 320px; }
+@media (min-width: 600px) { #cs { aspect-ratio: 16 / 8; } }
+.cmsg { margin: 8px 0 0; font-size: 14px; max-width: 72ch; text-wrap: pretty; }
+.cmsg.muted { font-size: 13px; color: var(--muted); }
+.legend { margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; }
+.legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: baseline; }
+.legend .dot.o { opacity: .2; }
+
+.result .eyebrow + .big { margin-top: 6px; }
+.result .big { margin: 0; }
+.result .big dt { font-size: 12px; color: var(--muted); }
+.result .big dd { margin: 0; font-family: var(--font-data); font-size: clamp(30px, 8vw, 40px); line-height: 1.1; letter-spacing: -0.02em; color: var(--pos); font-variant-numeric: tabular-nums; }
+.bars { margin: 14px 0 0; display: grid; gap: 10px; padding: 0; list-style: none; }
+.bars li { display: grid; gap: 3px; }
+.bars .top { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; }
+.bars .top .v { font-family: var(--font-data); font-variant-numeric: tabular-nums; color: var(--muted); }
+.bars .top .v b { color: var(--ink); font-weight: 700; }
+.track { height: 8px; background: var(--soft); border-radius: 3px; position: relative; overflow: hidden; }
+.track.post { height: 14px; }
+.track i { display: block; height: 100%; border-radius: 3px; }
+.track.prior i { opacity: .45; }
+.sel { margin: 14px 0 0; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: 13.5px; }
+.formula { margin: 8px 0 0; font-family: var(--font-data); font-size: 13px; line-height: 1.9; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.twrap { margin-top: 12px; overflow: auto; border: 1px solid var(--grid-strong); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+th, td { padding: 4px 8px; text-align: right; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+thead th { background: var(--panel); font-weight: 500; color: var(--muted); border-bottom: 1px solid var(--grid-strong); }
+tbody tr:last-child td, tbody tr:last-child th { border-bottom: 0; }
+tfoot td, tfoot th { font-weight: 700; border-top: 1px solid var(--grid-strong); }
+
+.row-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+.hist { margin: 4px 0 0; font-size: 13.5px; color: var(--muted); min-height: 1.5em; }
+details.tb { margin-top: 10px; }
+details.tb summary { cursor: pointer; font-size: 13.5px; }
+
+.explain h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
+.explain p { margin: 8px 0 0; font-size: 14.5px; max-width: 68ch; text-wrap: pretty; }
+.explain p.key { margin-top: 0; }
+
+@media (min-width: 900px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr) 380px;
+    column-gap: 24px;
+    grid-template-areas: "head head" "choose choose" "mode mode" "main side";
+  }
+  .main { grid-area: main; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .side { grid-area: side; display: flex; flex-direction: column; gap: 16px; align-self: start; min-width: 0; }
+}
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="head">
+    <a class="backlink" href="index.html">← Усі сторінки</a>
+    <h1>Формула Байєса</h1>
+    <p class="lead">Ми знаємо, що подія сталася, і хочемо зрозуміти, яка причина за цим стоїть. Змінюйте ймовірності й дивіться, як інформація переоцінює гіпотези.</p>
+  </header>
+
+  <section class="choose panel" aria-label="Задача">
+    <p class="eyebrow">Приклад</p>
+    <div class="chips" id="chips"></div>
+    <p class="srcnote" id="srcNote"></p>
+    <div class="cfgbar">
+      <span class="lbl" id="kLbl">Скільки гіпотез</span>
+      <div class="seg" role="group" aria-labelledby="kLbl">
+        <button type="button" data-k="2" aria-pressed="false">2</button>
+        <button type="button" data-k="3" aria-pressed="false">3</button>
+        <button type="button" data-k="4" aria-pressed="false">4</button>
+      </div>
+    </div>
+    <div class="hrows" id="hrows"></div>
+  </section>
+
+  <div class="modebar">
+    <span class="lbl" id="mLbl">Що нам відомо</span>
+    <div class="seg" role="group" aria-labelledby="mLbl">
+      <button type="button" id="mA" aria-pressed="true">A настала</button>
+      <button type="button" id="mN" aria-pressed="false">A не настала</button>
+    </div>
+    <span class="lbl" id="evNote" style="color:var(--muted)"></span>
+  </div>
+
+  <div class="main">
+    <section class="dots block panel" aria-labelledby="dTitle">
+      <h2 id="dTitle">Тисяча випадків</h2>
+      <canvas id="cd" role="img" aria-label="Тисяча випадків"></canvas>
+      <p class="legend" id="dLegend"></p>
+      <p class="cmsg" id="dMsg"></p>
+    </section>
+
+    <section class="seq block panel" aria-labelledby="sTitle">
+      <h2 id="sTitle">Кілька результатів підряд</h2>
+      <p class="cmsg muted" style="margin-top:0">Проводимо ще випробування (наприклад, повторний тест) з тими самими P(A | H). Результати вважаємо незалежними за кожної гіпотези. Дивіться, як змінюються ймовірності гіпотез.</p>
+      <div class="row-actions">
+        <button type="button" class="btn primary" id="sPlus">Ще раз: A настала</button>
+        <button type="button" class="btn" id="sMinus">Ще раз: A не настала</button>
+        <button type="button" class="btn" id="sUndo">Прибрати останній</button>
+        <button type="button" class="btn" id="sReset">Скинути</button>
+      </div>
+      <canvas id="cs" role="img" aria-label="Зміна ймовірностей гіпотез"></canvas>
+      <p class="hist" id="sHist"></p>
+      <details class="tb"><summary>Таблиця значень</summary>
+        <div class="twrap"><table>
+          <caption class="sr-only">Ймовірності гіпотез після кожного результату</caption>
+          <thead id="sHead"></thead><tbody id="sBody"></tbody>
+        </table></div>
+      </details>
+    </section>
+
+    <section class="sim block panel" aria-labelledby="mTitle">
+      <h2 id="mTitle">Перевірка симуляцією</h2>
+      <p class="cmsg muted" style="margin-top:0">Комп'ютер багато разів «розігрує» випадок: обирає гіпотезу, потім перевіряє, чи настала подія A. Залишаємо лише ті випадки, що відповідають обраному вище, і дивимося, як часто серед них трапилася кожна гіпотеза.</p>
+      <div class="row-actions">
+        <button type="button" class="btn primary" id="sim100">+100</button>
+        <button type="button" class="btn" id="sim1000">+1 000</button>
+        <button type="button" class="btn" id="sim10000">+10 000</button>
+        <button type="button" class="btn" id="simReset">Скинути</button>
+      </div>
+      <div class="twrap"><table>
+        <caption class="sr-only">Результат симуляції</caption>
+        <thead><tr><th scope="col">Гіпотеза</th><th scope="col">Випадків</th><th scope="col">Частка</th><th scope="col">Теорія</th></tr></thead>
+        <tbody id="simBody"></tbody>
+      </table></div>
+      <p class="cmsg muted" id="simMsg"></p>
+    </section>
+  </div>
+
+  <div class="side">
+    <section class="result panel" aria-labelledby="rTitle">
+      <p class="eyebrow" id="rTitle">Результат</p>
+      <dl style="margin:0"><div class="big"><dt id="rLbl"></dt><dd id="rVal">—</dd></div></dl>
+      <ul class="bars" id="bars" aria-label="Ймовірності гіпотез до і після"></ul>
+      <div class="sel"><span id="selLbl">Розрахунок для</span><div class="chips" id="selChips" style="margin:0"></div></div>
+      <p class="formula" id="formula"></p>
+      <div class="twrap">
+        <table>
+          <caption class="sr-only">Розрахунок за формулою Байєса</caption>
+          <thead id="thead"></thead>
+          <tbody id="tbody"></tbody>
+          <tfoot id="tfoot"></tfoot>
+        </table>
+      </div>
+    </section>
+
+    <section class="explain panel" aria-labelledby="eTitle">
+      <h2 id="eTitle">Що тут відбувається</h2>
+      <p class="key"><strong>Питання навпаки.</strong> Формула повної ймовірності йде від гіпотез до події. Формула Байєса відповідає на обернене питання: подія A настала, яка гіпотеза найімовірніша?</p>
+      <p><strong>Тисяча випадків.</strong> Колір це гіпотеза, насичені крапки це випадки, де сталося те, що ми знаємо. Решту відкидаємо. Частка кольору серед насичених крапок і є P(H | A).</p>
+      <p><strong>P(A | H) і P(H | A) — різні числа.</strong> Якщо гіпотеза рідкісна, то навіть коли P(A | H) велика, серед усіх випадків з A більшість належить іншим гіпотезам. Спробуйте приклад «Рідкісна хвороба».</p>
+      <p><strong>Нова інформація змінює переконання.</strong> Ймовірності до результату називають апріорними, після нього апостеріорними. Апостеріорні стають апріорними для наступного результату.</p>
+      <p><strong>Формула:</strong> P(Hᵢ | A) = P(A | Hᵢ)·P(Hᵢ) / Σ P(A | Hⱼ)·P(Hⱼ). Знаменник це повна ймовірність P(A).</p>
+    </section>
+  </div>
+</main>
+
+<div class="sr-only" id="sr" role="status" aria-live="polite"></div>
+
+<script src="common.js"></script>
+<script src="random.js"></script>
+<script src="probability.js"></script>
+<script>
+(function () {
+  "use strict";
+  var S = Stat, fmtSig = S.fmtSig, clamp = S.clamp;
+  var SUB = ["₁", "₂", "₃", "₄"], N_DOTS = 1000, COLS = 50, ROWS = 20, MAX_STEPS = 12, SIM_CAP = 1000000;
+  function hName(i) { return "H" + SUB[i]; }
+
+  /* ---------- Приклади ----------
+     hyp — назви гіпотез, prior — їхні ймовірності, lik — P(A | Hᵢ), ev — що таке подія A.
+     Щоб додати приклад, скопіюйте один запис і змініть. */
+  var PRESETS = [
+    { id: "test", name: "Медичний тест", hyp: ["людина хвора", "людина здорова"],
+      prior: [0.01, 0.99], lik: [0.9, 0.09], ev: "тест позитивний",
+      note: "Хворіє 1 % людей. Тест виявляє хворобу у 90 % хворих, але дає хибний позитивний результат у 9 % здорових. Тест позитивний. Яка ймовірність, що людина справді хвора?" },
+    { id: "rare", name: "Рідкісна хвороба", hyp: ["людина хвора", "людина здорова"],
+      prior: [0.001, 0.999], lik: [0.99, 0.01], ev: "тест позитивний",
+      note: "Хворіє 1 людина з 1000. Тест дуже точний: виявляє 99 % хворих і хибно спрацьовує лише у 1 % здорових. Яка ймовірність хвороби після позитивного тесту? Відповідь багатьох дивує." },
+    { id: "spam", name: "Спам", hyp: ["спам", "звичайний лист"],
+      prior: [0.4, 0.6], lik: [0.5, 0.02], ev: "у листі є слово «виграш»",
+      note: "40 % листів це спам. Слово «виграш» є в половині спаму й у 2 % звичайних листів. У листі є це слово. Яка ймовірність, що це спам?" },
+    { id: "plants", name: "Три заводи", hyp: ["деталь із заводу №1", "деталь із заводу №2", "деталь із заводу №3"],
+      prior: [0.5, 0.3, 0.2], lik: [0.1, 0.15, 0.25], ev: "деталь бракована",
+      note: "Деталі приходять із трьох заводів: 50 %, 30 % і 20 %. Браку 10 %, 15 % і 25 %. Деталь виявилася бракованою. З якого вона заводу?" },
+    { id: "monty", name: "Монті Голл", hyp: ["автомобіль за дверима 1", "автомобіль за дверима 2", "автомобіль за дверима 3"],
+      prior: [1 / 3, 1 / 3, 1 / 3], lik: [0.5, 1, 0], ev: "ведучий відчинив двері 3",
+      note: "Ви обрали двері 1. Ведучий знає, де автомобіль, і відчиняє двері з козою. Якщо автомобіль за дверима 1, ведучий може відчинити 2 або 3 (0,5), за дверима 2 мусить відчинити 3 (1), за дверима 3 не може (0). Він відчинив двері 3. Чи варто змінити вибір на двері 2?" }
+  ];
+  var BY_ID = {};
+  PRESETS.forEach(function (p) { BY_ID[p.id] = p; });
+
+  var state = { preset: "test", k: 2, prior: [], lik: [], hyp: [], ev: "", obs: true, sel: 0, seq: [] };
+  var sim = null, simSeed = 2026;
+
+  function $(id) { return document.getElementById(id); }
+  var sayTimer = null;
+  function say(text, delay) {
+    clearTimeout(sayTimer);
+    sayTimer = setTimeout(function () { $("sr").textContent = ""; $("sr").textContent = text; }, delay || 0);
+  }
+  function group(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " "); }
+  function evText() { return state.obs ? "A" : "не A"; }
+  function likObs(i) { return state.obs ? state.lik[i] : 1 - state.lik[i]; }
+  function posterior() { return Prob.posterior(state.prior, state.lik, state.obs); }
+  function pEv() { return state.prior.reduce(function (s, p, i) { return s + p * likObs(i); }, 0); }
+
+  /* ---------- Вибір прикладу ---------- */
+  var chipEls = {};
+  PRESETS.forEach(function (p) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "chip"; b.textContent = p.name;
+    b.setAttribute("aria-pressed", "false");
+    b.addEventListener("click", function () { choosePreset(p.id); });
+    $("chips").appendChild(b);
+    chipEls[p.id] = b;
+  });
+  function choosePreset(id) {
+    var p = BY_ID[id];
+    state.preset = id; state.k = p.prior.length;
+    state.prior = p.prior.slice(); state.lik = p.lik.slice(); state.hyp = p.hyp.slice(); state.ev = p.ev;
+    state.sel = 0; state.seq = [];
+    buildRows(); refresh(true);
+    var post = posterior();
+    say(p.name + (post ? ". Ймовірність " + hName(0) + " після відомої події " + fmtSig(post[0]) + "." : "."));
+  }
+  document.querySelectorAll("[data-k]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var k = Number(b.getAttribute("data-k"));
+      if (k === state.k) return;
+      state.prior = Prob.resize(state.prior, k);
+      while (state.lik.length < k) state.lik.push(0.1 * (state.lik.length + 1) % 1 || 0.5);
+      state.lik = state.lik.slice(0, k);
+      state.k = k; state.sel = Math.min(state.sel, k - 1);
+      buildRows(); refresh(true);
+      say("Гіпотез: " + k + ".");
+    });
+  });
+  $("mA").addEventListener("click", function () { setObs(true); });
+  $("mN").addEventListener("click", function () { setObs(false); });
+  function setObs(v) {
+    state.obs = v;
+    refresh(true);
+    var post = posterior();
+    say(v ? "Відомо, що A настала." : "Відомо, що A не настала.");
+    if (post) say("Ймовірність " + hName(state.sel) + " тепер " + fmtSig(post[state.sel]) + ".", 700);
+  }
+
+  /* ---------- Рядки з повзунками ---------- */
+  var priorEls = [], likEls = [], priorOut = [], likOut = [];
+  function buildRows() {
+    var box = $("hrows");
+    box.textContent = "";
+    priorEls = []; likEls = []; priorOut = []; likOut = [];
+    for (var i = 0; i < state.k; i++) (function (i) {
+      var row = document.createElement("div"); row.className = "hrow";
+      var nm = document.createElement("div"); nm.className = "hname";
+      var sw = document.createElement("span"); sw.className = "sw"; sw.style.background = "var(--h" + (i + 1) + ")";
+      var st = document.createElement("strong"); st.textContent = hName(i);
+      var d = document.createElement("span"); d.className = "d"; d.textContent = state.hyp[i] || "";
+      nm.appendChild(sw); nm.appendChild(st); nm.appendChild(d);
+      row.appendChild(nm);
+      function field(label, aria, tag, store, outStore, onInput) {
+        var f = document.createElement("div"); f.className = "fld";
+        var id = "s" + tag + i;
+        var lb = document.createElement("label"); lb.setAttribute("for", id); lb.textContent = label;
+        var r = document.createElement("div"); r.className = "row";
+        var inp = document.createElement("input"); inp.type = "range"; inp.min = "0"; inp.max = "1"; inp.step = "0.001"; inp.id = id;
+        inp.setAttribute("aria-label", aria);
+        inp.style.accentColor = "var(--h" + (i + 1) + ")";
+        var out = document.createElement("output"); out.setAttribute("for", id);
+        inp.addEventListener("input", function () { onInput(Number(inp.value)); });
+        r.appendChild(inp); r.appendChild(out); f.appendChild(lb); f.appendChild(r);
+        store.push(inp); outStore.push(out);
+        return f;
+      }
+      row.appendChild(field("P(" + hName(i) + ")", "Ймовірність гіпотези " + hName(i), "p", priorEls, priorOut, function (v) {
+        state.prior = Prob.setWeight(state.prior, i, v); refresh(false);
+      }));
+      row.appendChild(field("P(A | " + hName(i) + ")", "Ймовірність події A за умови " + hName(i), "l", likEls, likOut, function (v) {
+        state.lik[i] = v; refresh(false);
+      }));
+      box.appendChild(row);
+    })(i);
+  }
+  function syncRows() {
+    for (var i = 0; i < state.k; i++) {
+      priorEls[i].value = String(state.prior[i]); priorOut[i].textContent = fmtSig(state.prior[i]);
+      likEls[i].value = String(state.lik[i]); likOut[i].textContent = fmtSig(state.lik[i]);
+    }
+  }
+
+  /* ---------- Полотна ---------- */
+  function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  function colors() {
+    var k = { panel: cssVar("--panel"), grid: cssVar("--grid"), strong: cssVar("--grid-strong"), muted: cssVar("--muted"),
+      ink: cssVar("--ink"), data: cssVar("--font-data"), body: cssVar("--font-body"), h: [] };
+    for (var i = 1; i <= 4; i++) k.h.push(cssVar("--h" + i));
+    return k;
+  }
+  function Canvas(el) { this.el = el; this.ctx = el.getContext("2d"); this.W = 0; this.H = 0; }
+  Canvas.prototype.resize = function () {
+    var rect = this.el.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    this.W = rect.width; this.H = rect.height;
+    this.el.width = Math.max(1, Math.round(this.W * dpr)); this.el.height = Math.max(1, Math.round(this.H * dpr));
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  };
+  var cd = new Canvas($("cd")), cs = new Canvas($("cs"));
+
+  /* Тисяча крапок: за кожною гіпотезою спершу ті, де A настала, потім ті, де ні */
+  function dotCounts() { return Prob.counts(state.prior, state.lik, N_DOTS); }
+  function drawDots() {
+    var W = cd.W, H = cd.H, ctx = cd.ctx;
+    var k = colors(), c = dotCounts(), i, j, idx = 0;
+    ctx.clearRect(0, 0, W, H); ctx.fillStyle = k.panel; ctx.fillRect(0, 0, W, H);
+    var cell = Math.min((W - 16) / COLS, (H - 16) / ROWS), r = cell * 0.36;
+    var ok = cell > 1;
+    var ox = (W - cell * COLS) / 2, oy = (H - cell * ROWS) / 2;
+    for (i = 0; ok && i < state.k; i++) {
+      var na = c.a[i];
+      for (j = 0; j < c.h[i]; j++, idx++) {
+        var isA = j < na, selected = state.obs ? isA : !isA;
+        var col = Math.floor(idx / ROWS), row = idx % ROWS;
+        ctx.globalAlpha = selected ? 1 : 0.14;
+        ctx.fillStyle = k.h[i];
+        ctx.beginPath(); ctx.arc(ox + (col + 0.5) * cell, oy + (row + 0.5) * cell, r, 0, 7); ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+    var selTotal = 0;
+    for (i = 0; i < state.k; i++) selTotal += state.obs ? c.a[i] : c.h[i] - c.a[i];
+    var s = state.sel, selOwn = state.obs ? c.a[s] : c.h[s] - c.a[s];
+    $("dTitle").textContent = "Тисяча випадків: ким були ті, у кого " + (state.obs ? "A настала" : "A не настала");
+    $("dMsg").textContent = selTotal === 0
+      ? "Серед тисячі випадків немає жодного, де " + (state.obs ? "A настала" : "A не настала") + ". За такої умови подія неможлива."
+      : "Із 1000 випадків відібрано " + selTotal + ". Серед них гіпотеза " + hName(s) + " у " + selOwn + ", тобто частка " + selOwn + " / " + selTotal + " ≈ " + fmtSig(selOwn / selTotal) + ". (Числа округлені до цілих, точні значення в таблиці.)";
+    var leg = $("dLegend"); leg.textContent = "";
+    for (i = 0; i < state.k; i++) {
+      var sp = document.createElement("span"), dot = document.createElement("span");
+      dot.className = "dot"; dot.style.background = "var(--h" + (i + 1) + ")";
+      sp.appendChild(dot); sp.appendChild(document.createTextNode(hName(i) + (state.hyp[i] ? " — " + state.hyp[i] : "") + ": " + c.h[i]));
+      leg.appendChild(sp);
+    }
+    var sp2 = document.createElement("span"), d2 = document.createElement("span");
+    d2.className = "dot o"; d2.style.background = "var(--ink)";
+    sp2.appendChild(d2); sp2.appendChild(document.createTextNode("відкинуті випадки (блідо)")); leg.appendChild(sp2);
+    $("cd").setAttribute("aria-label", "Тисяча випадків. Відібрано " + selTotal + ", з них " + hName(s) + " у " + selOwn + ".");
+  }
+
+  /* Лінії ймовірностей гіпотез після кожного результату */
+  function drawSeq() {
+    var W = cs.W, H = cs.H, ctx = cs.ctx;
+    if (!W) return;
+    var k = colors(), seq = Prob.sequence(state.prior, state.lik, state.seq), m = Math.max(4, state.seq.length);
+    var L = 38, R = 14, T = 14, B = 30, pw = W - L - R, ph = H - T - B, i, j;
+    function px(x) { return L + x / m * pw; }
+    function py(v) { return T + (1 - v) * ph; }
+    ctx.clearRect(0, 0, W, H); ctx.fillStyle = k.panel; ctx.fillRect(0, 0, W, H);
+    ctx.font = "11px " + k.data; ctx.fillStyle = k.muted; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    [0, 0.25, 0.5, 0.75, 1].forEach(function (v) {
+      ctx.strokeStyle = v === 0 || v === 0.5 || v === 1 ? k.strong : k.grid; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(L, Math.round(py(v)) + 0.5); ctx.lineTo(W - R, Math.round(py(v)) + 0.5); ctx.stroke();
+      if (v === 0 || v === 0.5 || v === 1) ctx.fillText(S.fmt(v, 1), L - 6, py(v));
+    });
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    var step = m > 8 ? 2 : 1;
+    for (j = 0; j <= m; j += step) ctx.fillText(String(j), px(j), H - B + 6);
+    ctx.fillStyle = k.ink; ctx.font = "500 11px " + k.body; ctx.textAlign = "right";
+    ctx.fillText("кількість результатів", W - R, H - 14);
+    for (i = 0; i < state.k; i++) {
+      ctx.strokeStyle = k.h[i]; ctx.fillStyle = k.h[i]; ctx.lineWidth = 2.2; ctx.lineJoin = "round";
+      ctx.beginPath();
+      for (j = 0; j < seq.length; j++) { var X = px(j), Y = py(seq[j][i]); if (j === 0) ctx.moveTo(X, Y); else ctx.lineTo(X, Y); }
+      ctx.stroke();
+      for (j = 0; j < seq.length; j++) { ctx.beginPath(); ctx.arc(px(j), py(seq[j][i]), 3.4, 0, 7); ctx.fill(); }
+      var last = seq[seq.length - 1][i];
+      ctx.font = "500 11px " + k.data; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      var tx = px(seq.length - 1) + 6, flip = tx + 40 > W;
+      if (flip) ctx.textAlign = "right";
+      ctx.fillText(hName(i) + " " + fmtSig(last), flip ? px(seq.length - 1) - 6 : tx, py(last) + (flip ? -9 : 0));
+    }
+  }
+
+  /* ---------- Результат ---------- */
+  function line(parent, parts) {
+    var d = document.createElement("div");
+    parts.forEach(function (t) {
+      var s = document.createElement("span");
+      if (typeof t === "string") s.textContent = t; else { s.textContent = t.t; if (t.c) s.style.color = t.c; }
+      d.appendChild(s);
+    });
+    parent.appendChild(d);
+  }
+  function td(tr, text, th) {
+    var c = document.createElement(th ? "th" : "td"); if (th) c.scope = "row"; c.textContent = text; tr.appendChild(c); return c;
+  }
+  function renderResult() {
+    var n = state.k, post = posterior(), pe = pEv(), i, ev = evText();
+    $("evNote").textContent = "A — «" + state.ev + "»";
+    $("rLbl").textContent = "P(" + hName(state.sel) + " | " + ev + ")" + (state.hyp[state.sel] ? ": " + state.hyp[state.sel] : "");
+    $("rVal").textContent = post ? fmtSig(post[state.sel]) : "—";
+
+    var bars = $("bars"); bars.textContent = "";
+    for (i = 0; i < n; i++) {
+      var li = document.createElement("li");
+      var top = document.createElement("div"); top.className = "top";
+      var nm = document.createElement("span"); nm.textContent = hName(i) + (state.hyp[i] ? " " + state.hyp[i] : ""); nm.style.color = "var(--h" + (i + 1) + ")";
+      var v = document.createElement("span"); v.className = "v";
+      var b = document.createElement("b"); b.textContent = post ? fmtSig(post[i]) : "—";
+      v.appendChild(document.createTextNode("було " + fmtSig(state.prior[i]) + " → стало ")); v.appendChild(b);
+      top.appendChild(nm); top.appendChild(v);
+      function track(cls, val) {
+        var t = document.createElement("div"); t.className = "track " + cls;
+        var f = document.createElement("i"); f.style.width = (100 * clamp(val || 0, 0, 1)) + "%"; f.style.background = "var(--h" + (i + 1) + ")";
+        t.appendChild(f); return t;
+      }
+      li.appendChild(top); li.appendChild(track("prior", state.prior[i])); li.appendChild(track("post", post ? post[i] : 0));
+      bars.appendChild(li);
+    }
+
+    var sc = $("selChips"); sc.textContent = "";
+    for (i = 0; i < n; i++) (function (i) {
+      var bt = document.createElement("button"); bt.type = "button"; bt.className = "chip"; bt.textContent = hName(i);
+      bt.setAttribute("aria-pressed", String(i === state.sel));
+      bt.addEventListener("click", function () { state.sel = i; refresh(true); });
+      sc.appendChild(bt);
+    })(i);
+
+    var f = $("formula"); f.textContent = "";
+    var s = state.sel, cs_ = "var(--h" + (s + 1) + ")", terms = Prob.terms(state.prior, state.lik, state.obs);
+    var denomSyms = [], denomNums = [];
+    for (i = 0; i < n; i++) { denomSyms.push("P(" + ev + "|" + hName(i) + ")·P(" + hName(i) + ")"); denomNums.push(fmtSig(likObs(i)) + "·" + fmtSig(state.prior[i])); }
+    line(f, [{ t: "P(" + hName(s) + "|" + ev + ") = ", c: cs_ }, { t: "P(" + ev + "|" + hName(s) + ")·P(" + hName(s) + ")", c: cs_ }, " / P(" + ev + ")"]);
+    line(f, ["P(" + ev + ") = " + denomSyms.join(" + ")]);
+    line(f, ["        = " + denomNums.join(" + ")]);
+    line(f, ["        = " + terms.map(fmtSig).join(" + ") + " = " + fmtSig(pe)]);
+    line(f, [{ t: "P(" + hName(s) + "|" + ev + ") = " + fmtSig(terms[s]) + " / " + fmtSig(pe) + " = " + (post ? fmtSig(post[s]) : "—"), c: cs_ }]);
+
+    var th = $("thead"); th.textContent = "";
+    var hr = document.createElement("tr");
+    ["H", "P(H)", "P(" + ev + "|H)", "Добуток", "P(H|" + ev + ")"].forEach(function (t, j) { var c = document.createElement("th"); c.scope = "col"; c.textContent = t; hr.appendChild(c); });
+    th.appendChild(hr);
+    var tb = $("tbody"); tb.textContent = "";
+    for (i = 0; i < n; i++) {
+      var tr = document.createElement("tr");
+      var h0 = td(tr, hName(i), true); h0.style.color = "var(--h" + (i + 1) + ")";
+      td(tr, fmtSig(state.prior[i])); td(tr, fmtSig(likObs(i))); td(tr, fmtSig(terms[i])); td(tr, post ? fmtSig(post[i]) : "—");
+      tb.appendChild(tr);
+    }
+    var tf = $("tfoot"); tf.textContent = "";
+    var fr = document.createElement("tr");
+    td(fr, "Разом", true); td(fr, fmtSig(Prob.sum(state.prior))); td(fr, ""); td(fr, fmtSig(pe)); td(fr, post ? fmtSig(Prob.sum(post)) : "—");
+    tf.appendChild(fr);
+  }
+
+  /* ---------- Кілька результатів підряд ---------- */
+  function renderSeq() {
+    var seq = Prob.sequence(state.prior, state.lik, state.seq), n = state.k, i, j;
+    $("sPlus").disabled = $("sMinus").disabled = state.seq.length >= MAX_STEPS;
+    $("sUndo").disabled = $("sReset").disabled = state.seq.length === 0;
+    $("sHist").textContent = state.seq.length
+      ? "Результати: " + state.seq.map(function (x) { return x ? "A" : "не A"; }).join(", ") + ". Після останнього " + hName(state.sel) + ": " + fmtSig(seq[seq.length - 1][state.sel]) + "."
+      : "Результатів ще немає: на графіку лише початкові ймовірності. Додайте результат кнопкою.";
+    var hd = $("sHead"); hd.textContent = "";
+    var hr = document.createElement("tr");
+    var c0 = document.createElement("th"); c0.scope = "col"; c0.textContent = "Крок"; hr.appendChild(c0);
+    for (i = 0; i < n; i++) { var c = document.createElement("th"); c.scope = "col"; c.textContent = hName(i); hr.appendChild(c); }
+    hd.appendChild(hr);
+    var bd = $("sBody"); bd.textContent = "";
+    for (j = 0; j < seq.length; j++) {
+      var tr = document.createElement("tr");
+      td(tr, j === 0 ? "початок" : j + ": " + (state.seq[j - 1] ? "A" : "не A"), true);
+      for (i = 0; i < n; i++) td(tr, fmtSig(seq[j][i]));
+      bd.appendChild(tr);
+    }
+    $("cs").setAttribute("aria-label", "Зміна ймовірностей гіпотез за " + state.seq.length + " результатів. Зараз: " +
+      seq[seq.length - 1].map(function (p, q) { return hName(q) + " " + fmtSig(p); }).join("; ") + ".");
+    drawSeq();
+  }
+  function addResult(v) {
+    if (state.seq.length >= MAX_STEPS) return;
+    state.seq.push(v); renderSeq();
+    var seq = Prob.sequence(state.prior, state.lik, state.seq);
+    say("Результат " + state.seq.length + ": " + (v ? "A настала" : "A не настала") + ". " + hName(state.sel) + ": " + fmtSig(seq[seq.length - 1][state.sel]) + ".", 300);
+  }
+  $("sPlus").addEventListener("click", function () { addResult(true); });
+  $("sMinus").addEventListener("click", function () { addResult(false); });
+  $("sUndo").addEventListener("click", function () { state.seq.pop(); renderSeq(); say("Останній результат прибрано."); });
+  $("sReset").addEventListener("click", function () { state.seq = []; renderSeq(); say("Результати скинуто."); });
+
+  /* ---------- Симуляція ---------- */
+  function resetSim() {
+    simSeed++;
+    sim = { N: 0, hit: [], tot: 0, rng: Rand.create(simSeed) };
+    for (var i = 0; i < state.k; i++) sim.hit.push(0);
+    renderSim();
+  }
+  function simAdd(cnt) {
+    cnt = Math.min(cnt, SIM_CAP - sim.N);
+    var cum = [], acc = 0, i;
+    for (i = 0; i < state.k; i++) { acc += state.prior[i]; cum.push(acc); }
+    for (var q = 0; q < cnt; q++) {
+      var u = sim.rng.next() * acc, h = 0;
+      while (h < state.k - 1 && u >= cum[h]) h++;
+      var isA = sim.rng.next() < state.lik[h];
+      if (isA === state.obs) { sim.hit[h]++; sim.tot++; }
+    }
+    sim.N += cnt;
+    renderSim();
+    say("Розіграно " + group(sim.N) + ", відібрано " + group(sim.tot) + ".", 400);
+  }
+  function renderSim() {
+    var post = posterior(), body = $("simBody"), i;
+    body.textContent = "";
+    for (i = 0; i < state.k; i++) {
+      var tr = document.createElement("tr");
+      var h0 = td(tr, hName(i), true); h0.style.color = "var(--h" + (i + 1) + ")";
+      td(tr, group(sim.hit[i])); td(tr, sim.tot ? fmtSig(sim.hit[i] / sim.tot) : "—"); td(tr, post ? fmtSig(post[i]) : "—");
+      body.appendChild(tr);
+    }
+    $("simMsg").textContent = sim.N === 0 ? "Розіграйте випадки кнопками вище."
+      : "Розіграно: " + group(sim.N) + ". Відібрано за умовою (" + evText() + "): " + group(sim.tot) + (sim.tot < 30 ? ". Відібраних поки замало, щоб частки були надійні." : ".");
+    $("sim100").disabled = $("sim1000").disabled = $("sim10000").disabled = sim.N >= SIM_CAP;
+  }
+  $("sim100").addEventListener("click", function () { simAdd(100); });
+  $("sim1000").addEventListener("click", function () { simAdd(1000); });
+  $("sim10000").addEventListener("click", function () { simAdd(10000); });
+  $("simReset").addEventListener("click", function () { resetSim(); say("Симуляцію скинуто."); });
+
+  /* ---------- Оновлення ---------- */
+  function isPresetValues() {
+    var p = BY_ID[state.preset];
+    if (p.prior.length !== state.k) return false;
+    for (var i = 0; i < state.k; i++) if (Math.abs(p.prior[i] - state.prior[i]) > 1e-9 || Math.abs(p.lik[i] - state.lik[i]) > 1e-9) return false;
+    return true;
+  }
+  function refresh(full) {
+    syncRows();
+    for (var id in chipEls) chipEls[id].setAttribute("aria-pressed", String(id === state.preset && isPresetValues()));
+    document.querySelectorAll("[data-k]").forEach(function (b) { b.setAttribute("aria-pressed", String(Number(b.getAttribute("data-k")) === state.k)); });
+    $("mA").setAttribute("aria-pressed", String(state.obs)); $("mN").setAttribute("aria-pressed", String(!state.obs));
+    $("srcNote").textContent = BY_ID[state.preset].note + (isPresetValues() ? "" : " (значення змінено вами)");
+    renderResult();
+    drawDots();
+    renderSeq();
+    resetSim();
+    if (!full) {
+      var post = posterior();
+      say(post ? "Ймовірність " + hName(state.sel) + " після відомої події " + fmtSig(post[state.sel]) + "." : "Така подія неможлива.", 600);
+    }
+  }
+
+  function redraw() { drawDots(); drawSeq(); }
+  function resizeAll() { cd.resize(); cs.resize(); redraw(); }
+  if (window.ResizeObserver) { new ResizeObserver(resizeAll).observe($("cd")); new ResizeObserver(resizeAll).observe($("cs")); }
+  else window.addEventListener("resize", resizeAll);
+  new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  if (window.matchMedia) {
+    var mq = window.matchMedia("(prefers-color-scheme: dark)");
+    if (mq.addEventListener) mq.addEventListener("change", redraw);
+  }
+
+  choosePreset("test");
+  resizeAll();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,733 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Числові характеристики: неперервна ознака</title>
+<meta name="description" content="Мода, медіана, квартилі, середнє й дисперсія для неперервної ознаки за інтервальним рядом. Гістограма, полігон частот і кумулятивна крива.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="common.css">
+<style>
+.app {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "head" "choose" "chart" "table" "cum" "result" "how" "explain";
+}
+.head { grid-area: head; }
+.backlink { display: inline-block; margin-bottom: 10px; font-size: 13px; }
+.choose { grid-area: choose; }
+.chartbox { grid-area: chart; min-width: 0; }
+.tablebox { grid-area: table; min-width: 0; }
+.cumbox { grid-area: cum; min-width: 0; }
+.result { grid-area: result; }
+.how { grid-area: how; }
+.explain { grid-area: explain; }
+.main, .side { display: contents; }
+
+.srcnote { margin: 10px 0 0; font-size: 14px; color: var(--muted); max-width: 72ch; text-wrap: pretty; }
+.cfgbar { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; margin-top: 14px; }
+.cfgbar .grp { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; }
+.lbl { font-size: 13.5px; }
+.numin {
+  width: 64px; font-family: var(--font-data); font-size: 13.5px; color: var(--ink); text-align: right;
+  background: var(--bg); border: 1px solid var(--grid-strong); border-radius: 6px; padding: 6px 8px;
+}
+.btnrow { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+details.list { margin-top: 12px; }
+details.list summary { cursor: pointer; font-size: 13.5px; }
+details.list textarea {
+  width: 100%; min-height: 64px; margin-top: 8px; resize: vertical; font-family: var(--font-data); font-size: 13.5px;
+  color: var(--ink); background: var(--bg); border: 1px solid var(--grid-strong); border-radius: 6px; padding: 8px 10px;
+}
+.dmsg { margin: 8px 0 0; font-size: 13px; color: var(--muted); min-height: 1.4em; }
+.dmsg.warn { color: var(--neg); }
+
+.panel h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; text-wrap: balance; }
+canvas.cv {
+  display: block; width: 100%; background: var(--panel);
+  border: 1px solid var(--grid-strong); border-radius: 6px;
+}
+#cv { aspect-ratio: 4 / 3; touch-action: none; cursor: crosshair; }
+#cc { aspect-ratio: 16 / 10; max-height: 340px; }
+#cb { height: 110px; }
+.boxwrap { margin-top: 14px; }
+.boxwrap h3 { margin: 0 0 6px; font-size: 14px; font-weight: 700; }
+.shows { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+.how details > summary { cursor: pointer; font-weight: 700; font-size: 16px; }
+.how details[open] > summary { margin-bottom: 8px; }
+.legend { margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; }
+.legend .sw { display: inline-block; width: 22px; height: 0; border-top: 3px solid; vertical-align: middle; margin-right: 6px; }
+.legend .sw.dash { border-top-style: dashed; }
+.legend .sw.dot { border-top-style: dotted; }
+.legend .sw.box { height: 10px; border: 0; opacity: .5; }
+.cmsg { margin: 8px 0 0; font-size: 13.5px; color: var(--muted); max-width: 72ch; text-wrap: pretty; }
+
+.twrap { overflow: auto; border: 1px solid var(--grid-strong); border-radius: 6px; }
+.tscroll { max-height: 380px; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+th, td { padding: 4px 8px; text-align: right; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; font-family: var(--font-body); }
+thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500; color: var(--muted); border-bottom: 1px solid var(--grid-strong); z-index: 1; }
+tbody tr:last-child td, tbody tr:last-child th { border-bottom: 0; }
+tr.hl-mode td, tr.hl-mode th { background: color-mix(in srgb, var(--h3) 18%, transparent); }
+tr.hl-med td, tr.hl-med th { box-shadow: inset 0 -2px 0 var(--h1); }
+td input.fin {
+  width: 64px; font-family: var(--font-data); font-size: 13.5px; text-align: right; color: var(--ink);
+  background: var(--bg); border: 1px solid var(--grid-strong); border-radius: 4px; padding: 3px 6px;
+}
+.result td.txt { white-space: normal; overflow-wrap: anywhere; min-width: 5.5em; }
+.result th:first-child, .result td:first-child { white-space: normal; }
+.warns { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.warns li { font-size: 13.5px; padding: 6px 10px; border-left: 3px solid var(--neg); background: var(--bg); border-radius: 0 4px 4px 0; text-wrap: pretty; }
+.nline { margin: 0 0 8px; font-size: 13.5px; color: var(--muted); }
+
+.formula { margin: 6px 0 0; font-family: var(--font-data); font-size: 13px; line-height: 1.8; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.formula .t { font-weight: 500; }
+.how h3 { margin: 14px 0 0; font-size: 14px; font-weight: 700; }
+.how h3:first-of-type { margin-top: 4px; }
+.how p.note { margin: 10px 0 0; font-size: 13.5px; color: var(--muted); max-width: 70ch; }
+.explain p { margin: 8px 0 0; font-size: 14.5px; max-width: 68ch; text-wrap: pretty; }
+.explain p.key { margin-top: 0; }
+
+@media (min-width: 600px) { #cv { aspect-ratio: 16 / 9; } }
+@media (max-width: 520px) { .tablebox th, .tablebox td { padding: 4px 3px; font-size: 11.5px; } td input.fin { width: 38px; padding: 3px 4px; } .result th, .result td { padding: 4px 3px; font-size: 12px; } .result td.txt { min-width: 3.6em; } }
+@media (min-width: 900px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr) 400px;
+    column-gap: 24px;
+    grid-template-areas: "head head" "choose choose" "main side";
+  }
+  .main { grid-area: main; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .side { grid-area: side; display: flex; flex-direction: column; gap: 16px; align-self: start; min-width: 0; }
+  #cv { aspect-ratio: 16 / 10; }
+}
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="head">
+    <a class="backlink" href="index.html">← Усі сторінки</a>
+    <h1>Числові характеристики: неперервна ознака</h1>
+    <p class="lead">Ознака може набувати будь-яких значень на проміжку: зріст, зарплата, час. Дані групують в інтервали, а мода, медіана й квартилі рахуються за формулами інтервального ряду.</p>
+  </header>
+
+  <section class="choose panel" aria-label="Дані й налаштування">
+    <p class="eyebrow">Готові набори</p>
+    <div class="chips" id="chips"></div>
+    <p class="srcnote" id="srcNote"></p>
+
+    <div class="cfgbar">
+      <div class="grp">
+        <span class="lbl" id="x0Lbl">Початок x₀</span>
+        <input class="numin" id="x0In" type="text" inputmode="decimal" aria-labelledby="x0Lbl" autocomplete="off">
+        <span class="lbl" id="hLbl">Ширина h</span>
+        <input class="numin" id="hIn" type="text" inputmode="decimal" aria-labelledby="hLbl" autocomplete="off">
+        <span class="lbl" id="mLbl">Інтервалів</span>
+        <input class="numin" id="mIn" type="text" inputmode="numeric" aria-labelledby="mLbl" autocomplete="off">
+      </div>
+      <div class="grp">
+        <span class="lbl" id="ddLbl">Дисперсія: ділити на</span>
+        <div class="seg" role="group" aria-labelledby="ddLbl">
+          <button type="button" id="dd0" aria-pressed="true">n</button>
+          <button type="button" id="dd1" aria-pressed="false">n − 1</button>
+        </div>
+      </div>
+      <div class="grp shows" role="group" aria-label="Що показувати на гістограмі">
+        <span class="lbl">Показати:</span>
+        <label class="check"><input type="checkbox" id="showPoly" checked> полігон</label>
+        <label class="check"><input type="checkbox" id="showMean" checked> x̄</label>
+        <label class="check"><input type="checkbox" id="showMed" checked> Me</label>
+        <label class="check"><input type="checkbox" id="showMode" checked> Mo</label>
+        <label class="check"><input type="checkbox" id="showSd"> x̄ ± SD</label>
+      </div>
+    </div>
+    <p class="cmsg">Усі інтервали однакової ширини h. Кожен має вигляд [a; b), тільки останній замкнений [a; b], щоб містити найбільший вимір.</p>
+    <div class="btnrow">
+      <button type="button" class="btn" id="undoBtn">Скасувати</button>
+      <button type="button" class="btn" id="clearBtn">Усі частоти в нуль</button>
+    </div>
+    <details class="list">
+      <summary>Є результати вимірювань? Ввести виміри</summary>
+      <label class="sr-only" for="dataTa">Результати вимірювань</label>
+      <textarea id="dataTa" spellcheck="false" placeholder="наприклад: 172,5 168 181 175,2"></textarea>
+      <div class="btnrow"><button type="button" class="btn" id="buildBtn">Побудувати інтервальний ряд</button></div>
+      <p class="cmsg" style="margin-top:6px">Числа через пробіл, крапку з комою чи новий рядок. Ширину інтервалу й початок підберемо самі, потім їх можна змінити. Поки таблиця будується з вимірів, поруч показано точні значення для порівняння.</p>
+    </details>
+    <p class="dmsg" id="dMsg"></p>
+  </section>
+
+  <div class="main">
+    <section class="chartbox panel" aria-labelledby="cTitle">
+      <h2 id="cTitle">Гістограма й полігон частот</h2>
+      <canvas class="cv" id="cv" role="img" aria-label="Гістограма"></canvas>
+      <p class="legend" id="legend"></p>
+      <p class="cmsg">Потягніть верх стовпчика, щоб змінити частоту інтервалу. Зелений стовпчик це модальний інтервал, синя риска показує медіанний. Висоти відповідають абсолютним частотам, бо інтервали однакової ширини.</p>
+      <div class="boxwrap" id="boxWrap" hidden>
+        <h3>Ящик з вусами (за вимірами)</h3>
+        <canvas class="cv" id="cb" role="img" aria-label="Ящик з вусами"></canvas>
+        <p class="cmsg">Ящик від Q₁ до Q₃, лінія всередині це медіана, ромб це середнє. Вуса сягають останніх значень у межах Q₁ − 1,5·IQR і Q₃ + 1,5·IQR. Кружечки це потенційні викиди, не обов'язково помилки.</p>
+      </div>
+    </section>
+
+    <section class="tablebox panel" aria-labelledby="tTitle">
+      <h2 id="tTitle">Інтервальний ряд</h2>
+      <div class="twrap tscroll">
+        <table>
+          <caption class="sr-only">Інтервальний ряд: інтервали, середини, абсолютні, накопичені, відносні та накопичені відносні частоти</caption>
+          <thead><tr><th scope="col">Інтервал</th><th scope="col">Середина</th><th scope="col">Абсолютна</th><th scope="col">Накопичена</th><th scope="col">Відносна</th><th scope="col">Нак. відносна</th></tr></thead>
+          <tbody id="sBody"></tbody>
+        </table>
+      </div>
+      <p class="cmsg">Зелений фон: модальний інтервал (найбільша частота). Синя лінія знизу: медіанний інтервал, де накопичена частота вперше сягає n/2.</p>
+    </section>
+
+    <section class="cumbox panel" aria-labelledby="kTitle">
+      <h2 id="kTitle">Кумулятивна крива (кумулята)</h2>
+      <div class="grp" style="margin-bottom:8px">
+        <span class="lbl" id="kLbl">Частоти:</span>
+        <div class="seg" role="group" aria-labelledby="kLbl">
+          <button type="button" id="kAbs" aria-pressed="true">накопичені</button>
+          <button type="button" id="kRel" aria-pressed="false">накопичені відносні</button>
+        </div>
+      </div>
+      <canvas class="cv" id="cc" role="img" aria-label="Кумулятивна крива"></canvas>
+      <p class="cmsg" id="kNote">Початок у точці (x₀; 0), далі накопичені частоти на верхніх межах інтервалів. Відрізки між точками відповідають припущенню, що всередині інтервалу значення розподілені рівномірно. За цим припущенням Q₁, Me, Q₃ читаються на рівнях 1/4, 1/2, 3/4 від n, і це ті самі числа, що дають формули.</p>
+    </section>
+  </div>
+
+  <div class="side">
+    <section class="result panel" aria-labelledby="rTitle">
+      <h2 id="rTitle">Характеристики</h2>
+      <p class="nline" id="nLine"></p>
+      <div class="twrap">
+        <table>
+          <caption class="sr-only">Числові характеристики за інтервальним рядом</caption>
+          <thead id="rHead"></thead>
+          <tbody id="rBody"></tbody>
+        </table>
+      </div>
+      <ul class="warns" id="warns" aria-label="Зауваження"></ul>
+    </section>
+
+    <section class="how panel">
+      <details>
+        <summary>Детальні обчислення</summary>
+        <div id="how"></div>
+      </details>
+    </section>
+
+    <section class="explain panel" aria-labelledby="eTitle">
+      <h2 id="eTitle">Що тут відбувається</h2>
+      <p class="key"><strong>Інтервальний ряд</strong> містить інтервали й їхні частоти, окремих значень у ньому вже немає. Тому характеристики за ним наближені: моду, медіану й квартилі знаходять усередині інтервалу за формулами, а середнє й дисперсію рахують за серединами інтервалів. Точні значення можна побачити, якщо ряд побудовано з вимірів.</p>
+      <p><strong>Частоти.</strong> Абсолютна частота це кількість значень в інтервалі, відносна це її частка від n, накопичена це сума частот до верхньої межі інтервалу включно. Кумулятивна крива показує накопичені частоти, а не значення окремих спостережень.</p>
+      <p><strong>Дисперсія.</strong> Ділення на n описує саме ці дані. Ділення на n − 1 дає незміщену оцінку дисперсії генеральної сукупності за вибіркою. Різниця помітна лише для малих n.</p>
+    </section>
+  </div>
+</main>
+
+<div class="sr-only" id="sr" role="status" aria-live="polite"></div>
+
+<script src="common.js"></script>
+<script src="summary.js"></script>
+<script>
+(function () {
+  "use strict";
+  var S = Stat, Sm = Summ, f4 = S.fmtSig, clamp = S.clamp;
+  var MAXM = 30, MAXN = 5000, MAXF = 999, MAXUNDO = 60;
+
+  function $(id) { return document.getElementById(id); }
+  /* Детермінований «випадковий» набір для готових прикладів */
+  function seeded(n, seed, fn) {
+    var s = seed, out = [];
+    function r() { s = (s * 1664525 + 1013904223) % 4294967296; return (s + 1) / 4294967298; }
+    for (var i = 0; i < n; i++) out.push(fn(Math.sqrt(-2 * Math.log(r())) * Math.cos(2 * Math.PI * r())));
+    return out;
+  }
+  var HEIGHTS = seeded(60, 7, function (z) { return Math.round(172 + 7.5 * z); });
+  var PAY = seeded(50, 11, function (z) { return Math.round(Math.exp(9.9 + 0.55 * z) / 100) * 100; });
+
+  /* ---------- Готові набори ----------
+     Або x0, h, f (готовий інтервальний ряд), або raw (виміри). */
+  var PRESETS = [
+    { id: "book", name: "Підручниковий приклад", x0: 0, h: 10, f: [5, 8, 15, 16, 6],
+      note: "Рівні інтервали ширини 10. Модальний інтервал [30; 40) бо його частота 16 найбільша, мода 30,91. Медіанний інтервал [20; 30)." },
+    { id: "height", name: "Зріст, см", raw: HEIGHTS,
+      note: "Зріст 60 студентів (вигадані дані). Майже симетричний розподіл: середнє, медіана й мода близькі." },
+    { id: "pay", name: "Зарплати", raw: PAY,
+      note: "Місячні зарплати 50 працівників, грн (вигадані дані). Розподіл скошений праворуч: середнє більше за медіану." },
+    { id: "two", name: "Дві вершини", x0: 0, h: 5, f: [2, 8, 3, 1, 2, 8, 4, 1],
+      note: "Два скупчення. Є два модальні інтервали з однаковою частотою 8, тому моди дві." },
+    { id: "skew", name: "Скошений праворуч", x0: 0, h: 5, f: [2, 10, 12, 7, 4, 2, 1],
+      note: "Довгий правий хвіст: середнє більше за медіану, а медіана більша за моду." },
+    { id: "flat", name: "Усі інтервали однакові", x0: 0, h: 10, f: [5, 5, 5, 5],
+      note: "Усі частоти рівні, тож найбільшої немає й моди немає." }
+  ];
+  var BY_ID = {};
+  PRESETS.forEach(function (p) { BY_ID[p.id] = p; });
+
+  var state = { preset: "book", x0: 0, h: 10, f: [], raw: null, ddof: 0, sd: false, poly: true, mean: true, med: true, mode: true, cumRel: false, undo: [] };
+  var cv = $("cv"), ctx = cv.getContext("2d"), W = 0, H = 0;
+  var cc = $("cc"), cctx = cc.getContext("2d"), W2 = 0, H2 = 0;
+  var cb = $("cb"), bctx = cb.getContext("2d"), W3 = 0, H3 = 0;
+  var geom = null, drag = null, G = null, X = null;
+
+  var sayTimer = null;
+  function say(t, d) { clearTimeout(sayTimer); sayTimer = setTimeout(function () { $("sr").textContent = ""; $("sr").textContent = t; }, d || 0); }
+  function setMsg(t, warn) { var m = $("dMsg"); m.textContent = t; m.className = "dmsg" + (warn ? " warn" : ""); }
+  function total() { var s = 0; state.f.forEach(function (x) { s += x; }); return s; }
+  function snap() { return { x0: state.x0, h: state.h, f: state.f.slice(), raw: state.raw }; }
+  function pushUndo() { state.undo.push(snap()); if (state.undo.length > MAXUNDO) state.undo.shift(); }
+  function restore(s) { state.x0 = s.x0; state.h = s.h; state.f = s.f.slice(); state.raw = s.raw; }
+
+  /* ---------- Вибір набору ---------- */
+  var chipEls = {};
+  PRESETS.forEach(function (p) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "chip"; b.textContent = p.name; b.setAttribute("aria-pressed", "false");
+    b.addEventListener("click", function () { choose(p.id); });
+    $("chips").appendChild(b); chipEls[p.id] = b;
+  });
+  function choose(id) {
+    var p = BY_ID[id];
+    state.preset = id; state.undo = []; setMsg("");
+    if (p.raw) { state.raw = p.raw.slice(); buildFromRaw(); }
+    else { state.raw = null; state.x0 = p.x0; state.h = p.h; state.f = p.f.slice(); }
+    syncInputs(); buildTable(); update(true);
+    say(p.name + ". " + summaryText());
+  }
+  function presetMatches() {
+    var p = BY_ID[state.preset];
+    if (!p) return false;
+    if (p.raw) return !!state.raw && state.raw.length === p.raw.length && state.raw.every(function (v, i) { return v === p.raw[i]; });
+    if (p.x0 !== state.x0 || p.h !== state.h || p.f.length !== state.f.length) return false;
+    return p.f.every(function (v, i) { return v === state.f[i]; });
+  }
+
+  /* ---------- Побудова ряду з вимірів ---------- */
+  function cleanNum(v) { return Math.round(v * 1e9) / 1e9; }
+  function autoH(raw) {
+    var mn = Math.min.apply(null, raw), mx = Math.max.apply(null, raw), n = raw.length;
+    var k = Math.ceil(1 + 3.322 * Math.log10(n));
+    if (mx === mn) return 1;
+    return cleanNum(S.niceStep((mx - mn) / k, 1));
+  }
+  function buildFromRaw() {
+    var raw = state.raw, h = autoH(raw), mn = Math.min.apply(null, raw);
+    state.h = h; state.x0 = cleanNum(Math.floor(mn / h + 1e-9) * h);
+    regroup();
+  }
+  function regroup() {
+    var g = Sm.group(state.raw, state.x0, state.h);
+    if (!g || g.m > MAXM) return false;
+    state.x0 = cleanNum(g.start); state.f = g.iv.map(function (r) { return r.f; });
+    return true;
+  }
+
+  /* ---------- Поля x0, h, m ---------- */
+  function syncInputs() {
+    $("x0In").value = S.fmtSig(state.x0).replace("−", "-"); $("hIn").value = S.fmtSig(state.h); $("mIn").value = String(state.f.length);
+    $("x0In").value = String(state.x0).replace(".", ","); $("hIn").value = String(state.h).replace(".", ",");
+    if (!state.raw) $("dataTa").value = ""; else if (document.activeElement !== $("dataTa")) $("dataTa").value = state.raw.map(function (v) { return String(v).replace(".", ","); }).join(" ");
+  }
+  function commitParams() {
+    var x0 = S.toNumber($("x0In").value), h = S.toNumber($("hIn").value), m = parseInt($("mIn").value, 10);
+    var bad = x0 === null || h === null || !(h > 0) || !isFinite(m) || m < 1 || m > MAXM;
+    if (bad) { setMsg("Початок має бути числом, ширина додатною, інтервалів від 1 до " + MAXM + ".", true); syncInputs(); return; }
+    if (x0 === state.x0 && h === state.h && m === state.f.length) return;
+    pushUndo();
+    if (state.raw && (x0 !== state.x0 || h !== state.h)) {
+      var oldx = state.x0, oldh = state.h;
+      state.x0 = x0; state.h = h;
+      if (!regroup()) { state.x0 = oldx; state.h = oldh; state.undo.pop(); setMsg("З такою шириною вийде понад " + MAXM + " інтервалів.", true); syncInputs(); return; }
+      setMsg(Math.abs(state.x0 - x0) > 1e-9 ? "Початок зсунуто до " + String(state.x0).replace(".", ",") + ", щоб перший інтервал містив найменший вимір." : "");
+    } else {
+      if (state.raw) state.raw = null; /* ручна зміна кількості інтервалів розриває зв'язок з вимірами */
+      var f = state.f.slice();
+      if (m < f.length) {
+        for (var i = m; i < f.length; i++) if (f[i] > 0) { state.undo.pop(); setMsg("Ці інтервали мають ненульові частоти. Спершу обнуліть їх.", true); syncInputs(); return; }
+        f.length = m;
+      } else while (f.length < m) f.push(0);
+      state.x0 = x0; state.h = h; state.f = f; setMsg("");
+    }
+    syncInputs(); buildTable(); update(false);
+  }
+  ["x0In", "hIn", "mIn"].forEach(function (id) { $(id).addEventListener("change", commitParams); });
+
+  /* ---------- Таблиця ---------- */
+  var rowEls = [];
+  function ivLabel(a, b, last) { return "[" + f4(cleanNum(a)) + "; " + f4(cleanNum(b)) + (last ? "]" : ")"); }
+  function ivLabelI(i) { var a = state.x0 + i * state.h; return ivLabel(a, a + state.h, i === state.f.length - 1); }
+  function buildTable() {
+    var b = $("sBody"); b.textContent = ""; rowEls = [];
+    state.f.forEach(function (_, i) {
+      var tr = document.createElement("tr");
+      var th = document.createElement("th"); th.scope = "row"; tr.appendChild(th);
+      var tdMid = document.createElement("td"); tr.appendChild(tdMid);
+      var td1 = document.createElement("td");
+      var inp = document.createElement("input"); inp.type = "text"; inp.inputMode = "numeric"; inp.className = "fin"; inp.autocomplete = "off";
+      inp.addEventListener("input", function () { setFreq(i, parseInt(inp.value, 10), true); });
+      inp.addEventListener("blur", syncTable);
+      td1.appendChild(inp); tr.appendChild(td1);
+      var td2 = document.createElement("td"), td3 = document.createElement("td");
+      var td4 = document.createElement("td"); tr.appendChild(td2); tr.appendChild(td3); tr.appendChild(td4); b.appendChild(tr);
+      rowEls.push({ tr: tr, th: th, mid: tdMid, inp: inp, cum: td2, rel: td3, rc: td4 });
+    });
+  }
+  function syncTable() {
+    var cum = 0, n = total();
+    rowEls.forEach(function (r, i) {
+      var a = state.x0 + i * state.h, b = a + state.h;
+      r.th.textContent = ivLabelI(i); r.mid.textContent = f4(cleanNum((a + b) / 2));
+      r.inp.setAttribute("aria-label", "Абсолютна частота інтервалу " + ivLabelI(i));
+      cum += state.f[i];
+      if (document.activeElement !== r.inp) r.inp.value = String(state.f[i]);
+      r.cum.textContent = String(cum); r.rel.textContent = n ? S.fmt(state.f[i] / n, 3) : "—"; r.rc.textContent = n ? S.fmt(cum / n, 3) : "—";
+      var cls = "";
+      if (G) {
+        if (!G.mode.none && G.mode.cands.some(function (c) { return c.i === i; })) cls += "hl-mode ";
+        if (G.med && G.med.i === i) cls += "hl-med";
+      }
+      r.tr.className = cls;
+    });
+  }
+  function setFreq(i, f, fromInput) {
+    if (!(f >= 0)) f = 0;
+    f = Math.min(f, MAXF);
+    var others = total() - state.f[i];
+    if (others + f > MAXN) { f = Math.max(0, MAXN - others); setMsg("Усього не більше " + MAXN + " значень.", true); if (fromInput) rowEls[i].inp.value = String(f); }
+    if (f === state.f[i]) return;
+    if (!drag || !drag.moved) { pushUndo(); if (drag) drag.moved = true; }
+    state.f[i] = f;
+    if (state.raw) { state.raw = null; setMsg("Частоти змінено вручну, тому порівняння з вимірами вимкнено."); }
+    update(false, !!drag);
+  }
+
+  /* ---------- Виміри ---------- */
+  $("buildBtn").addEventListener("click", function () {
+    var toks = $("dataTa").value.split(/[\s;]+/).filter(function (t) { return t.length; }), vals = [], bad = 0;
+    toks.forEach(function (t) { var v = S.toNumber(t); if (v === null) bad++; else vals.push(v); });
+    if (vals.length < 2) { setMsg("Потрібно хоча б два числа.", true); return; }
+    if (vals.length > MAXN) { setMsg("Занадто багато вимірів: максимум " + MAXN + ".", true); return; }
+    pushUndo();
+    var oldRaw = state.raw, oldx = state.x0, oldh = state.h, oldf = state.f;
+    state.raw = vals; buildFromRaw();
+    if (state.f.length > MAXM) {
+      state.raw = oldRaw; state.x0 = oldx; state.h = oldh; state.f = oldf; state.undo.pop();
+      setMsg("Занадто великий розкид: вийшло б понад " + MAXM + " інтервалів.", true); return;
+    }
+    state.preset = "custom";
+    setMsg("Побудовано " + state.f.length + " інтервалів." + (bad ? " Пропущено нечислових записів: " + bad + "." : ""), bad > 0);
+    syncInputs(); buildTable(); update(false);
+  });
+  $("undoBtn").addEventListener("click", function () {
+    if (!state.undo.length) return;
+    restore(state.undo.pop()); syncInputs(); buildTable(); update(false); say("Скасовано. " + summaryText(), 300);
+  });
+  $("clearBtn").addEventListener("click", function () {
+    if (!total()) return;
+    pushUndo(); state.f = state.f.map(function () { return 0; }); state.raw = null; update(false); say("Усі частоти нульові.");
+  });
+  function setDdof(v) {
+    state.ddof = v; $("dd0").setAttribute("aria-pressed", String(v === 0)); $("dd1").setAttribute("aria-pressed", String(v === 1)); update(false);
+  }
+  $("dd0").addEventListener("click", function () { setDdof(0); });
+  $("dd1").addEventListener("click", function () { setDdof(1); });
+  $("showSd").addEventListener("change", function (e) { state.sd = e.target.checked; renderLegend(); draw(); });
+  ["Mean", "Med", "Mode"].forEach(function (n) { $("show" + n).addEventListener("change", function (e) { state[n.toLowerCase()] = e.target.checked; renderLegend(); draw(); }); });
+  function setCum(rel) { state.cumRel = rel; $("kAbs").setAttribute("aria-pressed", String(!rel)); $("kRel").setAttribute("aria-pressed", String(rel)); draw(); }
+  $("kAbs").addEventListener("click", function () { setCum(false); });
+  $("kRel").addEventListener("click", function () { setCum(true); });
+  $("showPoly").addEventListener("change", function (e) { state.poly = e.target.checked; renderLegend(); draw(); });
+
+  /* ---------- Розрахунок ---------- */
+  function compute() {
+    G = Sm.table(state.x0, state.h, state.f);
+    X = null;
+    if (!G) return;
+    G.mean = Sm.gMean(G); G.vr = Sm.gVariance(G, state.ddof); G.sd = G.vr === null ? null : Math.sqrt(G.vr);
+    G.q1 = Sm.gQuantile(G, 0.25); G.med = Sm.gQuantile(G, 0.5); G.q3 = Sm.gQuantile(G, 0.75);
+    G.mode = Sm.gMode(G);
+    G.modes = G.mode.none ? [] : G.mode.cands.filter(function (c) { return c.mode !== null; }).map(function (c) { return c.mode; });
+    if (state.raw && state.raw.length === G.n) {
+      var d = state.raw, q = Sm.quartiles(d), v = Sm.variance(d, state.ddof);
+      X = { mean: Sm.mean(d), med: Sm.median(d), q1: q ? q.q1 : null, q3: q ? q.q3 : null, vr: v, sd: v === null ? null : Math.sqrt(v), mode: Sm.modeRaw(d), box: Sm.box(d) };
+    }
+  }
+  function modeText() {
+    if (!G) return "—";
+    if (G.mode.none) return "моди немає";
+    var parts = G.mode.cands.map(function (c) { return c.mode === null ? "не визначена" : f4(c.mode); });
+    return parts.join("; ");
+  }
+  function summaryText() {
+    if (!G) return "Даних немає.";
+    return "n = " + G.n + ", мода " + modeText() + ", медіана " + f4(G.med.value) + ", середнє " + f4(G.mean) + ".";
+  }
+
+  /* ---------- Результати ---------- */
+  function cell(tr, text, th, cls) {
+    var c = document.createElement(th ? "th" : "td"); if (th) c.scope = "row"; c.textContent = text; if (cls) c.className = cls; tr.appendChild(c); return c;
+  }
+  function renderResults() {
+    var b = $("rBody"), hd = $("rHead"); b.textContent = ""; hd.textContent = "";
+    var w = $("warns"); w.textContent = "";
+    if (!G) { $("nLine").textContent = "Даних немає. Задайте частоти в таблиці чи на стовпчиках, або оберіть набір."; return; }
+    $("nLine").textContent = "n = " + G.n + ", інтервалів " + G.m + ", h = " + f4(G.h) + ".";
+    var htr = document.createElement("tr");
+    cell(htr, "Характеристика", false).scope = "col"; cell(htr, "За інтервалами (наближено)", false).scope = "col";
+    if (X) cell(htr, "За вимірами (точно)", false).scope = "col";
+    hd.appendChild(htr);
+    function row(name, a, bx) {
+      var tr = document.createElement("tr"); cell(tr, name, true); cell(tr, a, false, "txt"); if (X) cell(tr, bx, false, "txt"); b.appendChild(tr);
+    }
+    function fx(v) { return v === null || v === undefined ? "—" : f4(v); }
+    row("Мода Mo", modeText(), X ? (X.mode.none ? "моди немає" : X.mode.modes.map(f4).join("; ")) : "");
+    row("Медіана Me", f4(G.med.value), X ? fx(X.med) : "");
+    row("Q₁", f4(G.q1.value), X ? fx(X.q1) : "");
+    row("Q₃", f4(G.q3.value), X ? fx(X.q3) : "");
+    row("IQR = Q₃ − Q₁", f4(G.q3.value - G.q1.value), X ? fx(X.q1 === null ? null : X.q3 - X.q1) : "");
+    row("Середнє x̄", f4(G.mean), X ? fx(X.mean) : "");
+    row("Дисперсія (÷ " + (state.ddof ? "n − 1" : "n") + ")", G.vr === null ? "—" : f4(G.vr), X ? fx(X.vr) : "");
+    row("Станд. відхилення", G.sd === null ? "—" : f4(G.sd), X ? fx(X.sd) : "");
+    function warn(t) { var li = document.createElement("li"); li.textContent = t; w.appendChild(li); }
+    if (G.mode.none) warn("Моди немає: " + G.mode.reason + ".");
+    else {
+      if (G.mode.cands.length > 1) warn("Кілька модальних інтервалів із частотою " + G.mode.maxf + ", тому й мод кілька.");
+      G.mode.cands.forEach(function (c) {
+        if (c.mode === null) warn("Для інтервалу " + ivLabel(c.a, c.a + G.h, c.i === G.m - 1) + " d₁ + d₂ = 0, формула моди не визначена.");
+        else if (c.i === 0 || c.i === G.m - 1) warn("Модальний інтервал " + ivLabel(c.a, c.a + G.h, c.i === G.m - 1) + " крайній. Частоту за межами ряду вважаємо нульовою.");
+      });
+    }
+    if (state.ddof === 1 && G.n === 1) warn("Для n = 1 ділити на n − 1 не можна.");
+    if (X) warn("Стовпчик «за інтервалами» наближений, «за вимірами» точний. Різниця виникає через втрату окремих значень при групуванні.");
+    if (X && X.box.outliers.length) warn("Потенційні викиди (за правилом 1,5·IQR): " + X.box.outliers.filter(function (v, i, a) { return a.indexOf(v) === i; }).map(f4).join("; ") + ".");
+  }
+  function line(parent, text, strong) {
+    var d = document.createElement("div"), s = document.createElement("span"); s.textContent = text; if (strong) s.className = "t"; d.appendChild(s); parent.appendChild(d);
+  }
+  function renderHow() {
+    var box = $("how"); box.textContent = "";
+    function heading(t) { var h = document.createElement("h3"); h.textContent = t; box.appendChild(h); }
+    function para(t) { var p = document.createElement("p"); p.className = "note"; p.textContent = t; box.appendChild(p); }
+    function frm() { var f = document.createElement("div"); f.className = "formula"; box.appendChild(f); return f; }
+    if (!G) { para("Задайте частоти, щоб побачити розрахунок."); return; }
+    var f, n = G.n, h = f4(G.h);
+    heading("Мода");
+    if (G.mode.none) para("Моди немає: " + G.mode.reason + ".");
+    else G.mode.cands.forEach(function (c) {
+      f = frm();
+      line(f, "Модальний інтервал " + ivLabel(c.a, c.a + G.h, c.i === G.m - 1) + ", f = " + c.f + ", попередній " + c.fm + ", наступний " + c.fp);
+      line(f, "d₁ = " + c.f + " − " + c.fm + " = " + c.d1 + ",  d₂ = " + c.f + " − " + c.fp + " = " + c.d2);
+      line(f, "Mo = x₀ + h·d₁/(d₁ + d₂)");
+      if (c.mode === null) line(f, "d₁ + d₂ = 0, формула не визначена");
+      else line(f, "   = " + f4(c.a) + " + " + h + "·" + c.d1 + "/" + (c.d1 + c.d2) + " = " + f4(c.mode), true);
+    });
+    [["Медіана", G.med, "n/2", 0.5, "Me"], ["Квартиль Q₁", G.q1, "n/4", 0.25, "Q₁"], ["Квартиль Q₃", G.q3, "3n/4", 0.75, "Q₃"]].forEach(function (a) {
+      var q = a[1];
+      heading(a[0]);
+      f = frm();
+      line(f, "Рівень " + a[2] + " = " + f4(q.target) + ". Накопичена частота вперше сягає його в інтервалі " + ivLabel(q.a, q.a + G.h, q.i === G.m - 1) + ": F до нього " + f4(q.prev) + ", частота " + q.f);
+      line(f, a[4] + " = x₀ + h·(" + a[2] + " − F)/f");
+      line(f, "   = " + f4(q.a) + " + " + h + "·(" + f4(q.target) + " − " + f4(q.prev) + ")/" + q.f + " = " + f4(q.value), true);
+    });
+    heading("Середнє й дисперсія за серединами");
+    f = frm();
+    var terms = []; G.iv.forEach(function (r) { if (r.f > 0) terms.push(f4(r.mid) + "·" + r.f); });
+    line(f, "x̄ = Σ xᵢ·fᵢ / n  (xᵢ середина інтервалу)");
+    if (terms.length <= 8) line(f, "   = (" + terms.join(" + ") + ") / " + n);
+    line(f, "   = " + f4(G.mean), true);
+    line(f, "s² = Σ (xᵢ − x̄)²·fᵢ / " + (state.ddof ? "(n − 1)" : "n") + " = " + (G.vr === null ? "—" : f4(G.vr)), true);
+    para("Це наближення: усередині інтервалу всі значення замінено серединою. Поправку Шеппарда не застосовано.");
+  }
+
+  /* ---------- Графіки ---------- */
+  function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+  function colors() {
+    return { panel: cssVar("--panel"), grid: cssVar("--grid"), muted: cssVar("--muted"), ink: cssVar("--ink"), pos: cssVar("--pos"),
+      mean: cssVar("--h2"), med: cssVar("--h1"), mode: cssVar("--h3"), data: cssVar("--font-data"), body: cssVar("--font-body") };
+  }
+  function resizeCanvas(el, c) {
+    var r = el.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    el.width = Math.max(1, Math.round(r.width * dpr)); el.height = Math.max(1, Math.round(r.height * dpr)); c.setTransform(dpr, 0, 0, dpr, 0, 0); return r;
+  }
+  function resizeAll() { var a = resizeCanvas(cv, ctx); W = a.width; H = a.height; var b = resizeCanvas(cc, cctx); W2 = b.width; H2 = b.height; var c3 = resizeCanvas(cb, bctx); W3 = c3.width; H3 = c3.height; draw(); }
+  function halo(c, t, x, y, k) { c.lineJoin = "round"; c.lineWidth = 4; c.strokeStyle = k.panel; c.strokeText(t, x, y); c.fillText(t, x, y); }
+  function draw() { if (W && H) drawHist(); if (W2 && H2) drawCum(); if (W3 && H3 && X) drawBox(); }
+  /* Підписи меж інтервалів по осі x; рідше, якщо тісно */
+  function xTicks(c, k, px, pw, y, lo, m, h) {
+    var step = 1; while (pw / m * step < 34) step++;
+    c.fillStyle = k.muted; c.font = "11px " + k.data; c.textAlign = "center"; c.textBaseline = "top";
+    for (var i = 0; i <= m; i += step) c.fillText(f4(cleanNum(lo + i * h)), px(lo + i * h), y);
+  }
+
+  function drawHist() {
+    var k = colors(), M = { l: 40, r: 16, t: 50, b: 28 }, m = state.f.length, h = state.h;
+    var lo = state.x0, hi = state.x0 + m * h, x0 = lo - h / 2, x1 = hi + h / 2, pw = W - M.l - M.r;
+    var A = { y0: M.t, y1: H - M.b };
+    function px(v) { return M.l + (v - x0) / (x1 - x0) * pw; }
+    var fmax = 0; state.f.forEach(function (f) { if (f > fmax) fmax = f; });
+    var ymax = Math.max(5, Math.ceil(fmax * 1.25));
+    function py(v) { return A.y1 - v / ymax * (A.y1 - A.y0); }
+    geom = { M: M, px: px, pw: pw, A: A, ymax: ymax, x0: x0, x1: x1 };
+    ctx.clearRect(0, 0, W, H); ctx.fillStyle = k.panel; ctx.fillRect(0, 0, W, H);
+    var ty = S.ticksFor(0, ymax, clamp((A.y1 - A.y0) / 36, 2, 7)), i;
+    ctx.lineWidth = 1; ctx.strokeStyle = k.grid; ctx.beginPath();
+    ty.major.forEach(function (v) { if (v % 1) return; var y = Math.round(py(v)) + 0.5; ctx.moveTo(M.l, y); ctx.lineTo(W - M.r, y); });
+    ctx.stroke();
+    ctx.fillStyle = k.muted; ctx.font = "11px " + k.data; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    ty.major.forEach(function (v) { if (v % 1 === 0) ctx.fillText(String(v), M.l - 6, py(v)); });
+    ctx.strokeStyle = k.ink; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(M.l, A.y1 + 0.5); ctx.lineTo(W - M.r, A.y1 + 0.5); ctx.stroke();
+    xTicks(ctx, k, px, pw, A.y1 + 7, lo, m, h);
+    if (!G) {
+      ctx.fillStyle = k.muted; ctx.font = "14px " + k.body; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText("Потягніть угору над інтервалом, щоб задати частоту", M.l + pw / 2, (A.y0 + A.y1) / 2); return;
+    }
+    if (state.sd && G.sd !== null) {
+      var sa = clamp(px(G.mean - G.sd), M.l, W - M.r), sb = clamp(px(G.mean + G.sd), M.l, W - M.r);
+      ctx.fillStyle = k.mean; ctx.globalAlpha = 0.12; ctx.fillRect(sa, A.y0, sb - sa, A.y1 - A.y0); ctx.globalAlpha = 1;
+    }
+    var modeI = {}; if (!G.mode.none) G.mode.cands.forEach(function (c) { modeI[c.i] = true; });
+    for (i = 0; i < m; i++) {
+      var f = state.f[i]; if (f <= 0) continue;
+      var xa = px(lo + i * h), xb = px(lo + (i + 1) * h), top = py(f);
+      ctx.fillStyle = modeI[i] ? k.mode : k.pos; ctx.globalAlpha = modeI[i] ? 0.65 : 0.45; ctx.fillRect(xa, top, xb - xa, A.y1 - top); ctx.globalAlpha = 1;
+      ctx.strokeStyle = k.ink; ctx.lineWidth = 1; ctx.strokeRect(xa + 0.5, top + 0.5, xb - xa - 1, A.y1 - top - 1);
+      if (G.med && G.med.i === i) { ctx.fillStyle = k.med; ctx.fillRect(xa, A.y1 - 5, xb - xa, 5); }
+      if (xb - xa > 14) { ctx.fillStyle = k.ink; ctx.font = "500 11px " + k.data; ctx.textAlign = "center"; ctx.textBaseline = "bottom"; ctx.fillText(String(f), (xa + xb) / 2, top - 2); }
+    }
+    if (state.poly) {
+      ctx.strokeStyle = k.med; ctx.lineWidth = 2; ctx.lineJoin = "round"; ctx.beginPath(); ctx.moveTo(px(lo - h / 2), py(0));
+      for (i = 0; i < m; i++) ctx.lineTo(px(lo + (i + 0.5) * h), py(state.f[i]));
+      ctx.lineTo(px(hi + h / 2), py(0)); ctx.stroke();
+      ctx.fillStyle = k.med;
+      for (i = 0; i < m; i++) { ctx.beginPath(); ctx.arc(px(lo + (i + 0.5) * h), py(state.f[i]), 3.2, 0, 7); ctx.fill(); }
+    }
+    var lines = [];
+    if (state.mean) lines.push({ v: G.mean, c: k.mean, dash: [6, 4], lab: "x̄ " + f4(G.mean), row: 0 });
+    if (state.med) lines.push({ v: G.med.value, c: k.med, dash: [], lab: "Me " + f4(G.med.value), row: 1 });
+    if (state.mode) G.modes.forEach(function (mv) { lines.push({ v: mv, c: k.mode, dash: [2, 3], lab: "Mo " + f4(mv), row: 2 }); });
+    ctx.font = "500 11px " + k.data; ctx.textBaseline = "middle";
+    lines.forEach(function (L) {
+      var x = px(L.v), ly = 12 + L.row * 13;
+      ctx.strokeStyle = L.c; ctx.lineWidth = 2; ctx.setLineDash(L.dash); ctx.beginPath(); ctx.moveTo(x, ly + 6); ctx.lineTo(x, A.y1); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = L.c; var w = ctx.measureText(L.lab).width, tx = x;
+      if (x + w / 2 > W - 2) { ctx.textAlign = "right"; tx = W - 2; } else if (x - w / 2 < 2) { ctx.textAlign = "left"; tx = 2; } else ctx.textAlign = "center";
+      halo(ctx, L.lab, tx, ly, k);
+    });
+  }
+
+  function drawCum() {
+    var k = colors(), c = cctx, M = { l: 40, r: 16, t: 20, b: 30 }, pw = W2 - M.l - M.r, ph = H2 - M.t - M.b;
+    var m = state.f.length, h = state.h, lo = state.x0, hi = lo + m * h, x0 = lo - h / 2, x1 = hi + h / 2;
+    var n = G ? G.n : 0, rel = state.cumRel, ymax = rel ? 1 : Math.max(1, n), sc = rel && n ? 1 / n : 1;
+    function px(v) { return M.l + (v - x0) / (x1 - x0) * pw; }
+    function py(v) { return M.t + (1 - v / ymax) * ph; }
+    c.clearRect(0, 0, W2, H2); c.fillStyle = k.panel; c.fillRect(0, 0, W2, H2);
+    var ty = S.ticksFor(0, ymax, clamp(ph / 40, 2, 7));
+    c.lineWidth = 1; c.strokeStyle = k.grid; c.beginPath();
+    var yt = ty.major.filter(function (v) { return rel || v % 1 === 0; });
+    yt.forEach(function (v) { var y = Math.round(py(v)) + 0.5; c.moveTo(M.l, y); c.lineTo(W2 - M.r, y); });
+    c.stroke();
+    c.fillStyle = k.muted; c.font = "11px " + k.data; c.textAlign = "right"; c.textBaseline = "middle";
+    yt.forEach(function (v) { c.fillText(rel ? S.fmt(v, ty.decimals) : String(v), M.l - 6, py(v)); });
+    c.strokeStyle = k.ink; c.lineWidth = 1.2; c.beginPath(); c.moveTo(M.l + 0.5, M.t); c.lineTo(M.l + 0.5, M.t + ph + 0.5); c.lineTo(W2 - M.r, M.t + ph + 0.5); c.stroke();
+    xTicks(c, k, px, pw, M.t + ph + 7, lo, m, h);
+    c.fillStyle = k.muted; c.font = "11px " + k.body; c.textAlign = "left"; c.textBaseline = "top"; c.fillText(rel ? "накопичена відносна частота" : "накопичена частота", M.l + 6, 2);
+    if (!G) return;
+    c.strokeStyle = k.pos; c.lineWidth = 2.4; c.lineJoin = "round"; c.beginPath(); c.moveTo(px(x0), py(0)); c.lineTo(px(lo), py(0));
+    G.iv.forEach(function (r) { c.lineTo(px(r.b), py(r.cum * sc)); });
+    c.lineTo(px(x1), py(n * sc)); c.stroke();
+    c.fillStyle = k.pos; c.beginPath(); c.arc(px(lo), py(0), 3.4, 0, 7); c.fill();
+    G.iv.forEach(function (r) { c.beginPath(); c.arc(px(r.b), py(r.cum * sc), 3.4, 0, 7); c.fill(); });
+    [[G.q1, "Q₁", "n/4", 0], [G.med, "Me", "n/2", 1], [G.q3, "Q₃", "3n/4", 2]].forEach(function (a) {
+      var q = a[0], yh = py(q.target * sc), xm = px(q.value), col = a[3] === 1 ? k.med : k.mean;
+      c.strokeStyle = col; c.lineWidth = 1.6; c.setLineDash([6, 4]); c.beginPath(); c.moveTo(M.l, yh); c.lineTo(xm, yh); c.lineTo(xm, M.t + ph); c.stroke(); c.setLineDash([]);
+      c.fillStyle = col; c.beginPath(); c.arc(xm, yh, 4, 0, 7); c.fill();
+      c.font = "500 11px " + k.data; c.textBaseline = "bottom";
+      c.textAlign = "left"; halo(c, rel ? S.fmt(q.target * sc, 2) : a[2] + " = " + f4(q.target), M.l + 6, yh - 3, k);
+      var right = xm > W2 - 80; c.textAlign = right ? "right" : "left";
+      halo(c, a[1] + " = " + f4(q.value), xm + (right ? -6 : 6), M.t + ph - 6 - (a[3] === 1 ? 14 : 0), k);
+    });
+  }
+
+  function drawBox() {
+    var k = colors(), c = bctx, M = { l: 40, r: 16, t: 10, b: 24 }, m = state.f.length, h = state.h, lo = state.x0;
+    var x0 = lo - h / 2, x1 = lo + m * h + h / 2, pw = W3 - M.l - M.r, bx = X.box, y = (M.t + H3 - M.b) / 2, hh = Math.min(30, H3 - M.t - M.b - 4);
+    function px(v) { return M.l + (v - x0) / (x1 - x0) * pw; }
+    c.clearRect(0, 0, W3, H3); c.fillStyle = k.panel; c.fillRect(0, 0, W3, H3);
+    c.strokeStyle = k.ink; c.lineWidth = 1.2; c.beginPath(); c.moveTo(M.l, H3 - M.b + 0.5); c.lineTo(W3 - M.r, H3 - M.b + 0.5); c.stroke();
+    xTicks(c, k, px, pw, H3 - M.b + 5, lo, m, h);
+    c.strokeStyle = k.ink; c.lineWidth = 1.5; c.beginPath();
+    c.moveTo(px(bx.wlo), y); c.lineTo(px(bx.q1), y); c.moveTo(px(bx.q3), y); c.lineTo(px(bx.whi), y);
+    c.moveTo(px(bx.wlo), y - hh / 3); c.lineTo(px(bx.wlo), y + hh / 3); c.moveTo(px(bx.whi), y - hh / 3); c.lineTo(px(bx.whi), y + hh / 3); c.stroke();
+    c.fillStyle = k.pos; c.globalAlpha = 0.25; c.fillRect(px(bx.q1), y - hh / 2, Math.max(1, px(bx.q3) - px(bx.q1)), hh); c.globalAlpha = 1;
+    c.strokeRect(px(bx.q1), y - hh / 2, Math.max(1, px(bx.q3) - px(bx.q1)), hh);
+    c.strokeStyle = k.med; c.lineWidth = 2.5; c.beginPath(); c.moveTo(px(bx.med), y - hh / 2); c.lineTo(px(bx.med), y + hh / 2); c.stroke();
+    c.fillStyle = k.mean; c.beginPath(); c.moveTo(px(X.mean), y - 5); c.lineTo(px(X.mean) + 5, y); c.lineTo(px(X.mean), y + 5); c.lineTo(px(X.mean) - 5, y); c.closePath(); c.fill();
+    c.strokeStyle = k.ink; c.lineWidth = 1.3;
+    bx.outliers.forEach(function (o) { c.beginPath(); c.arc(px(o), y, 3.6, 0, 7); c.stroke(); });
+  }
+
+  function renderLegend() {
+    var el = $("legend"); el.textContent = "";
+    function add(cls, color, text) {
+      var s = document.createElement("span"), sw = document.createElement("span");
+      sw.className = "sw " + cls; sw.style.borderTopColor = color; if (cls === "box") sw.style.background = color;
+      s.appendChild(sw); s.appendChild(document.createTextNode(text)); el.appendChild(s);
+    }
+    var k = colors();
+    if (state.mean) add("dash", k.mean, "середнє x̄"); if (state.med) add("", k.med, "медіана Me"); if (state.mode) add("dot", k.mode, "мода Mo");
+    if (state.poly) add("", k.med, "полігон частот");
+    if (state.sd) add("box", k.mean, "x̄ ± SD");
+  }
+
+  /* ---------- Стовпчики: перетягування ---------- */
+  function evPos(e) { var r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+  function freqAt(y, ymax) { var A = geom.A; return clamp(Math.round((A.y1 - y) / (A.y1 - A.y0) * ymax), 0, MAXF); }
+  cv.addEventListener("pointerdown", function (e) {
+    if (!geom) return;
+    var p = evPos(e), M = geom.M, A = geom.A, h = state.h;
+    if (p.x < M.l || p.x > M.l + geom.pw || p.y < A.y0 - 16 || p.y > A.y1 + 10) return;
+    var v = geom.x0 + (p.x - M.l) / geom.pw * (geom.x1 - geom.x0), i = Math.floor((v - state.x0) / h);
+    if (i < 0 || i >= state.f.length) return;
+    drag = { i: i, ymax: geom.ymax, moved: false };
+    cv.setPointerCapture(e.pointerId);
+    setFreq(i, freqAt(p.y, drag.ymax), false);
+  });
+  cv.addEventListener("pointermove", function (e) { if (drag && geom) setFreq(drag.i, freqAt(evPos(e).y, drag.ymax), false); });
+  function endDrag() { if (drag) { drag = null; update(false); say(summaryText(), 300); } }
+  cv.addEventListener("pointerup", endDrag);
+  cv.addEventListener("pointercancel", endDrag);
+
+  /* ---------- Оновлення ---------- */
+  function update(full, quick) {
+    compute();
+    for (var id in chipEls) chipEls[id].setAttribute("aria-pressed", String(id === state.preset && presetMatches()));
+    var p = BY_ID[state.preset];
+    $("srcNote").textContent = p ? p.note + (presetMatches() ? "" : " (дані змінено вами)") : "Власні дані.";
+    $("mIn").value = String(state.f.length);
+    $("boxWrap").hidden = !X;
+    if (X) { var r3 = cb.getBoundingClientRect(); if (r3.width && Math.round(r3.width) !== Math.round(W3)) resizeAll(); }
+    syncTable(); renderLegend(); renderResults(); renderHow(); draw();
+    cv.setAttribute("aria-label", "Гістограма. " + summaryText());
+    cc.setAttribute("aria-label", "Кумулятивна крива. " + (G ? "Медіана " + f4(G.med.value) + "." : ""));
+    if (!quick && full === false && !drag) say(summaryText(), 700);
+  }
+
+  if (window.ResizeObserver) { new ResizeObserver(resizeAll).observe(cv); new ResizeObserver(resizeAll).observe(cc); new ResizeObserver(resizeAll).observe(cb); }
+  else window.addEventListener("resize", resizeAll);
+  function theme() { renderLegend(); draw(); }
+  new MutationObserver(theme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  if (window.matchMedia) { var mq = window.matchMedia("(prefers-color-scheme: dark)"); if (mq.addEventListener) mq.addEventListener("change", theme); }
+
+  choose("book");
+  resizeAll();
+})();
+</script>
+</body>
+</html>

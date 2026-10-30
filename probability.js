@@ -84,8 +84,51 @@ var Prob = (function () {
     return { h: h, a: a };
   }
 
+  /* ---------- Умовна ймовірність і незалежність двох подій ---------- */
+  var TOL = 1e-12;
+
+  /** Межі для P(A ∩ B) за заданих P(A) і P(B): max(0, P(A) + P(B) − 1) ≤ P(A ∩ B) ≤ min(P(A), P(B)). */
+  function jointRange(pa, pb) { return [Math.max(0, pa + pb - 1), Math.min(pa, pb)]; }
+
+  /** Обрізає P(A ∩ B) до допустимих меж. */
+  function clampJoint(pa, pb, pab) {
+    var r = jointRange(pa, pb);
+    return Math.min(r[1], Math.max(r[0], pab));
+  }
+
+  /** Таблиця 2×2: ймовірності AB, A без B, B без A, ні A, ні B (дрібні від'ємні похибки обнуляються). */
+  function table2x2(pa, pb, pab) {
+    function z(v) { return Math.abs(v) < TOL ? 0 : v; }
+    return { ab: pab, aNotB: z(pa - pab), notAB: z(pb - pab), notAnotB: z(1 - pa - pb + pab) };
+  }
+
+  /** P(X | Y) = P(X ∩ Y) / P(Y); null, якщо P(Y) = 0 (умова неможлива). */
+  function cond(pxy, py) { return py > TOL ? pxy / py : null; }
+
+  /** Незалежні події: P(A ∩ B) = P(A)·P(B). Повертає різницю й висновок із допуском. */
+  function independence(pa, pb, pab, tol) {
+    var d = pab - pa * pb;
+    return { diff: d, independent: Math.abs(d) <= (tol === undefined ? 1e-9 : tol) };
+  }
+
+  /** Три події на скінченному просторі рівноможливих наслідків: sets[i] це масив 0/1 за наслідками. */
+  function independence3(sets) {
+    var n = sets[0].length, P = [0, 0, 0], pairs = [], i, j, k, all = 0;
+    function pr(f) { var c = 0; for (var t = 0; t < n; t++) if (f(t)) c++; return c / n; }
+    for (i = 0; i < 3; i++) P[i] = pr(function (t) { return sets[i][t] === 1; });
+    for (i = 0; i < 3; i++) for (j = i + 1; j < 3; j++) {
+      var pij = pr(function (t) { return sets[i][t] === 1 && sets[j][t] === 1; });
+      pairs.push({ i: i, j: j, p: pij, prod: P[i] * P[j], ok: Math.abs(pij - P[i] * P[j]) < 1e-9 });
+    }
+    all = pr(function (t) { return sets[0][t] === 1 && sets[1][t] === 1 && sets[2][t] === 1; });
+    var prod = P[0] * P[1] * P[2];
+    return { p: P, pairs: pairs, triple: all, tripleProd: prod,
+      pairwise: pairs.every(function (q) { return q.ok; }), mutual: pairs.every(function (q) { return q.ok; }) && Math.abs(all - prod) < 1e-9 };
+  }
+
   return { setWeight: setWeight, resize: resize, total: total, terms: terms,
-    posterior: posterior, sequence: sequence, apportion: apportion, counts: counts, sum: sum };
+    posterior: posterior, sequence: sequence, apportion: apportion, counts: counts, sum: sum,
+    jointRange: jointRange, clampJoint: clampJoint, table2x2: table2x2, cond: cond, independence: independence, independence3: independence3 };
 })();
 
 if (typeof module !== "undefined" && module.exports) module.exports = Prob;

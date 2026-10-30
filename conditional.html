@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Умовна ймовірність і незалежність подій</title>
+<meta name="description" content="Мозаїка ймовірностей двох подій: умовна ймовірність як звуження простору, перевірка незалежності та типові приклади, де студенти помиляються.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="common.css">
+<style>
+.app {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "head" "choose" "chart" "result" "three" "explain";
+}
+.head { grid-area: head; }
+.backlink { display: inline-block; margin-bottom: 10px; font-size: 13px; }
+.choose { grid-area: choose; }
+.viewbar { grid-area: view; display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+.chart { grid-area: chart; min-width: 0; align-self: start; }
+.result { grid-area: result; }
+.explain { grid-area: explain; }
+.side { display: contents; }
+
+.srcnote { margin: 10px 0 0; font-size: 14px; color: var(--muted); max-width: 72ch; text-wrap: pretty; }
+.cfgbar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin-top: 14px; }
+.cfgbar .lbl { font-size: 13.5px; }
+
+.hrows { display: grid; gap: 10px; margin-top: 14px; }
+.hrow {
+  display: grid; gap: 6px 18px; align-items: end;
+  grid-template-columns: minmax(0, 1fr);
+  padding: 10px 12px; border: 1px solid var(--grid-strong); border-radius: 6px; background: var(--bg);
+}
+.hname { display: flex; align-items: baseline; gap: 8px; font-size: 14px; }
+.hname .sw { width: 12px; height: 12px; border-radius: 3px; flex: none; align-self: center; }
+.hname strong { font-weight: 700; }
+.hname span.d { color: var(--muted); }
+.fld { display: grid; gap: 3px; min-width: 0; }
+.fld label { font-size: 13px; color: var(--muted); }
+.fld .row { display: grid; grid-template-columns: minmax(0, 1fr) 64px; gap: 10px; align-items: center; }
+.fld input[type="range"] { width: 100%; margin: 0; }
+.fld output {
+  font-family: var(--font-data); font-size: 13.5px; font-variant-numeric: tabular-nums; text-align: right;
+  color: var(--ink); background: var(--panel); border: 1px solid var(--grid-strong); border-radius: 4px; padding: 5px 7px;
+}
+@media (min-width: 700px) {
+  .hrow { grid-template-columns: 170px minmax(0, 1fr) minmax(0, 1fr); }
+}
+
+.chart h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
+.chart canvas {
+  display: block; width: 100%; aspect-ratio: 4 / 3.2; background: var(--panel);
+  border: 1px solid var(--grid-strong); border-radius: 6px;
+}
+.cmsg { margin: 8px 0 0; font-size: 13.5px; color: var(--muted); max-width: 72ch; text-wrap: pretty; }
+
+.result .big { margin: 6px 0 0; }
+.result .big dt { font-size: 12px; color: var(--muted); }
+.result .big dd { margin: 0; font-family: var(--font-data); font-size: clamp(30px, 8vw, 40px); line-height: 1.1; letter-spacing: -0.02em; color: var(--pos); font-variant-numeric: tabular-nums; }
+.formula { margin: 12px 0 0; font-family: var(--font-data); font-size: 13.5px; line-height: 1.9; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.formula .t { white-space: nowrap; font-weight: 500; }
+.twrap { margin-top: 12px; overflow: auto; border: 1px solid var(--grid-strong); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+th, td { padding: 4px 8px; text-align: right; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+thead th { background: var(--panel); font-weight: 500; color: var(--muted); border-bottom: 1px solid var(--grid-strong); }
+tbody tr:last-child td, tbody tr:last-child th { border-bottom: 0; }
+tfoot td, tfoot th { font-weight: 700; border-top: 1px solid var(--grid-strong); }
+
+.explain h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
+.explain p { margin: 8px 0 0; font-size: 14.5px; max-width: 68ch; text-wrap: pretty; }
+.explain p.key { margin-top: 0; }
+
+@media (min-width: 900px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr) 360px;
+    column-gap: 24px;
+    grid-template-areas: "head head" "choose choose" "chart side" "three three";
+  }
+  .side { grid-area: side; display: flex; flex-direction: column; gap: 16px; align-self: start; min-width: 0; }
+  .chart canvas { aspect-ratio: 16 / 11; }
+}
+
+.ctrl { display: grid; gap: 10px; margin-top: 14px; }
+.ctrl .row3 { display: grid; gap: 10px 18px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 700px) { .ctrl .row3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.fld .row { grid-template-columns: minmax(0, 1fr) 88px; }
+.fld output { font-size: 13px; padding: 5px 6px; white-space: nowrap; overflow: hidden; }
+.jnote { margin: 0; font-size: 12.5px; color: var(--muted); }
+.btnrow { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; }
+.verdict { margin: 0 0 8px; font-size: 15px; font-weight: 700; text-wrap: balance; }
+.verdict.ok { color: var(--pos); }
+.rt td, .rt th { white-space: normal; }
+.legend { margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; }
+.legend .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 6px; border: 1px solid var(--grid-strong); }
+.three { grid-area: three; }
+.three h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
+.ok-t { color: var(--pos); font-weight: 700; }
+.no-t { color: var(--neg); font-weight: 700; }
+.three td, .three th { text-align: center; }
+.three th:first-child, .three td:first-child { text-align: left; }
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="head">
+    <a class="backlink" href="index.html">← Усі сторінки</a>
+    <h1>Умовна ймовірність і незалежність подій</h1>
+    <p class="lead">Дві події A і B розбивають усі можливості на чотири частини. Задайте їхні ймовірності, «звузьте» простір до однієї події й перевірте, чи знання про B змінює ймовірність A.</p>
+  </header>
+
+  <section class="choose panel" aria-label="Приклад і налаштування">
+    <p class="eyebrow">Приклад</p>
+    <div class="chips" id="chips"></div>
+    <p class="srcnote" id="srcNote"></p>
+    <div class="ctrl">
+      <div class="row3">
+        <div class="fld"><label for="rA">P(A)</label><div class="row"><input type="range" id="rA" min="0" max="1" step="0.001"><output id="oA" for="rA"></output></div></div>
+        <div class="fld"><label for="rB">P(B)</label><div class="row"><input type="range" id="rB" min="0" max="1" step="0.001"><output id="oB" for="rB"></output></div></div>
+        <div class="fld"><label for="rAB">P(A ∩ B)</label><div class="row"><input type="range" id="rAB" min="0" max="1" step="0.001"><output id="oAB" for="rAB"></output></div></div>
+      </div>
+      <p class="jnote" id="jNote"></p>
+      <div class="btnrow">
+        <span class="lbl" id="cLbl">Умова</span>
+        <div class="seg" role="group" aria-labelledby="cLbl">
+          <button type="button" id="cNone" aria-pressed="true">Немає</button>
+          <button type="button" id="cB" aria-pressed="false">B настала</button>
+          <button type="button" id="cA" aria-pressed="false">A настала</button>
+        </div>
+        <button type="button" class="btn" id="mkInd">Зробити незалежними</button>
+        <button type="button" class="btn" id="mkDis">Зробити несумісними</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="chart panel" aria-labelledby="chTitle">
+    <h2 id="chTitle">Мозаїка ймовірностей</h2>
+    <canvas id="cv" role="img" aria-label="Мозаїка ймовірностей"></canvas>
+    <p class="legend" id="legend"></p>
+    <p class="cmsg" id="chNote">Ширина стовпчика це P(A) чи P(не A), висота заповненої частини це ймовірність B всередині стовпчика, а площа клітинки це ймовірність відповідної частини. Пунктир продовжує межу B із стовпчика A: якщо події незалежні, вона йде рівно через обидва стовпчики.</p>
+  </section>
+
+  <div class="side">
+    <section class="result panel" aria-labelledby="rTitle">
+      <p class="eyebrow" id="rTitle">Результат</p>
+      <p class="verdict" id="verdict"></p>
+      <div class="twrap rt">
+        <table>
+          <caption class="sr-only">Ймовірності подій A і B</caption>
+          <tbody id="rBody"></tbody>
+        </table>
+      </div>
+      <p class="formula" id="formula"></p>
+    </section>
+
+    <section class="explain panel" aria-labelledby="eTitle">
+      <h2 id="eTitle">Що тут відбувається</h2>
+      <p class="key"><strong>Умовна ймовірність</strong> P(A | B) = P(A ∩ B) / P(B). Коли відомо, що B настала, можливі лише наслідки з B. Простір звужується до B, і ми питаємо, яка частка B припадає на A.</p>
+      <p><strong>Незалежність.</strong> Події незалежні, якщо P(A ∩ B) = P(A)·P(B). Це те саме, що P(A | B) = P(A): знання про B нічого не змінює для A.</p>
+      <p><strong>Несумісні події не є незалежними.</strong> Якщо A і B не можуть настати разом (P(A ∩ B) = 0) і обидві можливі, то коли настала B, A настати вже не може. Отже, знання про B змінює ймовірність A, тобто події залежні.</p>
+      <p><strong>Залежність не означає причину.</strong> P(A | B) відрізняється від P(A), коли події пов'язані, але це не каже, що одна спричиняє іншу.</p>
+    </section>
+  </div>
+
+  <section class="three panel" aria-labelledby="tTitle">
+    <h2 id="tTitle">Три події: попарна незалежність і незалежність у сукупності</h2>
+    <div class="btnrow" style="margin-bottom:10px">
+      <span class="lbl" id="t3Lbl">Приклад</span>
+      <div class="seg" role="group" aria-labelledby="t3Lbl">
+        <button type="button" id="t3Two" aria-pressed="true">Дві монети</button>
+        <button type="button" id="t3Three" aria-pressed="false">Три незалежні монети</button>
+      </div>
+    </div>
+    <p class="cmsg" id="t3Note" style="margin-top:0"></p>
+    <div class="twrap"><table><caption class="sr-only">Наслідки й події</caption><thead id="t3Head"></thead><tbody id="t3Body"></tbody></table></div>
+    <div class="twrap"><table><caption class="sr-only">Перевірка незалежності</caption><thead><tr><th scope="col">Перевірка</th><th scope="col">P(...)</th><th scope="col">Добуток</th><th scope="col">Збіг?</th></tr></thead><tbody id="t3Chk"></tbody></table></div>
+    <p class="verdict" id="t3Verdict" style="margin-top:10px"></p>
+    <p class="cmsg">Попарна незалежність означає, що кожна пара подій незалежна. Незалежність у сукупності вимагає ще й P(A ∩ B ∩ C) = P(A)·P(B)·P(C), а в попередньої умови цього не випливає.</p>
+  </section>
+</main>
+
+<div class="sr-only" id="sr" role="status" aria-live="polite"></div>
+
+<script src="common.js"></script>
+<script src="probability.js"></script>
+<script>
+(function () {
+  "use strict";
+  var S = Stat, fmtSig = S.fmtSig, clamp = S.clamp;
+
+  function $(id) { return document.getElementById(id); }
+  var sayTimer = null;
+  function say(t, d) { clearTimeout(sayTimer); sayTimer = setTimeout(function () { $("sr").textContent = ""; $("sr").textContent = t; }, d || 0); }
+
+  /* ---------- Приклади ---------- */
+  var PRESETS = [
+    { id: "free", name: "Довільні події", pa: 0.5, pb: 0.4, pab: 0.3,
+      note: "Довільні події A і B. Змінюйте ймовірності й дивіться, як P(A | B) відрізняється від P(A)." },
+    { id: "disj", name: "Кубик: 1 і 2", pa: 1 / 6, pb: 1 / 6, pab: 0,
+      note: "Кидаємо кубик. A: випала 1, B: випала 2. Події несумісні, але залежні: якщо випала 2, то 1 вже не могла." },
+    { id: "sum7", name: "Два кубики: сума 7", pa: 1 / 6, pb: 6 / 36, pab: 1 / 36,
+      note: "Кидаємо два кубики. A: на першому випала 6, B: сума дорівнює 7. P(A | B) = 1/6 = P(A), тому події незалежні." },
+    { id: "sum8", name: "Два кубики: сума 8", pa: 1 / 6, pb: 5 / 36, pab: 1 / 36,
+      note: "Кидаємо два кубики. A: на першому випала 6, B: сума дорівнює 8. P(A | B) = 1/5 більше за P(A) = 1/6: події залежні." },
+    { id: "cardsWith", name: "Карти з поверненням", pa: 4 / 52, pb: 4 / 52, pab: (4 / 52) * (4 / 52),
+      note: "Із колоди 52 карт беремо карту, повертаємо й перемішуємо, беремо ще одну. A: перша карта туз, B: друга карта туз. Незалежні." },
+    { id: "cardsWithout", name: "Карти без повернення", pa: 4 / 52, pb: 4 / 52, pab: (4 / 52) * (3 / 51),
+      note: "Те саме, але першу карту не повертаємо. Якщо перша карта туз, то тузів лишилося 3 з 51, тому P(B | A) = 3/51 менше за P(B) = 4/52: події залежні." }
+  ];
+  var BY_ID = {};
+  PRESETS.forEach(function (p) { BY_ID[p.id] = p; });
+
+  var state = { preset: "free", pa: 0.5, pb: 0.4, pab: 0.3, cond: "none" };
+
+  var chipEls = {};
+  PRESETS.forEach(function (p) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "chip"; b.textContent = p.name; b.setAttribute("aria-pressed", "false");
+    b.addEventListener("click", function () { choose(p.id); });
+    $("chips").appendChild(b); chipEls[p.id] = b;
+  });
+  function choose(id) {
+    var p = BY_ID[id];
+    state.preset = id; state.pa = p.pa; state.pb = p.pb; state.pab = Prob.clampJoint(p.pa, p.pb, p.pab);
+    update(); say(p.name + ". " + summary());
+  }
+  function matches() {
+    var p = BY_ID[state.preset];
+    return !!p && Math.abs(p.pa - state.pa) < 1e-9 && Math.abs(p.pb - state.pb) < 1e-9 && Math.abs(p.pab - state.pab) < 1e-9;
+  }
+
+  /* ---------- Керування ---------- */
+  function snap(v) { return Math.round(v * 1000) / 1000; }
+  $("rA").addEventListener("input", function (e) { state.pa = snap(+e.target.value); state.pab = Prob.clampJoint(state.pa, state.pb, state.pab); update(true); });
+  $("rB").addEventListener("input", function (e) { state.pb = snap(+e.target.value); state.pab = Prob.clampJoint(state.pa, state.pb, state.pab); update(true); });
+  $("rAB").addEventListener("input", function (e) { state.pab = Prob.clampJoint(state.pa, state.pb, snap(+e.target.value)); update(true); });
+  $("mkInd").addEventListener("click", function () { state.pab = state.pa * state.pb; update(); say("Події зроблено незалежними. " + summary()); });
+  $("mkDis").addEventListener("click", function () { state.pab = Prob.jointRange(state.pa, state.pb)[0]; update(); say(summary()); });
+  function setCond(c) {
+    state.cond = c;
+    $("cNone").setAttribute("aria-pressed", String(c === "none")); $("cB").setAttribute("aria-pressed", String(c === "B")); $("cA").setAttribute("aria-pressed", String(c === "A"));
+    update(); say(summary());
+  }
+  $("cNone").addEventListener("click", function () { setCond("none"); });
+  $("cB").addEventListener("click", function () { setCond("B"); });
+  $("cA").addEventListener("click", function () { setCond("A"); });
+
+  /* ---------- Розрахунок ---------- */
+  function calc() {
+    var pa = state.pa, pb = state.pb, pab = state.pab, t = Prob.table2x2(pa, pb, pab);
+    return {
+      t: t, range: Prob.jointRange(pa, pb), ind: Prob.independence(pa, pb, pab, 5e-7),
+      aGivenB: Prob.cond(pab, pb), bGivenA: Prob.cond(pab, pa),
+      aGivenNotB: Prob.cond(t.aNotB, 1 - pb), bGivenNotA: Prob.cond(t.notAB, 1 - pa)
+    };
+  }
+  function f(v) { return v === null ? "—" : fmtSig(v); }
+  var C = null;
+  function verdictText() {
+    var pa = state.pa, pb = state.pb, pab = state.pab;
+    if (C.ind.independent) return { ok: true, text: "Події незалежні: P(A ∩ B) = P(A)·P(B), тож знання про одну з них нічого не змінює для іншої." };
+    if (pa > 0 && pb > 0 && pab <= 1e-12) return { ok: false, text: "Події несумісні й тому залежні: коли настала одна, друга настати не може." };
+    if (pa === 0 || pb === 0) return { ok: true, text: "Одна з подій неможлива (ймовірність 0). Така подія незалежна від будь-якої іншої, але умовна ймовірність щодо неї не визначена." };
+    var up = C.ind.diff > 0, small = Math.abs(C.ind.diff) < 0.002;
+    return { ok: false, text: "Події залежні: " + (up ? "настання B підвищує ймовірність A (P(A | B) > P(A))" : "настання B знижує ймовірність A (P(A | B) < P(A))") + "." +
+      (small ? " Різниця дуже мала. Кнопка «Зробити незалежними» дає точну рівність." : "") };
+  }
+  function summary() {
+    var s = "P(A) = " + fmtSig(state.pa) + ", P(B) = " + fmtSig(state.pb) + ", P(A ∩ B) = " + fmtSig(state.pab) + ". " + verdictText().text;
+    if (state.cond === "B") s += " Якщо B настала, P(A | B) = " + f(C.aGivenB) + ".";
+    if (state.cond === "A") s += " Якщо A настала, P(B | A) = " + f(C.bGivenA) + ".";
+    return s;
+  }
+
+  /* ---------- Результат ---------- */
+  function renderResult() {
+    var v = verdictText(), ve = $("verdict");
+    ve.textContent = v.text; ve.className = "verdict" + (v.ok ? " ok" : "");
+    var b = $("rBody"); b.textContent = "";
+    function row(name, val, hl) {
+      var tr = document.createElement("tr"), th = document.createElement("th"), td = document.createElement("td");
+      th.scope = "row"; th.textContent = name; td.textContent = val; if (hl) tr.style.fontWeight = "700";
+      tr.appendChild(th); tr.appendChild(td); b.appendChild(tr);
+    }
+    row("P(A)", fmtSig(state.pa)); row("P(B)", fmtSig(state.pb)); row("P(A ∩ B)", fmtSig(state.pab));
+    row("P(A)·P(B)", fmtSig(state.pa * state.pb));
+    row("P(A | B)", f(C.aGivenB), state.cond === "B"); row("P(A | не B)", f(C.aGivenNotB));
+    row("P(B | A)", f(C.bGivenA), state.cond === "A"); row("P(B | не A)", f(C.bGivenNotA));
+    var fm = $("formula");
+    var lines = [];
+    if (state.cond === "A") {
+      if (C.bGivenA === null) lines.push("P(A) = 0, умова A неможлива, тому P(B | A) не визначена.");
+      else { lines.push("P(B | A) = P(A ∩ B) / P(A)"); lines.push("         = " + fmtSig(state.pab) + " / " + fmtSig(state.pa) + " = " + fmtSig(C.bGivenA)); lines.push("P(B) = " + fmtSig(state.pb)); }
+    } else {
+      if (C.aGivenB === null) lines.push("P(B) = 0, умова B неможлива, тому P(A | B) не визначена.");
+      else { lines.push("P(A | B) = P(A ∩ B) / P(B)"); lines.push("         = " + fmtSig(state.pab) + " / " + fmtSig(state.pb) + " = " + fmtSig(C.aGivenB)); lines.push("P(A) = " + fmtSig(state.pa)); }
+    }
+    fm.textContent = lines.join("\n"); fm.style.whiteSpace = "pre-wrap";
+  }
+
+  /* ---------- Мозаїка ---------- */
+  var cv = $("cv"), ctx = cv.getContext("2d"), W = 0, H = 0;
+  function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+  function resize() {
+    var r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    W = r.width; H = r.height;
+    cv.width = Math.max(1, Math.round(W * dpr)); cv.height = Math.max(1, Math.round(H * dpr)); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    draw();
+  }
+  function halo(t, x, y, k) { ctx.lineJoin = "round"; ctx.lineWidth = 4; ctx.strokeStyle = k.panel; ctx.strokeText(t, x, y); ctx.fillText(t, x, y); }
+  function draw() {
+    if (!(W > 20 && H > 20) || !C) return;
+    var k = { panel: cssVar("--panel"), ink: cssVar("--ink"), muted: cssVar("--muted"), grid: cssVar("--grid-strong"),
+      h1: cssVar("--h1"), h2: cssVar("--h2"), h3: cssVar("--h3"), data: cssVar("--font-data"), body: cssVar("--font-body") };
+    var M = { l: 12, r: 12, t: 30, b: 58 }, PW = W - M.l - M.r, PH = H - M.t - M.b;
+    ctx.clearRect(0, 0, W, H); ctx.fillStyle = k.panel; ctx.fillRect(0, 0, W, H);
+    var pa = state.pa, pb = state.pb, t = C.t;
+    var wA = PW * pa, wN = PW - wA, yB = PH * (pa > 0 ? t.ab / pa : 0), yN = PH * (1 - pa > 1e-12 ? t.notAB / (1 - pa) : 0);
+    var cells = [
+      { key: "ab", x: M.l, w: wA, h: yB, c: k.h3, name: "A ∩ B", p: t.ab, inA: true, inB: true },
+      { key: "aNotB", x: M.l, w: wA, h: PH - yB, c: k.h1, name: "A, не B", p: t.aNotB, inA: true, inB: false },
+      { key: "notAB", x: M.l + wA, w: wN, h: yN, c: k.h2, name: "B, не A", p: t.notAB, inA: false, inB: true },
+      { key: "nn", x: M.l + wA, w: wN, h: PH - yN, c: k.grid, name: "ні A, ні B", p: t.notAnotB, inA: false, inB: false }
+    ];
+    // нижні клітинки (B) знизу, верхні зверху
+    cells[0].y = M.t + PH - cells[0].h; cells[1].y = M.t;
+    cells[2].y = M.t + PH - cells[2].h; cells[3].y = M.t;
+    cells.forEach(function (c) {
+      var active = state.cond === "none" || (state.cond === "B" && c.inB) || (state.cond === "A" && c.inA);
+      ctx.globalAlpha = active ? (c.key === "nn" ? 0.55 : 0.55) : 0.12;
+      ctx.fillStyle = c.c; ctx.fillRect(c.x, c.y, c.w, c.h); ctx.globalAlpha = 1;
+      if (c.w > 0 && c.h > 0) { ctx.strokeStyle = k.ink; ctx.globalAlpha = active ? 0.9 : 0.3; ctx.lineWidth = 1; ctx.strokeRect(c.x + 0.5, c.y + 0.5, c.w - 1, c.h - 1); ctx.globalAlpha = 1; }
+      if (c.w >= 54 && c.h >= 34) {
+        ctx.fillStyle = k.ink; ctx.globalAlpha = active ? 1 : 0.4; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.font = "500 12px " + k.body; ctx.fillText(c.name, c.x + c.w / 2, c.y + c.h / 2 - 8);
+        ctx.font = "500 13px " + k.data; ctx.fillText(fmtSig(c.p), c.x + c.w / 2, c.y + c.h / 2 + 8); ctx.globalAlpha = 1;
+      }
+    });
+    // пунктир: межа B зі стовпчика A
+    if (pa > 0 && pa < 1) {
+      var yy = M.t + PH - yB;
+      ctx.strokeStyle = k.ink; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]);
+      ctx.beginPath(); ctx.moveTo(M.l + wA, yy); ctx.lineTo(M.l + PW, yy); ctx.stroke(); ctx.setLineDash([]);
+    }
+    // підписи стовпчиків
+    ctx.font = "500 12px " + k.body; ctx.textBaseline = "bottom";
+    ctx.fillStyle = k.muted; ctx.textAlign = "center";
+    if (wA > 34) ctx.fillText("A  " + fmtSig(pa), M.l + wA / 2, M.t - 6);
+    if (wN > 50) ctx.fillText("не A  " + fmtSig(1 - pa), M.l + wA + wN / 2, M.t - 6);
+    // смуга умовної ймовірності
+    var by = M.t + PH + 16, bh = 20;
+    if (state.cond === "none") {
+      ctx.fillStyle = k.muted; ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.font = "13px " + k.body;
+      ctx.fillText("Оберіть умову «B настала» або «A настала»", M.l, by + bh / 2);
+    } else {
+      var given = state.cond === "B" ? pb : pa, share = state.cond === "B" ? C.aGivenB : C.bGivenA;
+      ctx.textBaseline = "middle"; ctx.textAlign = "left"; ctx.font = "13px " + k.body; ctx.fillStyle = k.ink;
+      if (share === null) { ctx.fillStyle = k.muted; ctx.fillText("Умова неможлива: її ймовірність 0", M.l, by + bh / 2); }
+      else {
+        var lab = state.cond === "B" ? "Серед B: частка A" : "Серед A: частка B";
+        ctx.fillStyle = k.muted; ctx.font = "12px " + k.body; ctx.fillText(lab, M.l, by - 6);
+        ctx.fillStyle = k.h3; ctx.globalAlpha = 0.6; ctx.fillRect(M.l, by, PW * share, bh);
+        ctx.fillStyle = state.cond === "B" ? k.h1 : k.h2; ctx.globalAlpha = 0.35; ctx.fillRect(M.l + PW * share, by, PW * (1 - share), bh); ctx.globalAlpha = 1;
+        ctx.strokeStyle = k.ink; ctx.lineWidth = 1; ctx.strokeRect(M.l + 0.5, by + 0.5, PW - 1, bh - 1);
+        ctx.fillStyle = k.ink; ctx.font = "500 12px " + k.data; ctx.textAlign = "left";
+        var txt = (state.cond === "B" ? "P(A | B) = " : "P(B | A) = ") + fmtSig(share);
+        halo(txt, M.l + 8, by + bh / 2, k);
+      }
+    }
+  }
+
+  function renderLegend() {
+    var el = $("legend"); el.textContent = "";
+    var k = { h1: cssVar("--h1"), h2: cssVar("--h2"), h3: cssVar("--h3"), g: cssVar("--grid-strong") };
+    [["A ∩ B", k.h3], ["A, не B", k.h1], ["B, не A", k.h2], ["ні A, ні B", k.g]].forEach(function (it) {
+      var s = document.createElement("span"), sw = document.createElement("span");
+      sw.className = "sw"; sw.style.background = it[1]; s.appendChild(sw); s.appendChild(document.createTextNode(it[0])); el.appendChild(s);
+    });
+  }
+
+  /* ---------- Оновлення ---------- */
+  function update(quick) {
+    C = calc();
+    var r = C.range;
+    $("rA").value = state.pa; $("rB").value = state.pb;
+    var ab = $("rAB"); ab.min = r[0]; ab.max = r[1]; ab.value = state.pab; ab.disabled = r[1] - r[0] < 1e-12;
+    $("oA").textContent = fmtSig(state.pa); $("oB").textContent = fmtSig(state.pb); $("oAB").textContent = fmtSig(state.pab);
+    $("jNote").textContent = "P(A ∩ B) може бути від " + fmtSig(r[0]) + " до " + fmtSig(r[1]) + (ab.disabled ? " (значення єдине)" : "") + ". Незалежні події мають P(A ∩ B) = " + fmtSig(state.pa * state.pb) + ".";
+    $("mkDis").disabled = r[0] > 1e-12;
+    $("mkDis").title = r[0] > 1e-12 ? "При таких P(A) і P(B) події не можуть бути несумісними: P(A) + P(B) > 1" : "";
+    for (var id in chipEls) chipEls[id].setAttribute("aria-pressed", String(id === state.preset && matches()));
+    var p = BY_ID[state.preset];
+    $("srcNote").textContent = p ? p.note + (matches() ? "" : " (значення змінено вами)") : "";
+    renderResult(); draw();
+    cv.setAttribute("aria-label", "Мозаїка ймовірностей. " + summary());
+    if (!quick) say(summary(), 700); else say(summary(), 900);
+  }
+
+  /* ---------- Три події ---------- */
+  var T3 = {
+    two: { note: "Двічі підкидаємо монету, чотири наслідки рівноможливі. A: на першій монеті герб, B: на другій герб, C: монети однакові.",
+      outs: ["ГГ", "ГР", "РГ", "РР"], sets: [[1, 1, 0, 0], [1, 0, 1, 0], [1, 0, 0, 1]], names: ["A", "B", "C"] },
+    three: { note: "Тричі підкидаємо монету, вісім наслідків рівноможливі. A, B, C: герб на першій, другій, третій монеті.",
+      outs: ["ГГГ", "ГГР", "ГРГ", "ГРР", "РГГ", "РГР", "РРГ", "РРР"], names: ["A", "B", "C"] }
+  };
+  T3.three.sets = [0, 1, 2].map(function (i) { return T3.three.outs.map(function (o) { return o.charAt(i) === "Г" ? 1 : 0; }); });
+  var t3 = "two";
+  function renderThree() {
+    var d = T3[t3], r = Prob.independence3(d.sets);
+    $("t3Note").textContent = d.note;
+    var hd = $("t3Head"); hd.textContent = "";
+    var tr = document.createElement("tr");
+    ["Наслідок"].concat(d.names).forEach(function (h) { var th = document.createElement("th"); th.scope = "col"; th.textContent = h; tr.appendChild(th); });
+    hd.appendChild(tr);
+    var b = $("t3Body"); b.textContent = "";
+    d.outs.forEach(function (o, i) {
+      var row = document.createElement("tr"), th = document.createElement("th"); th.scope = "row"; th.textContent = o; row.appendChild(th);
+      d.sets.forEach(function (s) { var td = document.createElement("td"); td.textContent = s[i] ? "✓" : "·"; row.appendChild(td); });
+      b.appendChild(row);
+    });
+    var c = $("t3Chk"); c.textContent = "";
+    function chk(name, p, prod, ok) {
+      var row = document.createElement("tr"), th = document.createElement("th"); th.scope = "row"; th.textContent = name; row.appendChild(th);
+      [fmtSig(p), fmtSig(prod)].forEach(function (x) { var td = document.createElement("td"); td.textContent = x; row.appendChild(td); });
+      var td = document.createElement("td"); td.textContent = ok ? "так" : "ні"; td.className = ok ? "ok-t" : "no-t"; row.appendChild(td); c.appendChild(row);
+    }
+    r.pairs.forEach(function (q) { chk("P(" + d.names[q.i] + " ∩ " + d.names[q.j] + ")", q.p, q.prod, q.ok); });
+    chk("P(A ∩ B ∩ C)", r.triple, r.tripleProd, Math.abs(r.triple - r.tripleProd) < 1e-9);
+    var v = $("t3Verdict");
+    v.textContent = r.mutual ? "Події незалежні в сукупності (а отже й попарно)." : (r.pairwise ? "Події попарно незалежні, але не незалежні в сукупності." : "Події не є навіть попарно незалежними.");
+    v.className = "verdict" + (r.mutual ? " ok" : "");
+  }
+  function setT3(k) { t3 = k; $("t3Two").setAttribute("aria-pressed", String(k === "two")); $("t3Three").setAttribute("aria-pressed", String(k === "three")); renderThree(); }
+  $("t3Two").addEventListener("click", function () { setT3("two"); });
+  $("t3Three").addEventListener("click", function () { setT3("three"); });
+
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(cv); else window.addEventListener("resize", resize);
+  function theme() { renderLegend(); draw(); }
+  new MutationObserver(theme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  if (window.matchMedia) { var mq = window.matchMedia("(prefers-color-scheme: dark)"); if (mq.addEventListener) mq.addEventListener("change", theme); }
+
+  renderLegend(); renderThree(); choose("free"); resize();
+})();
+</script>
+</body>
+</html>

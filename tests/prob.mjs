@@ -91,3 +91,45 @@ test("симуляція підтверджує формулу Байєса", ()
   post.forEach((p, i) => assert.ok(Math.abs(hit[i] / tot - p) < 0.01, `${i}: ${hit[i] / tot} vs ${p}`));
   close(tot / 400000, Prob.total(prior, lik), 0.005);
 });
+
+test("jointRange і clampJoint: межі Фреше", () => {
+  assert.deepEqual(Prob.jointRange(0.7, 0.6).map((x) => Math.round(x * 1e9) / 1e9), [0.3, 0.6]);
+  assert.deepEqual(Prob.jointRange(0.2, 0.3), [0, 0.2]);
+  close(Prob.clampJoint(0.7, 0.6, 0.1), 0.3); close(Prob.clampJoint(0.2, 0.3, 0.5), 0.2); close(Prob.clampJoint(0.2, 0.3, 0.1), 0.1);
+});
+
+test("table2x2: чотири клітинки в сумі 1, без від'ємних на межах", () => {
+  for (const [a, b, ab] of [[0.5, 0.4, 0.2], [0.7, 0.6, 0.3], [0.2, 0.3, 0], [1, 0.4, 0.4], [0, 0, 0], [0.5, 0.5, 0.5]]) {
+    const t = Prob.table2x2(a, b, ab);
+    close(t.ab + t.aNotB + t.notAB + t.notAnotB, 1);
+    assert.ok(t.aNotB >= 0 && t.notAB >= 0 && t.notAnotB >= 0, JSON.stringify([a, b, ab, t]));
+  }
+});
+
+test("cond: P(A|B) і неможлива умова", () => {
+  close(Prob.cond(0.15, 0.3), 0.5);
+  assert.equal(Prob.cond(0, 0), null);
+});
+
+test("independence: кубик, сума 7 незалежна від першого кидка, сума 8 ні", () => {
+  let r = Prob.independence(1 / 6, 1 / 6, 1 / 36); assert.equal(r.independent, true);
+  r = Prob.independence(1 / 6, 5 / 36, 1 / 36); assert.equal(r.independent, false);
+  close(Prob.cond(1 / 36, 5 / 36), 0.2);
+  // карти: з поверненням незалежні, без повернення ні
+  assert.equal(Prob.independence(4 / 52, 4 / 52, (4 / 52) * (4 / 52)).independent, true);
+  assert.equal(Prob.independence(4 / 52, 4 / 52, (4 / 52) * (3 / 51)).independent, false);
+  // несумісні події з додатними ймовірностями залежні
+  assert.equal(Prob.independence(0.3, 0.4, 0).independent, false);
+});
+
+test("independence3: дві монети, попарно незалежні, але не взаємно", () => {
+  // наслідки: ГГ, ГР, РГ, РР
+  const A = [1, 1, 0, 0], B = [1, 0, 1, 0], C = [1, 0, 0, 1];
+  const r = Prob.independence3([A, B, C]);
+  assert.equal(r.pairwise, true); assert.equal(r.mutual, false);
+  close(r.triple, 0.25); close(r.tripleProd, 0.125);
+  // справді незалежні в сукупності: три незалежні монети
+  const O = []; for (let m = 0; m < 8; m++) O.push([m & 1, (m >> 1) & 1, (m >> 2) & 1]);
+  const r2 = Prob.independence3([0, 1, 2].map((i) => O.map((o) => o[i])));
+  assert.equal(r2.mutual, true);
+});

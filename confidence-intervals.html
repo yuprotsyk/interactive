@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Довірчі інтервали для середнього</title>
+<meta name="description" content="Серія довірчих інтервалів для середнього: скільки з них покривають справжнє значення, як ширина залежить від n і рівня довіри, чим z-інтервал відрізняється від t-інтервалу.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="common.css">
+<style>
+.app {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "head" "choose" "chart" "result" "own" "explain";
+}
+.head { grid-area: head; }
+.backlink { display: inline-block; margin-bottom: 10px; font-size: 13px; }
+.choose { grid-area: choose; }
+.viewbar { grid-area: view; display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+.chart { grid-area: chart; min-width: 0; align-self: start; }
+.result { grid-area: result; }
+.explain { grid-area: explain; }
+.side { display: contents; }
+
+.srcnote { margin: 10px 0 0; font-size: 14px; color: var(--muted); max-width: 72ch; text-wrap: pretty; }
+.cfgbar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin-top: 14px; }
+.cfgbar .lbl { font-size: 13.5px; }
+
+.hrows { display: grid; gap: 10px; margin-top: 14px; }
+.hrow {
+  display: grid; gap: 6px 18px; align-items: end;
+  grid-template-columns: minmax(0, 1fr);
+  padding: 10px 12px; border: 1px solid var(--grid-strong); border-radius: 6px; background: var(--bg);
+}
+.hname { display: flex; align-items: baseline; gap: 8px; font-size: 14px; }
+.hname .sw { width: 12px; height: 12px; border-radius: 3px; flex: none; align-self: center; }
+.hname strong { font-weight: 700; }
+.hname span.d { color: var(--muted); }
+.fld { display: grid; gap: 3px; min-width: 0; }
+.fld label { font-size: 13px; color: var(--muted); }
+.fld .row { display: grid; grid-template-columns: minmax(0, 1fr) 64px; gap: 10px; align-items: center; }
+.fld input[type="range"] { width: 100%; margin: 0; }
+.fld output {
+  font-family: var(--font-data); font-size: 13.5px; font-variant-numeric: tabular-nums; text-align: right;
+  color: var(--ink); background: var(--panel); border: 1px solid var(--grid-strong); border-radius: 4px; padding: 5px 7px;
+}
+@media (min-width: 700px) {
+  .hrow { grid-template-columns: 170px minmax(0, 1fr) minmax(0, 1fr); }
+}
+
+.chart h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
+.chart canvas {
+  display: block; width: 100%; aspect-ratio: 4 / 3.2; background: var(--panel);
+  border: 1px solid var(--grid-strong); border-radius: 6px;
+}
+.cmsg { margin: 8px 0 0; font-size: 13.5px; color: var(--muted); max-width: 72ch; text-wrap: pretty; }
+
+.result .big { margin: 6px 0 0; }
+.result .big dt { font-size: 12px; color: var(--muted); }
+.result .big dd { margin: 0; font-family: var(--font-data); font-size: clamp(30px, 8vw, 40px); line-height: 1.1; letter-spacing: -0.02em; color: var(--pos); font-variant-numeric: tabular-nums; }
+.formula { margin: 12px 0 0; font-family: var(--font-data); font-size: 13.5px; line-height: 1.9; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.formula .t { white-space: nowrap; font-weight: 500; }
+.twrap { margin-top: 12px; overflow: auto; border: 1px solid var(--grid-strong); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+th, td { padding: 4px 8px; text-align: right; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+thead th { background: var(--panel); font-weight: 500; color: var(--muted); border-bottom: 1px solid var(--grid-strong); }
+tbody tr:last-child td, tbody tr:last-child th { border-bottom: 0; }
+tfoot td, tfoot th { font-weight: 700; border-top: 1px solid var(--grid-strong); }
+
+.explain h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
+.explain p { margin: 8px 0 0; font-size: 14.5px; max-width: 68ch; text-wrap: pretty; }
+.explain p.key { margin-top: 0; }
+
+@media (min-width: 900px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr) 360px;
+    column-gap: 24px;
+    grid-template-areas: "head head" "choose choose" "chart side";
+  }
+  .side { grid-area: side; display: flex; flex-direction: column; gap: 16px; align-self: start; min-width: 0; }
+  .chart canvas { aspect-ratio: 16 / 11; }
+}
+
+.ctrl { display: grid; gap: 10px; margin-top: 14px; }
+.ctrl .row3 { display: grid; gap: 10px 18px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 700px) { .ctrl .row3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.fld .row { grid-template-columns: minmax(0, 1fr) 88px; }
+.fld output { font-size: 13px; padding: 5px 6px; white-space: nowrap; overflow: hidden; }
+.fld .seg { justify-self: start; }
+.jnote { margin: 0; font-size: 12.5px; color: var(--muted); }
+.btnrow { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; }
+.verdict { margin: 0 0 8px; font-size: 15px; font-weight: 700; text-wrap: balance; }
+.verdict.ok { color: var(--pos); }
+.rt td, .rt th { white-space: normal; }
+.legend { margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; }
+.legend .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 6px; border: 1px solid var(--grid-strong); }
+.own { grid-area: own; }
+.own h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
+.own textarea { width: 100%; min-height: 70px; resize: vertical; font-family: var(--font-data); font-size: 13.5px; color: var(--ink); background: var(--bg); border: 1px solid var(--grid-strong); border-radius: 6px; padding: 8px 10px; }
+.own .sigrow { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 8px 0; font-size: 13.5px; }
+.numin { width: 80px; font-family: var(--font-data); font-size: 13.5px; text-align: right; color: var(--ink); background: var(--bg); border: 1px solid var(--grid-strong); border-radius: 6px; padding: 6px 8px; }
+.stats { margin: 10px 0 0; display: grid; gap: 4px; font-size: 14px; }
+.stats div { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--grid); padding: 3px 0; }
+.stats dt { color: var(--muted); } .stats dd { margin: 0; font-family: var(--font-data); font-variant-numeric: tabular-nums; text-align: right; }
+.stats .big dd { font-size: 20px; color: var(--pos); }
+.ivrow { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 8px; font-size: 13px; }
+.ivrow .sw { display: inline-block; width: 22px; height: 0; border-top: 3px solid; vertical-align: middle; margin-right: 6px; }
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="head">
+    <a class="backlink" href="index.html">← Усі сторінки</a>
+    <h1>Довірчі інтервали для середнього</h1>
+    <p class="lead">Комп'ютер бере багато вибірок із сукупності, де справжнє середнє μ відоме, і для кожної будує довірчий інтервал. Дивіться, скільки інтервалів справді накриває μ і від чого залежить їхня ширина.</p>
+  </header>
+
+  <section class="choose panel" aria-label="Налаштування">
+    <p class="eyebrow">Сукупність</p>
+    <div class="chips" id="chips"></div>
+    <p class="srcnote" id="srcNote"></p>
+    <div class="ctrl">
+      <div class="row3">
+        <div class="fld"><label for="nRange">Обсяг вибірки n</label><div class="row"><input type="range" id="nRange" min="2" max="100" step="1" value="10"><output id="nOut" for="nRange">10</output></div></div>
+        <div class="fld"><span class="lbl" id="lvLbl" style="font-size:13px;color:var(--muted)">Рівень довіри</span>
+          <div class="seg" role="group" aria-labelledby="lvLbl" id="levels"></div></div>
+        <div class="fld"><span class="lbl" id="kLbl" style="font-size:13px;color:var(--muted)">Інтервалів у серії</span>
+          <div class="seg" role="group" aria-labelledby="kLbl" id="ks"></div></div>
+      </div>
+      <div class="btnrow">
+        <span class="lbl" id="mLbl">Метод</span>
+        <div class="seg" role="group" aria-labelledby="mLbl">
+          <button type="button" id="mT" aria-pressed="true">t: σ невідома</button>
+          <button type="button" id="mZ" aria-pressed="false">z: σ відома</button>
+          <button type="button" id="mZs" aria-pressed="false">z із s (хибно)</button>
+        </div>
+      </div>
+      <p class="jnote" id="mNote"></p>
+      <div class="btnrow">
+        <button type="button" class="btn primary" id="again">Нова серія</button>
+        <button type="button" class="btn" id="batch">+1 000 інтервалів без малювання</button>
+        <button type="button" class="btn" id="resetCnt">Скинути лічильник</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="chart panel" aria-labelledby="chTitle">
+    <h2 id="chTitle">Серія довірчих інтервалів</h2>
+    <canvas id="cv" role="img" aria-label="Серія довірчих інтервалів"></canvas>
+    <p class="ivrow" id="legend"></p>
+    <p class="cmsg">Кожен рядок це довірчий інтервал за окремою вибіркою, точка це її середнє. Вертикальна лінія це справжнє μ. Інтервал, що виходить за межі графіка, позначено стрілкою.</p>
+  </section>
+
+  <div class="side">
+    <section class="result panel" aria-labelledby="rTitle">
+      <p class="eyebrow" id="rTitle">Результат</p>
+      <dl class="stats">
+        <div class="big"><dt>Ця серія накрила μ</dt><dd id="rSet">—</dd></div>
+        <div><dt>Накопичено</dt><dd id="rAcc">—</dd></div>
+        <div><dt>Заявлений рівень довіри</dt><dd id="rLvl">—</dd></div>
+        <div><dt>Середня ширина інтервалу (серія)</dt><dd id="rW">—</dd></div>
+        <div><dt>Орієнтовна 2·крит.·σ/√n</dt><dd id="rWT">—</dd></div>
+      </dl>
+      <p class="cmsg" id="rNote"></p>
+    </section>
+
+    <section class="own panel" aria-labelledby="oTitle">
+      <h2 id="oTitle">Інтервал за власними даними</h2>
+      <label class="sr-only" for="dataTa">Список чисел</label>
+      <textarea id="dataTa" spellcheck="false" placeholder="наприклад: 4,1 5,3 6,2 5,8 4,9 5,5 6,0 5,1"></textarea>
+      <div class="sigrow"><label for="sigIn">Відома σ (необов'язково)</label><input class="numin" id="sigIn" type="text" inputmode="decimal" autocomplete="off" placeholder="—"></div>
+      <p class="cmsg" id="oMsg" style="margin-top:0">Числа через пробіл, крапку з комою чи новий рядок. Рівень довіри береться з налаштувань вище. Без σ рахується t-інтервал.</p>
+      <p class="formula" id="oOut"></p>
+    </section>
+
+    <section class="explain panel" aria-labelledby="eTitle">
+      <h2 id="eTitle">Що тут відбувається</h2>
+      <p class="key"><strong>Що означає «95 %».</strong> Це властивість методу: якщо багато разів брати вибірки й будувати інтервали, приблизно 95 % з них накриють μ. Конкретний інтервал або накриває μ, або ні; не можна сказати, що в ньому μ «з імовірністю 95 %».</p>
+      <p><strong>Ширина.</strong> Більше n дає вужчий інтервал, приблизно як 1/√n. Вищий рівень довіри дає ширший інтервал: щоб рідше помилятися, інтервал має бути довшим.</p>
+      <p><strong>Навіщо t.</strong> Якщо σ невідома, її замінюють на s. Тоді відношення вже не нормальне, і потрібне розподіл Стьюдента з n − 1 ступенями свободи. Метод «z із s» цього не враховує й при малих n накриває μ рідше заявленого. Виберіть його й n = 5, щоб побачити.</p>
+      <p><strong>Це інтервал для середнього,</strong> а не для окремих значень: майже всі значення сукупності в нього не потрапляють.</p>
+    </section>
+  </div>
+</main>
+
+<div class="sr-only" id="sr" role="status" aria-live="polite"></div>
+
+<script src="common.js"></script>
+<script src="random.js"></script>
+<script src="distributions.js"></script>
+<script>
+(function () {
+  "use strict";
+  var S = Stat, f4 = S.fmtSig, clamp = S.clamp;
+  function $(id) { return document.getElementById(id); }
+  var sayTimer = null;
+  function say(t, d) { clearTimeout(sayTimer); sayTimer = setTimeout(function () { $("sr").textContent = ""; $("sr").textContent = t; }, d || 0); }
+
+  /* ---------- Сукупності: справжні μ і σ відомі ---------- */
+  var SOURCES = [
+    { id: "normal", name: "Нормальна", mu: 100, sigma: 15, draw: function (r) { return 100 + 15 * r.normal(); },
+      note: "Нормальна сукупність, μ = 100, σ = 15. Для неї інтервали працюють так, як обіцяно." },
+    { id: "exp", name: "Показникова", mu: 10, sigma: 10, draw: function (r) { return r.exp(0.1); },
+      note: "Скошена сукупність, μ = 10, σ = 10. При малих n покриття може бути помітно нижчим за заявлене." },
+    { id: "arc", name: "U-подібна", mu: 50, sigma: 100 * Math.sqrt(1 / 8), draw: function (r) { return 100 * r.arcsine(); },
+      note: "Сукупність із двома піками на краях відрізка [0; 100]: μ = 50, σ ≈ 35,4. Вона симетрична, тому покриття добре вже при невеликих n." }
+  ];
+  var BY_ID = {}; SOURCES.forEach(function (s) { BY_ID[s.id] = s; });
+  var LEVELS = [0.8, 0.9, 0.95, 0.99], KS = [10, 20, 50, 100];
+  var state = { src: "normal", n: 10, level: 0.95, K: 30, method: "t", total: 0, hits: 0, run: 0, seed: 2026, cur: null };
+
+  /* ---------- Елементи керування ---------- */
+  var chipEls = {};
+  SOURCES.forEach(function (s) {
+    var b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.textContent = s.name; b.setAttribute("aria-pressed", "false");
+    b.addEventListener("click", function () { state.src = s.id; resetAndRun(); });
+    $("chips").appendChild(b); chipEls[s.id] = b;
+  });
+  var lvEls = {}, kEls = {};
+  LEVELS.forEach(function (l) {
+    var b = document.createElement("button"); b.type = "button"; b.textContent = Math.round(l * 100) + " %"; b.setAttribute("aria-pressed", "false");
+    b.addEventListener("click", function () { state.level = l; resetAndRun(); });
+    $("levels").appendChild(b); lvEls[l] = b;
+  });
+  KS.forEach(function (k) {
+    var b = document.createElement("button"); b.type = "button"; b.textContent = String(k); b.setAttribute("aria-pressed", "false");
+    b.addEventListener("click", function () { state.K = k; newSeries(true); });
+    $("ks").appendChild(b); kEls[k] = b;
+  });
+  $("nRange").addEventListener("input", function (e) { state.n = +e.target.value; $("nOut").textContent = String(state.n); resetAndRun(); });
+  function setMethod(m) { state.method = m; resetAndRun(); }
+  $("mT").addEventListener("click", function () { setMethod("t"); });
+  $("mZ").addEventListener("click", function () { setMethod("z"); });
+  $("mZs").addEventListener("click", function () { setMethod("zs"); });
+  $("again").addEventListener("click", function () { newSeries(true); });
+  $("batch").addEventListener("click", function () { runBatch(1000); });
+  $("resetCnt").addEventListener("click", function () { state.total = 0; state.hits = 0; renderResult(); say("Лічильник скинуто."); });
+
+  /* ---------- Симуляція ---------- */
+  function critFor(src) {
+    return state.method === "t" ? Dist.critical("t", state.level, state.n - 1) : Dist.critical("z", state.level);
+  }
+  /** Одна вибірка → інтервал за поточним методом. */
+  function oneInterval(rng, src, crit) {
+    var n = state.n, i, m = 0, ss = 0, v = new Array(n);
+    for (i = 0; i < n; i++) { v[i] = src.draw(rng); m += v[i]; }
+    m /= n;
+    for (i = 0; i < n; i++) ss += (v[i] - m) * (v[i] - m);
+    var sd = Math.sqrt(ss / (n - 1)), se = (state.method === "z" ? src.sigma : sd) / Math.sqrt(n), half = crit * se;
+    return { mean: m, lo: m - half, hi: m + half, hit: m - half <= src.mu && src.mu <= m + half };
+  }
+  function newSeries(count) {
+    var src = BY_ID[state.src], crit = critFor(src), rng = Rand.create(Rand.seedFor(state.seed, state.run++)), arr = [], hits = 0, i;
+    for (i = 0; i < state.K; i++) { var it = oneInterval(rng, src, crit); arr.push(it); if (it.hit) hits++; }
+    state.cur = { items: arr, hits: hits, crit: crit };
+    if (count) { state.total += state.K; state.hits += hits; }
+    update(); say(summary(), 400);
+  }
+  function runBatch(cnt) {
+    var src = BY_ID[state.src], crit = critFor(src), rng = Rand.create(Rand.seedFor(state.seed, state.run++)), h = 0;
+    for (var i = 0; i < cnt; i++) if (oneInterval(rng, src, crit).hit) h++;
+    state.total += cnt; state.hits += h; renderResult(); say(summary(), 300);
+  }
+  function resetAndRun() { state.total = 0; state.hits = 0; newSeries(true); }
+
+  function pct(a, b) { return b ? f4(100 * a / b) + " %" : "—"; }
+  function summary() {
+    return "Серія накрила μ: " + state.cur.hits + " із " + state.K + ". Накопичено " + state.hits + " із " + state.total + " (" + pct(state.hits, state.total) + "), заявлено " + Math.round(state.level * 100) + " %.";
+  }
+
+  /* ---------- Результат ---------- */
+  function renderResult() {
+    var src = BY_ID[state.src], c = state.cur;
+    $("rSet").textContent = c.hits + " із " + state.K;
+    $("rAcc").textContent = state.hits + " із " + state.total + " (" + pct(state.hits, state.total) + ")";
+    $("rLvl").textContent = Math.round(state.level * 100) + " %";
+    var w = 0; c.items.forEach(function (it) { w += it.hi - it.lo; }); w /= c.items.length;
+    $("rW").textContent = f4(w);
+    $("rWT").textContent = f4(2 * c.crit * src.sigma / Math.sqrt(state.n));
+    var note = "";
+    if (state.method === "zs") note = "Метод «z із s» ігнорує додаткову невизначеність від заміни σ на s. Тому накопичене покриття нижче за заявлене, особливо при малих n.";
+    else if (state.method === "z") note = "σ відома: ширина майже однакова в усіх інтервалів, міняється лише положення середнього.";
+    else note = "Ширина інтервалів різна, бо кожна вибірка дає своє s. Накопичене покриття прямує до заявленого рівня.";
+    if (state.total >= 1000 && state.method === "t" && state.src === "exp" && state.n < 15) note += " Для скошеної сукупності при малому n покриття нижче за заявлене: умова нормальності порушена.";
+    $("rNote").textContent = note;
+    $("mNote").textContent = state.method === "z" ? "σ вважаємо відомою (для цієї сукупності σ = " + f4(src.sigma) + "). Крит. значення z." :
+      state.method === "t" ? "σ невідома, використовуємо s. Крит. значення t з n − 1 = " + (state.n - 1) + " ступенями свободи." :
+      "Демонстрація помилки: s підставлено в формулу з z. Так робити не слід.";
+  }
+
+  /* ---------- Малювання ---------- */
+  var cv = $("cv"), ctx = cv.getContext("2d"), W = 0, H = 0;
+  function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+  function resize() {
+    var r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1; W = r.width; H = r.height;
+    cv.width = Math.max(1, Math.round(W * dpr)); cv.height = Math.max(1, Math.round(H * dpr)); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); draw();
+  }
+  function halo(t, x, y, k) { ctx.lineJoin = "round"; ctx.lineWidth = 4; ctx.strokeStyle = k.panel; ctx.strokeText(t, x, y); ctx.fillText(t, x, y); }
+  function draw() {
+    if (!(W > 40 && H > 40) || !state.cur) return;
+    var k = { panel: cssVar("--panel"), ink: cssVar("--ink"), muted: cssVar("--muted"), grid: cssVar("--grid"), pos: cssVar("--pos"), neg: cssVar("--neg"), data: cssVar("--font-data") };
+    var src = BY_ID[state.src], M = { l: 14, r: 14, t: 26, b: 26 }, PW = W - M.l - M.r, PH = H - M.t - M.b;
+    var half = 3.4 * src.sigma / Math.sqrt(state.n), x0 = src.mu - half, x1 = src.mu + half;
+    function px(v) { return M.l + (v - x0) / (x1 - x0) * PW; }
+    ctx.clearRect(0, 0, W, H); ctx.fillStyle = k.panel; ctx.fillRect(0, 0, W, H);
+    var tk = S.ticksFor(x0, x1, clamp(PW / 90, 3, 8));
+    ctx.strokeStyle = k.grid; ctx.lineWidth = 1; ctx.beginPath();
+    tk.major.forEach(function (v) { var x = Math.round(px(v)) + 0.5; ctx.moveTo(x, M.t); ctx.lineTo(x, M.t + PH); }); ctx.stroke();
+    ctx.fillStyle = k.muted; ctx.font = "11px " + k.data; ctx.textAlign = "center"; ctx.textBaseline = "top";
+    tk.major.forEach(function (v) { ctx.fillText(f4(v), px(v), M.t + PH + 6); });
+    var items = state.cur.items, K = items.length, rowH = PH / K, lw = clamp(rowH * 0.45, 1.2, 3.2), rr = clamp(rowH * 0.3, 1.6, 3.4);
+    items.forEach(function (it, i) {
+      var y = M.t + rowH * (i + 0.5), a = px(it.lo), b = px(it.hi), col = it.hit ? k.pos : k.neg;
+      var ca = Math.max(M.l, a), cb = Math.min(W - M.r, b);
+      ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = lw; ctx.beginPath(); ctx.moveTo(ca, y); ctx.lineTo(cb, y); ctx.stroke();
+      if (a < M.l) { ctx.beginPath(); ctx.moveTo(M.l, y); ctx.lineTo(M.l + 6, y - 3.5); ctx.lineTo(M.l + 6, y + 3.5); ctx.closePath(); ctx.fill(); }
+      if (b > W - M.r) { ctx.beginPath(); ctx.moveTo(W - M.r, y); ctx.lineTo(W - M.r - 6, y - 3.5); ctx.lineTo(W - M.r - 6, y + 3.5); ctx.closePath(); ctx.fill(); }
+      var mx = px(it.mean); if (mx >= M.l && mx <= W - M.r) { ctx.beginPath(); ctx.arc(mx, y, rr, 0, 7); ctx.fill(); }
+    });
+    ctx.strokeStyle = k.ink; ctx.lineWidth = 1.6; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(px(src.mu), M.t - 4); ctx.lineTo(px(src.mu), M.t + PH); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = k.ink; ctx.font = "500 12px " + k.data; ctx.textAlign = "center"; ctx.textBaseline = "bottom"; halo("μ = " + f4(src.mu), px(src.mu), M.t - 6, k);
+  }
+  function renderLegend() {
+    var el = $("legend"); el.textContent = "";
+    var k = { pos: cssVar("--pos"), neg: cssVar("--neg") };
+    [["накрив μ", k.pos], ["не накрив μ", k.neg]].forEach(function (it) {
+      var s = document.createElement("span"), sw = document.createElement("span"); sw.className = "sw"; sw.style.borderTopColor = it[1];
+      s.appendChild(sw); s.appendChild(document.createTextNode(it[0])); el.appendChild(s);
+    });
+  }
+
+  /* ---------- Інтервал за власними даними ---------- */
+  function renderOwn() {
+    var toks = $("dataTa").value.split(/[\s;]+/).filter(function (t) { return t.length; }), vals = [], bad = 0, out = $("oOut");
+    toks.forEach(function (t) { var v = S.toNumber(t); if (v === null) bad++; else vals.push(v); });
+    var sigRaw = $("sigIn").value.trim(), sig = sigRaw === "" ? null : S.toNumber(sigRaw);
+    var msg = $("oMsg");
+    if (sig !== null && !(sig > 0)) { msg.textContent = "σ має бути додатним числом."; out.textContent = ""; return; }
+    if (sigRaw !== "" && sig === null) { msg.textContent = "σ має бути числом."; out.textContent = ""; return; }
+    if (vals.length > 5000) { msg.textContent = "Занадто багато чисел: максимум 5000."; out.textContent = ""; return; }
+    var base = "Числа через пробіл, крапку з комою чи новий рядок. Рівень довіри береться з налаштувань вище. Без σ рахується t-інтервал.";
+    if (!vals.length) { msg.textContent = base; out.textContent = ""; return; }
+    var ci = sig === null ? Dist.meanCI(vals, state.level, "t") : Dist.meanCI(vals, state.level, "z", { sigma: sig });
+    if (!ci) { msg.textContent = "Для t-інтервалу потрібно щонайменше два числа."; out.textContent = ""; return; }
+    msg.textContent = bad ? "Пропущено нечислових записів: " + bad + "." : base;
+    var L = [], lv = Math.round(state.level * 100);
+    L.push("n = " + ci.n + ",  x̄ = " + f4(ci.mean) + (ci.s === null ? "" : ",  s = " + f4(ci.s)));
+    if (sig === null) { L.push("SE = s/√n = " + f4(ci.se)); L.push("t(" + ci.df + "; " + lv + " %) = " + f4(ci.crit)); }
+    else { L.push("SE = σ/√n = " + f4(ci.se)); L.push("z(" + lv + " %) = " + f4(ci.crit)); }
+    L.push("x̄ ± крит.·SE = " + f4(ci.mean) + " ± " + f4(ci.half));
+    L.push("Інтервал: [" + f4(ci.lo) + "; " + f4(ci.hi) + "]");
+    if (ci.se === 0) L.push("Усі числа однакові, тому ширина інтервалу нульова.");
+    out.textContent = L.join("\n"); out.style.whiteSpace = "pre-wrap";
+  }
+  $("dataTa").addEventListener("input", renderOwn); $("sigIn").addEventListener("input", renderOwn);
+
+  function update() {
+    for (var id in chipEls) chipEls[id].setAttribute("aria-pressed", String(id === state.src));
+    LEVELS.forEach(function (l) { lvEls[l].setAttribute("aria-pressed", String(l === state.level)); });
+    KS.forEach(function (k) { kEls[k].setAttribute("aria-pressed", String(k === state.K)); });
+    $("mT").setAttribute("aria-pressed", String(state.method === "t")); $("mZ").setAttribute("aria-pressed", String(state.method === "z")); $("mZs").setAttribute("aria-pressed", String(state.method === "zs"));
+    $("srcNote").textContent = BY_ID[state.src].note;
+    renderResult(); renderOwn(); draw();
+    cv.setAttribute("aria-label", "Серія довірчих інтервалів. " + summary());
+  }
+
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(cv); else window.addEventListener("resize", resize);
+  function theme() { renderLegend(); draw(); }
+  new MutationObserver(theme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  if (window.matchMedia) { var mq = window.matchMedia("(prefers-color-scheme: dark)"); if (mq.addEventListener) mq.addEventListener("change", theme); }
+
+  renderLegend(); resetAndRun(); resize();
+})();
+</script>
+</body>
+</html>

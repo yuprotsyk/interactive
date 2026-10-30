@@ -105,3 +105,21 @@ test("відомі значення", () => {
   assert.ok(Math.abs(Dist.fisher.cdf(4.964602743730711, { d1: 1, d2: 10 }) - 0.95) < 1e-12);
   assert.ok(Math.abs(Dist.binomial.pmf(5, { n: 10, p: 0.5 }) - 252 / 1024) < 1e-14);
 });
+
+test("critical і meanCI: критичні значення й інтервал збігаються зі scipy", () => {
+  const rel = (a, b, e = 1e-9) => assert.ok(Math.abs(a - b) <= e * Math.max(1, Math.abs(b)), `${a} ≠ ${b}`);
+  rel(Dist.critical("t", 0.95, 9), 2.262157162798205);
+  rel(Dist.critical("t", 0.99, 2), 9.924843200918287);
+  rel(Dist.critical("t", 0.8, 29), 1.311433647301551);
+  rel(Dist.critical("z", 0.95), 1.959963984540054);
+  rel(Dist.critical("z", 0.8), 1.2815515655446004);
+  rel(Dist.critical("z", 0.99), 2.5758293035489004);
+  const x = [4.1, 5.3, 6.2, 5.8, 4.9, 5.5, 6.0, 5.1];
+  const ci = Dist.meanCI(x, 0.95, "t");
+  rel(ci.mean, 5.3625); rel(ci.s, 0.6759913355319621); rel(ci.lo, 4.797357100654869); rel(ci.hi, 5.9276428993451304);
+  const z = Dist.meanCI(x, 0.95, "z", { sigma: 0.7 });
+  rel(z.half, 1.959963984540054 * 0.7 / Math.sqrt(8));
+  assert.equal(Dist.meanCI([1], 0.95, "t"), null);
+  const one = Dist.meanCI([3], 0.95, "z", { sigma: 2 }); rel(one.lo, 3 - 1.959963984540054 * 2);
+  const zs = Dist.meanCI(x, 0.95, "zs"); assert.ok(zs.half < ci.half);
+});

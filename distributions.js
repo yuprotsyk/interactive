@@ -254,6 +254,30 @@ var Dist = (function () {
     return k;
   };
 
+  /* ---------- Довірчий інтервал для середнього ---------- */
+  var STD_NORMAL = { mu: 0, sigma: 1 };
+  /** Критичне значення для двобічного інтервалу рівня level: z (нормальний) або t (Стьюдент, df ступенів свободи). */
+  D.critical = function (kind, level, df) {
+    var p = 0.5 + level / 2;
+    return kind === "t" ? D.quantile(D.student, { nu: df }, p) : D.quantile(D.normal, STD_NORMAL, p);
+  };
+  /**
+   * Довірчий інтервал для середнього за вибіркою values.
+   * method: "z" (σ відома, потрібне opts.sigma), "t" (σ невідома, критичне значення Стьюдента, n − 1 ступенів),
+   * "zs" (хибно: s замість σ у формулі з нормальним критичним значенням, лише для демонстрації).
+   * Повертає null, якщо n < 2 (для "z" достатньо n ≥ 1).
+   */
+  D.meanCI = function (values, level, method, opts) {
+    var n = values.length, i, m = 0, ss = 0;
+    if (n < 1 || (method !== "z" && n < 2)) return null;
+    for (i = 0; i < n; i++) m += values[i];
+    m /= n;
+    for (i = 0; i < n; i++) ss += (values[i] - m) * (values[i] - m);
+    var sd = n > 1 ? Math.sqrt(ss / (n - 1)) : null, sigma = method === "z" ? opts.sigma : sd;
+    var crit = D.critical(method === "t" ? "t" : "z", level, n - 1), se = sigma / Math.sqrt(n), half = crit * se;
+    return { n: n, mean: m, s: sd, sigma: sigma, se: se, crit: crit, half: half, lo: m - half, hi: m + half, df: n - 1, method: method };
+  };
+
   return D;
 })();
 

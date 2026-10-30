@@ -42,6 +42,23 @@
 - Не робимо складних залежностей між сторінками. Єдине, що їх пов'язує: `common.*`, спільні математичні файли й посилання з `index.html`.
 - Змінюючи спільний файл, перевіряйте **усі** сторінки, що його використовують (див. розділ 7).
 
+### Довідник спільних модулів
+
+Скористайтеся ним, перш ніж писати нову математику: найімовірніше, потрібна функція вже є. Повні коментарі лежать у самих файлах.
+
+- **`Stat`** (`common.js`): `fmt(v, digits)`, `fmtSigned`, `fmtSig` (4 значущі цифри), `decimalsFor`, `snapToSpan`, `clamp`; осі: `niceStep`, `ticksFor(lo, hi, target)` → `{step, decimals, major, minor}`; `mean`, `pearson`, `spearman`, `ranks`, `pValue`, `fisherCI`, `analyze(points)`; спеціальні функції `lgamma`, `betai`; розбір вводу `toNumber`, `splitLine`, `parseData`.
+- **`Dist`** (`distributions.js`): розподіли `binomial`, `geometric`, `poisson`, `hypergeometric` (дискретні: `pmf`, `cdf`, `support`) і `normal`, `exponential`, `uniform`, `chisq`, `student`, `fisher` (неперервні: `pdf`, `cdf`, `domain`); у всіх `mean(P)`, `variance(P)` (`null` означає «не існує», `Infinity` «розбіжне»); `gammaP`, `gammaQ`, `quantile`, `quantileDiscrete`.
+- **`Prob`** (`probability.js`): `setWeight`, `resize` (ваги гіпотез із сумою 1), `total`, `terms`, `posterior`, `sequence`, `apportion`, `counts`.
+- **`Summ`** (`summary.js`): за окремими значеннями `sorted`, `mean`, `median`, `quartiles`, `variance(v, ddof)`, `sd`, `series`, `modeRaw`, `box`; для інтервального ряду `group(v, start, h)` (за вимірами), `table(start, h, freqs)` (за готовими частотами), `gMean`, `gVariance`, `gQuantile(g, p)`, `gMode`. Структура ряду: `{start, h, n, m, iv: [{a, b, mid, f, cum}]}`.
+- **`Rand`** (`random.js`): `create(seed)` повертає генератор з методами `next`, `int`, `uniform`, `bernoulli`, `normal`, `exp`, `cauchy`, `arcsine`, `bimodal`; `seedFor(seed, i)` дає окреме зерно для i-го запуску.
+
+### Відомі пастки
+
+- **Нова функція у спільному файлі й кеш.** Якщо сторінка використовує функцію, яку щойно додали в `random.js`, `summary.js` чи інший спільний файл, а автор завантажив лише сторінку, на сайті спрацює стара версія файлу й кнопки «мовчки» перестануть працювати. Тому при кожній зміні спільного файлу перелічуйте його у списку для завантаження й нагадуйте про Ctrl+F5.
+- **Полотно ще не має розмірів.** Якщо сторінку рахують до першого `ResizeObserver`, ширина `canvas` дорівнює нулю: захищайтеся від від'ємних радіусів і ділення на нуль під час малювання.
+- **Крайні значення інтервалу.** Максимум на верхній межі останнього інтервалу не створює додаткового інтервалу: див. `Summ.group`. Не повертайтеся до `floor((max − x₀)/h) + 1`.
+- **Знімки екрана в Playwright.** Після зміни стану зачекайте приблизно 1 секунду перед `fullPage`, інакше знімок може зависнути через таймер `aria-live`.
+
 ## 3. Домовленості щодо термінології та математики
 
 Терміни (узгоджені з автором, не змінювати без запитання):

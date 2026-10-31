@@ -1,0 +1,13 @@
+{
+  "name": "interactive",
+  "private": true,
+  "description": "Інтерактивні сторінки з теорії ймовірностей і статистики. Залежності потрібні лише для тестів, сайт працює без збірки.",
+  "scripts": {
+    "test": "node --test tests/*.mjs",
+    "test:browser": "node --test tests/browser/browser.test.mjs",
+    "test:all": "npm test && npm run test:browser"
+  },
+  "devDependencies": {
+    "playwright": "^1.50.0"
+  }
+}

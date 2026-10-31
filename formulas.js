@@ -287,9 +287,8 @@
     closeRun();
     return res;
   }
-  /** Текст → масивчастин для Tex.mix: рядки й {m: формула}. */
-  function parts(text) {
-    text = String(text === null || text === undefined ? "" : text);
+  /** Автоматично знайдені формули в шматку тексту. */
+  function autoParts(text) {
     var spans = findMath(text), out = [], pos = 0, i;
     for (i = 0; i < spans.length; i++) {
       if (spans[i][0] > pos) out.push(text.slice(pos, spans[i][0]));
@@ -297,6 +296,18 @@
       pos = spans[i][1];
     }
     if (pos < text.length) out.push(text.slice(pos));
+    return out;
+  }
+  /** Текст → частини для Tex.mix: рядки й {m: формула}. Явні формули позначаємо як $z$ (так позначають одиночні літери). */
+  function parts(text) {
+    text = String(text === null || text === undefined ? "" : text);
+    var out = [], re = /\$([^$]+)\$/g, pos = 0, m;
+    while ((m = re.exec(text)) !== null) {
+      if (m.index > pos) out = out.concat(autoParts(text.slice(pos, m.index)));
+      out.push({ m: m[1] });
+      pos = m.index + m[0].length;
+    }
+    if (pos < text.length) out = out.concat(autoParts(text.slice(pos)));
     return out;
   }
   /** Вставляє текст у елемент, формули всередині малює через KaTeX. */

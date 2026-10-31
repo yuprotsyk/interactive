@@ -480,8 +480,8 @@ td input.fin {
     if (!G) { $("nLine").textContent = "Даних немає. Задайте частоти в таблиці чи на стовпчиках, або оберіть набір."; return; }
     $("nLine").textContent = "n = " + G.n + ", інтервалів " + G.m + ", h = " + f4(G.h) + ".";
     var htr = document.createElement("tr");
-    cell(htr, "Характеристика", false).scope = "col"; cell(htr, "За згрупованими даними (наближено)", false).scope = "col";
-    if (X) cell(htr, "За початковими даними (точно)", false).scope = "col";
+    cell(htr, "Характеристика", false).scope = "col"; cell(htr, "За згрупованими даними", false).scope = "col";
+    if (X) cell(htr, "За початковими даними", false).scope = "col";
     hd.appendChild(htr);
     function row(name, a, bx) {
       var tr = document.createElement("tr"); cell(tr, name, true); cell(tr, a, false, "txt"); if (X) cell(tr, bx, false, "txt"); b.appendChild(tr);

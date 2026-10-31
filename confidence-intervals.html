@@ -138,7 +138,7 @@ tfoot td, tfoot th { font-weight: 700; border-top: 1px solid var(--grid-strong);
         <div class="seg" role="group" aria-labelledby="mLbl">
           <button type="button" id="mT" aria-pressed="true"><span class="tex">t</span>: <span class="tex">σ</span> невідома</button>
           <button type="button" id="mZ" aria-pressed="false"><span class="tex">z</span>: <span class="tex">σ</span> відома</button>
-          <button type="button" id="mZs" aria-pressed="false">z із s (хибно)</button>
+          <button type="button" id="mZs" aria-pressed="false"><span class="tex">z</span> із <span class="tex">s</span> (хибно)</button>
         </div>
       </div>
       <p class="jnote" id="mNote"></p>
@@ -183,7 +183,7 @@ tfoot td, tfoot th { font-weight: 700; border-top: 1px solid var(--grid-strong);
       <h2 id="eTitle">Що тут відбувається</h2>
       <p class="key"><strong>Що означає «95 %».</strong> Це властивість методу: якщо багато разів брати вибірки й будувати інтервали, приблизно 95 % з них накриють <span class="tex">μ</span>. Конкретний інтервал або накриває <span class="tex">μ</span>, або ні; не можна сказати, що в ньому <span class="tex">μ</span> «з імовірністю 95 %».</p>
       <p><strong>Ширина.</strong> Більше n дає вужчий інтервал, приблизно як <span class="tex">1/√n</span>. Вищий рівень довіри дає ширший інтервал: щоб рідше помилятися, інтервал має бути довшим.</p>
-      <p><strong>Навіщо t.</strong> Якщо <span class="tex">σ</span> невідома, її замінюють на s. Тоді відношення вже не нормальне, і потрібне розподіл Стьюдента з n − 1 ступенями свободи. Метод «z із s» цього не враховує й при малих n накриває <span class="tex">μ</span> рідше заявленого. Виберіть його й n = 5, щоб побачити.</p>
+      <p><strong>Навіщо <span class="tex">t</span>.</strong> Якщо <span class="tex">σ</span> невідома, її замінюють на <span class="tex">s</span>. Тоді відношення вже не нормальне, і потрібне розподіл Стьюдента з <span class="tex">n − 1</span> ступенями свободи. Метод «<span class="tex">z</span> із <span class="tex">s</span>» цього не враховує й при малих <span class="tex">n</span> накриває <span class="tex">μ</span> рідше заявленого. Виберіть його й <span class="tex">n = 5</span>, щоб побачити.</p>
       <p><strong>Це інтервал для математичного сподівання <span class="tex">μ</span>,</strong> а не для окремих значень: майже всі значення сукупності в нього не потрапляють.</p>
     </section>
   </div>
@@ -285,7 +285,7 @@ tfoot td, tfoot th { font-weight: 700; border-top: 1px solid var(--grid-strong);
     $("rW").textContent = f4(w);
     $("rWT").textContent = f4(2 * c.crit * src.sigma / Math.sqrt(state.n));
     var note = "";
-    if (state.method === "zs") note = "Метод «z із s» ігнорує додаткову невизначеність від заміни σ на s. Тому накопичене покриття нижче за заявлене, особливо при малих n.";
+    if (state.method === "zs") note = "Метод «$z$ із $s$» ігнорує додаткову невизначеність від заміни σ на $s$. Тому накопичене покриття нижче за заявлене, особливо при малих $n$.";
     else if (state.method === "z") note = "σ відома: ширина майже однакова в усіх інтервалів, міняється лише положення вибіркового середнього.";
     else note = "Ширина інтервалів різна, бо кожна вибірка дає своє s. Накопичене покриття прямує до заявленого рівня.";
     if (state.total >= 1000 && state.method === "t" && state.src === "exp" && state.n < 15) note += " Для скошеної сукупності при малому n покриття нижче за заявлене: умова нормальності порушена.";

@@ -51,3 +51,9 @@ test("parts: одиночна літера перед дужкою не вход
   assert.deepEqual(parts("ймовірність A (P(A | B) > P(A))."),
     ["ймовірність A ", { m: "(P(A | B) > P(A))" }, "."]);
 });
+
+test("parts: явні формули $…$", () => {
+  const { parts } = require("../formulas.js");
+  assert.deepEqual(parts("Метод «$z$ із $s$» і P(A)."),
+    ["Метод «", { m: "z" }, " із ", { m: "s" }, "» і ", { m: "P(A)" }, "."]);
+});

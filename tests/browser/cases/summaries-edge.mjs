@@ -4,7 +4,7 @@ import assert from "node:assert";
 const U = (name) => new URL("../../../" + name, import.meta.url).href;
 
 const num = s => parseFloat(s.replace(/\s/g,'').replace(',','.').replace('−','-'));
-const base = 'file:///home/claude/interaktyvni-statystyky/';
+const base = U('');
 async function inv(p, label, expectN) {
   await p.waitForTimeout(100);
   const txt = await p.evaluate(() => document.body.innerText);

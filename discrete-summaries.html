@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Числові характеристики: дискретна ознака</title>
-<meta name="description" content="Середнє, медіана, мода, квартилі й дисперсія для дискретної ознаки. Задавайте частоти значень і дивіться, як змінюються характеристики, стовпчики, ящик з вусами та кумулята.">
+<meta name="description" content="Вибіркове середнє, медіана, мода, квартилі й дисперсія для дискретної ознаки. Задавайте частоти значень і дивіться, як змінюються характеристики, стовпчики, ящик з вусами та кумулята.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
@@ -110,7 +110,7 @@ td input.fin {
   <header class="head">
     <a class="backlink" href="index.html">← Усі сторінки</a>
     <h1>Числові характеристики: дискретна ознака</h1>
-    <p class="lead">Ознака набуває окремих значень: оцінка, кількість дітей, кількість голів. Задайте частоти значень і дивіться, як змінюються середнє, медіана, мода та розкид.</p>
+    <p class="lead">Ознака набуває окремих значень: оцінка, кількість дітей, кількість голів. Задайте частоти значень і дивіться, як змінюються вибіркове середнє, медіана, мода та розкид.</p>
   </header>
 
   <section class="choose panel" aria-label="Дані й налаштування">
@@ -210,7 +210,7 @@ td input.fin {
 
     <section class="explain panel" aria-labelledby="eTitle">
       <h2 id="eTitle">Що тут відбувається</h2>
-      <p class="key"><strong>Центр даних.</strong> Середнє, медіана й мода це три різні «центри». Збільшіть частоту крайнього значення: середнє піде за ним, а медіана майже не зсунеться.</p>
+      <p class="key"><strong>Центр даних.</strong> Вибіркове середнє, медіана й мода це три різні «центри». Збільшіть частоту крайнього значення: вибіркове середнє піде за ним, а медіана майже не зсунеться.</p>
       <p><strong>Мода</strong> це значення з найбільшою частотою. Їх може бути кілька. Якщо всі значення однаково часті, моди немає.</p>
       <p><strong>Розкид.</strong> Розмах залежить лише від двох крайніх значень. Міжквартильний розмах IQR = Q₃ − Q₁ і ящик з вусами стійкі до крайніх значень. Значення за межами Q₁ − 1,5·IQR і Q₃ + 1,5·IQR позначено кружечками як потенційні викиди. Це привід перевірити значення, а не доказ помилки.</p>
       <p><strong>n чи n − 1.</strong> Ділення на n описує саме ці дані. Ділення на n − 1 дає оцінку дисперсії всієї сукупності за вибіркою. Різниця помітна лише для малих n.</p>
@@ -236,11 +236,11 @@ td input.fin {
     { id: "kids", name: "Діти в родині", lo: 0, hi: 6, counts: { 0: 3, 1: 9, 2: 12, 3: 5, 4: 2, 5: 1 },
       note: "Кількість дітей у 32 родинах. Розподіл трохи скошений праворуч: є кілька багатодітних родин." },
     { id: "goals", name: "Голи за матч", lo: 0, hi: 8, counts: { 0: 6, 1: 10, 2: 9, 3: 5, 4: 2, 5: 1, 7: 1 },
-      note: "Кількість голів у 34 матчах. Один матч з 7 голами тягне середнє вгору, а медіана й мода лишаються малими." },
+      note: "Кількість голів у 34 матчах. Один матч з 7 голами тягне вибіркове середнє вгору, а медіана й мода лишаються малими." },
     { id: "two", name: "Дві вершини", lo: 0, hi: 14, counts: { 2: 1, 3: 3, 4: 2, 5: 1, 9: 2, 10: 3, 11: 2, 12: 1 },
-      note: "Два скупчення даних. Середнє потрапляє між ними, де немає жодного значення. Є дві моди: 3 і 10." },
+      note: "Два скупчення даних. Вибіркове середнє потрапляє між ними, де немає жодного значення. Є дві моди: 3 і 10." },
     { id: "outlier", name: "З викидом", lo: 0, hi: 20, counts: { 2: 1, 3: 3, 4: 4, 5: 5, 6: 3, 7: 2, 18: 1 },
-      note: "Майже всі значення від 2 до 7, і одне значення 18. Порівняйте середнє й медіану, потім зменшіть частоту 18 до нуля." },
+      note: "Майже всі значення від 2 до 7, і одне значення 18. Порівняйте вибіркове середнє й медіану, потім зменшіть частоту 18 до нуля." },
     { id: "flat", name: "Однакові частоти", lo: 1, hi: 6, counts: { 1: 5, 2: 5, 3: 5, 4: 5, 5: 5, 6: 5 },
       note: "Кожне значення зустрічається однаково часто (як грані кубика). Найбільшої частоти немає, тому моди немає." }
   ];
@@ -431,7 +431,7 @@ td input.fin {
   function modeText(m) { return m.none ? "моди немає" : m.modes.map(f4).join("; "); }
   function summaryText() {
     if (!C.n) return "Даних немає.";
-    return "n = " + C.n + ", середнє " + f4(C.mean) + ", медіана " + f4(C.median) + ", мода: " + modeText(C.mode) + ".";
+    return "n = " + C.n + ", вибіркове середнє " + f4(C.mean) + ", медіана " + f4(C.median) + ", мода: " + modeText(C.mode) + ".";
   }
 
   /* ---------- Результати й пояснення ---------- */
@@ -443,7 +443,7 @@ td input.fin {
     if (!C.n) { $("nLine").textContent = "Даних немає. Задайте частоти в таблиці чи на стовпчиках, або оберіть набір."; $("warns").textContent = ""; return; }
     $("nLine").textContent = "n = " + C.n + ", найменше " + f4(C.min) + ", найбільше " + f4(C.max) + ", розмах " + f4(C.range) + ".";
     function row(name, val) { var tr = document.createElement("tr"); cell(tr, name, true); cell(tr, val, false, "txt"); b.appendChild(tr); }
-    row("Середнє x̄", f4(C.mean));
+    row("Вибіркове середнє x̄", f4(C.mean));
     row("Медіана Me", f4(C.median));
     row("Мода Mo", modeText(C.mode));
     row("Q₁", C.q ? f4(C.q.q1) : "—");
@@ -457,7 +457,7 @@ td input.fin {
     function warn(t) { var li = document.createElement("li"); li.textContent = t; w.appendChild(li); }
     if (C.mode.none && C.n > 1) warn("Моди немає: " + C.mode.reason + ".");
     else if (C.mode.modes.length > 1) warn("Кілька мод: " + C.mode.modes.map(f4).join("; ") + " (кожне зустрічається " + C.mode.maxf + " раз).");
-    if (!C.cvOk) warn("Коефіцієнт варіації не обчислено: він має сенс для невід'ємних значень із додатним середнім.");
+    if (!C.cvOk) warn("Коефіцієнт варіації не обчислено: він має сенс для невід'ємних значень із додатним вибірковим середнім.");
     if (state.ddof === 1 && C.n === 1) warn("Для n = 1 ділити на n − 1 не можна: дисперсії немає.");
     if (C.box && C.box.outliers.length) warn("Потенційні викиди (за межами Q₁ − 1,5·IQR і Q₃ + 1,5·IQR): " + C.box.outliers.filter(function (v, i, a) { return a.indexOf(v) === i; }).map(f4).join("; ") + ".");
   }
@@ -475,7 +475,7 @@ td input.fin {
     var n = C.n, xs = C.d, f;
     var sxf = 0; state.c.forEach(function (c, i) { sxf += (state.lo + i) * c; });
     var terms = []; state.c.forEach(function (c, i) { if (c > 0) terms.push(f4(state.lo + i) + "·" + c); });
-    heading("Середнє за частотами");
+    heading("Вибіркове середнє за частотами");
     f = frm();
     line(f, ["x̄ = Σ xᵢ·fᵢ / n"]);
     if (terms.length <= 8) line(f, ["    = (" + terms.join(" + ") + ") / " + n]);
@@ -655,9 +655,9 @@ td input.fin {
       s.appendChild(sw); s.appendChild(document.createTextNode(text)); el.appendChild(s);
     }
     var k = colors();
-    if (state.mean) add("dash", k.mean, "середнє x̄"); if (state.med) add("", k.med, "медіана Me"); if (state.mode) add("dot", k.mode, "мода Mo");
+    if (state.mean) add("dash", k.mean, "вибіркове середнє x̄"); if (state.med) add("", k.med, "медіана Me"); if (state.mode) add("dot", k.mode, "мода Mo");
     if (state.sd) add("box", k.mean, "x̄ ± SD");
-    var s = document.createElement("span"); s.textContent = "◇ у ящику: середнє; кружечки: потенційні викиди"; el.appendChild(s);
+    var s = document.createElement("span"); s.textContent = "◇ у ящику: вибіркове середнє; кружечки: потенційні викиди"; el.appendChild(s);
   }
 
   /* ---------- Стовпчики: клацання й перетягування ---------- */

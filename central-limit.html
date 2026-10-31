@@ -136,7 +136,7 @@ thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500;
       <dl>
         <div class="big"><dt>Накопичено середніх</dt><dd id="rM">0</dd></div>
         <div><dt>Середнє середніх</dt><dd id="rMean">—</dd></div>
-        <div><dt>Очікуване μ</dt><dd id="rMu">—</dd></div>
+        <div><dt>Математичне сподівання μ</dt><dd id="rMu">—</dd></div>
         <div><dt>Розкид середніх (SD)</dt><dd id="rSd">—</dd></div>
         <div><dt>Очікуваний σ/√n</dt><dd id="rSdT">—</dd></div>
         <div><dt>Асиметрія середніх</dt><dd id="rSk">—</dd></div>
@@ -218,7 +218,7 @@ thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500;
     { id: "cauchy", name: "Коші (виняток)",
       mu: null, sd: null, skew: null, lo: -Infinity, hi: Infinity, view: [-10, 10],
       pdf: function (x) { return 1 / (Math.PI * (1 + x * x)); }, draw: function (r) { return r.cauchy(); },
-      note: "Схожий на нормальний, але іноді дає дуже великі значення. Очікуваного значення в нього немає, тож умови теореми не виконано. Графік показує від −10 до 10." }
+      note: "Схожий на нормальний, але іноді дає дуже великі значення. Математичного сподівання в нього немає, тож умови теореми не виконано. Графік показує від −10 до 10." }
   ];
   var BY_ID = {};
   SOURCES.forEach(function (s) { BY_ID[s.id] = s; });
@@ -552,7 +552,7 @@ thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500;
   function renderLegend() {
     var el = $("legend1"); el.textContent = "";
     var items = [["b", "гістограма (частка значень на одиницю довжини)"]];
-    if (hasTheory()) { items.push(["", "нормальна крива N(μ; σ²/n)"]); items.push(["m", "очікуване значення μ"]); }
+    if (hasTheory()) { items.push(["", "нормальна крива N(μ; σ²/n)"]); items.push(["m", "математичне сподівання μ"]); }
     items.forEach(function (it) {
       var span = document.createElement("span"), sw = document.createElement("span");
       sw.className = "sw " + it[0]; span.appendChild(sw); span.appendChild(document.createTextNode(it[1]));

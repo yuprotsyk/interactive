@@ -47,7 +47,7 @@
 Скористайтеся ним, перш ніж писати нову математику: найімовірніше, потрібна функція вже є. Повні коментарі лежать у самих файлах.
 
 - **`Stat`** (`common.js`): `fmt(v, digits)`, `fmtSigned`, `fmtSig` (4 значущі цифри), `decimalsFor`, `snapToSpan`, `clamp`; осі: `niceStep`, `ticksFor(lo, hi, target)` → `{step, decimals, major, minor}`; `mean`, `pearson`, `spearman`, `ranks`, `pValue`, `fisherCI`, `analyze(points)`; спеціальні функції `lgamma`, `betai`; розбір вводу `toNumber`, `splitLine`, `parseData`.
-- **`Dist`** (`distributions.js`): розподіли `binomial`, `geometric`, `poisson`, `hypergeometric` (дискретні: `pmf`, `cdf`, `support`) і `normal`, `exponential`, `uniform`, `chisq`, `student`, `fisher` (неперервні: `pdf`, `cdf`, `domain`); у всіх `mean(P)`, `variance(P)` (`null` означає «не існує», `Infinity` «розбіжне»); `gammaP`, `gammaQ`, `quantile`, `quantileDiscrete`; довірчий інтервал для середнього `critical(kind, level, df)` і `meanCI(values, level, method, opts)` (методи `"z"`, `"t"`, `"zs"`).
+- **`Dist`** (`distributions.js`): розподіли `binomial`, `geometric`, `poisson`, `hypergeometric` (дискретні: `pmf`, `cdf`, `support`) і `normal`, `exponential`, `uniform`, `chisq`, `student`, `fisher` (неперервні: `pdf`, `cdf`, `domain`); у всіх `mean(P)`, `variance(P)` (`null` означає «не існує», `Infinity` «розбіжне»); `gammaP`, `gammaQ`, `quantile`, `quantileDiscrete`; довірчий інтервал для математичного сподівання `critical(kind, level, df)` і `meanCI(values, level, method, opts)` (методи `"z"`, `"t"`, `"zs"`).
 - **`Prob`** (`probability.js`): `setWeight`, `resize` (ваги гіпотез із сумою 1), `total`, `terms`, `posterior`, `sequence`, `apportion`, `counts`; для двох подій `jointRange`, `clampJoint`, `table2x2`, `cond`, `independence`; для трьох `independence3`.
 - **`Summ`** (`summary.js`): за окремими значеннями `sorted`, `mean`, `median`, `quartiles`, `variance(v, ddof)`, `sd`, `series`, `modeRaw`, `box`; для інтервального ряду `group(v, start, h)` (за вимірами), `table(start, h, freqs)` (за готовими частотами), `gMean`, `gVariance`, `gQuantile(g, p)`, `gMode`. Структура ряду: `{start, h, n, m, iv: [{a, b, mid, f, cum}]}`.
 - **`Rand`** (`random.js`): `create(seed)` повертає генератор з методами `next`, `int`, `uniform`, `bernoulli`, `normal`, `exp`, `cauchy`, `arcsine`, `bimodal`; `seedFor(seed, i)` дає окреме зерно для i-го запуску.
@@ -62,6 +62,7 @@
 ## 3. Домовленості щодо термінології та математики
 
 Терміни (узгоджені з автором, не змінювати без запитання):
+- **«математичне сподівання»** (μ, E(X)) для теоретичного значення, **«вибіркове середнє»** x̄ для середнього за даними (на сторінках статистики пишемо саме так, а не просто «середнє»); довірчий інтервал будуємо для математичного сподівання. Не плутати ці два поняття.
 - **«щільність»** (не «густина»), **«показниковий»** розподіл, **«хі-квадрат»**, **«квартилі»** (не «квартили»).
 - Слово **«огіва»** не вживаємо. Для неперервної ознаки: «Кумулятивна крива (кумулята)», для дискретної: «Кумулята». Відносний варіант на дискретній сторінці: емпірична функція розподілу F*(x).
 - Викиди за правилом 1,5·IQR називаємо **«потенційними викидами»**.
@@ -71,7 +72,7 @@
 - Інтервали рівної ширини, вигляд `[a; b)`, останній замкнений `[a; b]`, щоб містити максимум.
 - Квартили: **медіани половин ряду** (при непарному n медіану в половини не включаємо). Метод названо на сторінках.
 - Дисперсія: перемикач «ділити на n / n − 1», за замовчуванням n.
-- Коефіцієнт варіації лише для невід'ємних значень із додатним середнім.
+- Коефіцієнт варіації лише для невід'ємних значень із додатним вибірковим середнім.
 - Ймовірності гіпотез завжди в сумі 1; змінюючи одну, решту масштабуємо.
 - Умовна ймовірність і незалежність: P(A ∩ B) завжди в межах Фреше `[max(0, P(A) + P(B) − 1), min(P(A), P(B))]`. Несумісні події з додатними ймовірностями залежні. Розрізняємо «попарно незалежні» і «незалежні в сукупності».
 - Кольори гіпотез: змінні `--h1…--h4`.

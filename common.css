@@ -118,3 +118,22 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus
 .tex { overflow-wrap: normal; }
 .formula { max-width: 100%; overflow-x: auto; }
 .formula .tex + .tex { margin-left: .25em; }
+
+/* ---------- Шапка сторінки: група, значок, колір (ті самі, що на головній) ---------- */
+.g1 { --c: var(--h1); }
+.g2 { --c: var(--h2); }
+.g3 { --c: var(--h3); }
+.g4 { --c: var(--h4); }
+.head[class*="g"] { border-left: 4px solid var(--c); padding-left: 14px; }
+.head .kicker {
+  margin: 0 0 8px; font-size: 12px; font-weight: 500; letter-spacing: 0.09em; text-transform: uppercase;
+  color: var(--muted); color: color-mix(in srgb, var(--c) 78%, var(--ink));
+}
+.head .titlerow { display: flex; align-items: center; gap: 12px; }
+.head .titlerow h1 { margin: 0; min-width: 0; text-wrap: balance; }
+.head .ico {
+  flex: none; width: 44px; height: 44px; padding: 8px; box-sizing: border-box; border-radius: 8px;
+  color: var(--c); background: var(--soft);
+  fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+}
+.head .lead { margin-top: 10px; }

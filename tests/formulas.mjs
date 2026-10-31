@@ -57,3 +57,9 @@ test("parts: явні формули $…$", () => {
   assert.deepEqual(parts("Метод «$z$ із $s$» і P(A)."),
     ["Метод «", { m: "z" }, " із ", { m: "s" }, "» і ", { m: "P(A)" }, "."]);
 });
+
+test("toTex: npq — добуток змінних, IQR — назва", () => {
+  assert.equal(toTex("npq"), "n p q");
+  assert.equal(toTex("IQR"), "\\mathrm{IQR}");
+  assert.equal(toTex("Mo = x₀"), "\\mathrm{Mo}=x_{0}");
+});

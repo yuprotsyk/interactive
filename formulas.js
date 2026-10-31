@@ -94,9 +94,12 @@
           if (s[j] === "̄") { out += "\\bar{" + w + "}"; j++; }
           else if (s[j] === "̂") { out += "\\hat{" + w + "}"; j++; }
           else out += w;
-        } else if (/^[A-Z][a-z]?$/.test(w) || w.length >= 2) {
-          // Mo, Me, IQR, CV, SD, Var, df, Cov тощо: прямим шрифтом
+        } else if (/[A-Z]/.test(w) || w === "df") {
+          // Mo, Me, IQR, CV, SD, SE, Var, Cov, df: назви, прямим шрифтом
           out += "\\mathrm{" + w + "}";
+        } else {
+          // npq, np: добуток змінних, кожна курсивом
+          out += w.split("").join(" ");
         }
         i = j; continue;
       }

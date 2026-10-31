@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Наближення біноміального розподілу</title>
+<meta name="description" content="Теореми Муавра–Лапласа і Пуассона: змінюйте n і p та дивіться, коли біноміальний розподіл можна замінити нормальним чи розподілом Пуассона і яка при цьому похибка.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="common.css">
+<style>
+/* Розкладка: на телефоні один стовпчик (вибір, параметри, графік, якість, подія, пояснення, таблиця);
+   від 900px графік і пояснення зліва, параметри й показники справа */
+.app {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "head" "choose" "params" "chart" "quality" "event" "explain" "table";
+}
+.head { grid-area: head; }
+.backlink { display: inline-block; margin-bottom: 10px; font-size: 13px; }
+.choose { grid-area: choose; }
+.params { grid-area: params; }
+.chart { grid-area: chart; min-width: 0; }
+.quality { grid-area: quality; }
+.event { grid-area: event; }
+.explain { grid-area: explain; }
+.tablebox { grid-area: table; }
+.side { display: contents; }
+
+.srcnote { margin: 10px 0 0; font-size: 14px; color: var(--muted); text-wrap: pretty; }
+
+.prow { display: grid; grid-template-columns: minmax(0, 1fr) 88px; gap: 4px 12px; align-items: center; }
+.prow + .prow { margin-top: 12px; }
+.prow label { grid-column: 1 / -1; font-size: 13.5px; }
+.prow input[type="range"] { width: 100%; margin: 0; accent-color: var(--pos); }
+.prow output, .prow input[type="number"] {
+  width: 100%; font-family: var(--font-data); font-size: 13.5px; font-variant-numeric: tabular-nums;
+  color: var(--ink); background: var(--bg); border: 1px solid var(--grid-strong); border-radius: 4px; padding: 5px 7px;
+}
+.pbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 14px; }
+.pbar .lbl { font-size: 13.5px; }
+.derived { margin: 12px 0 0; font-size: 13.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.chart h2 { margin: 0 0 8px; font-size: 18px; font-weight: 700; text-wrap: balance; }
+#cv {
+  display: block; width: 100%; aspect-ratio: 4 / 3; max-height: 70vh;
+  background: var(--panel); border: 1px solid var(--grid-strong); border-radius: 6px;
+  cursor: crosshair; user-select: none; -webkit-user-select: none;
+}
+.caption { margin-top: 6px; font-size: 12.5px; color: var(--muted); font-family: var(--font-data); font-variant-numeric: tabular-nums; min-height: 1.5em; overflow-wrap: anywhere; }
+.legend { margin: 6px 0 0; display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13.5px; }
+.legend .sw { display: inline-block; width: 22px; height: 10px; vertical-align: middle; margin-right: 6px; border-radius: 2px; }
+.legend .sw.b { background: var(--h1); opacity: .35; }
+.legend .sw.n { height: 0; border-top: 3px solid var(--h2); }
+.legend .sw.p { height: 0; border-top: 3px dotted var(--h3); }
+.legend label.check { gap: 6px; }
+
+.quality h2, .event h2, .explain h2 { margin: 0 0 8px; font-size: 16px; }
+.qrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 10px 0; border-top: 1px solid var(--grid); }
+.qrow:first-of-type { border-top: 0; padding-top: 4px; }
+.qname { font-weight: 500; }
+.qd { font-family: var(--font-data); font-variant-numeric: tabular-nums; font-size: 18px; text-align: right; }
+.qsub { grid-column: 1 / -1; font-size: 13px; color: var(--muted); }
+.qsub .ok { color: var(--h3); font-weight: 500; }
+.qsub .no { color: var(--h2); font-weight: 500; }
+.verdict { margin: 10px 0 0; padding: 9px 11px; border-radius: 6px; background: var(--soft); font-size: 14px; text-wrap: pretty; }
+.small { margin: 8px 0 0; font-size: 12.5px; color: var(--muted); text-wrap: pretty; }
+
+.erow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+.erow label { display: block; font-size: 13.5px; margin-bottom: 4px; }
+.erow input { width: 100%; font-family: var(--font-data); font-size: 14px; color: var(--ink); background: var(--bg); border: 1px solid var(--grid-strong); border-radius: 4px; padding: 6px 8px; }
+.twrap { overflow: auto; max-height: 340px; border: 1px solid var(--grid-strong); border-radius: 6px; margin-top: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+th, td { padding: 5px 8px; text-align: right; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; font-family: var(--font-body); }
+.event th:first-child { white-space: normal; min-width: 0; }
+thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500; color: var(--muted); border-bottom: 1px solid var(--grid-strong); font-family: var(--font-body); }
+tr.exact td, tr.exact th { font-weight: 700; }
+
+.explain p { margin: 0 0 10px; text-wrap: pretty; }
+.explain p.key { margin-top: 0; }
+.explain .eq { margin: 4px 0 12px; overflow-x: auto; }
+.explain .eq .tex .katex, .explain .eq .tex .katex-html { white-space: nowrap; } /* формулу не розриваємо: на вузькому екрані вона прокручується */
+.tablebox summary { cursor: pointer; font-weight: 500; }
+.tablebox .tnote { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+
+@media (min-width: 900px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr) 380px;
+    column-gap: 24px;
+    grid-template-areas: "head head" "choose choose" "chart side" "explain side" "table side";
+  }
+  .side { grid-area: side; display: flex; flex-direction: column; gap: 16px; align-self: start; min-width: 0; }
+}
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="head">
+    <a class="backlink" href="index.html">← Усі сторінки</a>
+    <h1>Наближення біноміального розподілу</h1>
+    <p class="lead">Коли n велике, біноміальні ймовірності можна замінити простішими: нормальною кривою (Муавр–Лаплас) або формулою Пуассона. Рухайте n і p та дивіться, де наближення добре, а де ні.</p>
+  </header>
+
+  <section class="choose panel" aria-label="Готові приклади">
+    <p class="eyebrow">Приклад</p>
+    <div class="chips" id="chips"></div>
+    <p class="srcnote" id="srcNote"></p>
+  </section>
+
+  <div class="side">
+    <section class="params panel" aria-labelledby="pTitle">
+      <p class="eyebrow" id="pTitle">Параметри біноміального розподілу</p>
+      <div class="prow">
+        <label for="nRange">Кількість випробувань <span class="tex">n</span></label>
+        <input type="range" id="nRange" min="0" max="300" step="1">
+        <output id="nOut" for="nRange"></output>
+      </div>
+      <div class="prow">
+        <label for="vRange" id="vLabel">Ймовірність успіху p</label>
+        <input type="range" id="vRange" min="0.001" max="0.999" step="0.001">
+        <output id="vOut" for="vRange"></output>
+      </div>
+      <div class="pbar">
+        <span class="lbl" id="lockLbl">Що тримати сталим</span>
+        <div class="seg" role="group" aria-labelledby="lockLbl">
+          <button type="button" id="lockP" aria-pressed="true"><span class="tex">p</span></button>
+          <button type="button" id="lockL" aria-pressed="false"><span class="tex">λ = np</span></button>
+        </div>
+        <button type="button" class="btn" id="play">▶ Збільшувати n</button>
+      </div>
+      <p class="derived" id="derived"></p>
+    </section>
+
+    <section class="quality panel" aria-labelledby="qTitle">
+      <h2 id="qTitle">Наскільки добре наближення</h2>
+      <div id="qBody"></div>
+      <p class="verdict" id="verdict"></p>
+      <p class="small">Похибка <span class="tex" data-tex="d=\tfrac12\sum_k|P(k)-Q(k)|">d = ½ Σ |P(k) − Q(k)|</span>: найбільше, на скільки наближена ймовірність будь-якої події може відрізнятися від точної. Слова «добре» й «грубо» умовні: подивіться на саме число. Поріг <span class="tex" data-tex="p\le 0{,}1">p ≤ 0,1</span> тут умовний, його вибрано для перевірки на цій сторінці.</p>
+    </section>
+
+    <section class="event panel" aria-labelledby="eTitle">
+      <h2 id="eTitle">Ймовірність події <span class="tex">a ≤ X ≤ b</span></h2>
+      <div class="erow">
+        <div><label for="aIn">a</label><input type="number" id="aIn" min="0" step="1" inputmode="numeric"></div>
+        <div><label for="bIn">b</label><input type="number" id="bIn" min="0" step="1" inputmode="numeric"></div>
+      </div>
+      <div class="twrap"><table>
+        <caption class="sr-only">Ймовірність події трьома способами</caption>
+        <thead><tr><th scope="col">Спосіб</th><th scope="col">Значення</th><th scope="col">Похибка</th></tr></thead>
+        <tbody id="eBody"></tbody>
+      </table></div>
+      <p class="small" id="eNote"></p>
+    </section>
+  </div>
+
+  <section class="chart" aria-labelledby="cTitle">
+    <h2 id="cTitle">Біноміальні ймовірності й наближення</h2>
+    <canvas id="cv" role="img" aria-label="Графік біноміальних ймовірностей і наближень"></canvas>
+    <div class="caption" id="hover">Наведіть вказівник на графік</div>
+    <div class="legend" id="legend">
+      <span><span class="sw b"></span>точно, біноміальний</span>
+      <label class="check"><input type="checkbox" id="showN" checked> <span class="sw n"></span>нормальне (Муавр–Лаплас)</label>
+      <label class="check"><input type="checkbox" id="showP" checked> <span class="sw p"></span>Пуассона</label>
+    </div>
+  </section>
+
+  <section class="explain panel" aria-labelledby="xTitle">
+    <h2 id="xTitle">Що тут відбувається</h2>
+    <p class="key"><strong>Що наближаємо.</strong> <span class="tex">X</span> — кількість успіхів у <span class="tex">n</span> незалежних випробуваннях з ймовірністю успіху <span class="tex">p</span>; <span class="tex">q = 1 − p</span>. Точні ймовірності дає формула Бернуллі, але при великому <span class="tex">n</span> вона незручна. Наближення замінюють її простішими виразами.</p>
+    <p><strong>Теорема Муавра–Лапласа (локальна).</strong> При великому <span class="tex">npq</span></p>
+    <p class="eq"><span class="tex" data-tex="P(X=k)\approx\frac{1}{\sqrt{npq}}\,\varphi(x),\qquad x=\frac{k-np}{\sqrt{npq}},\qquad \varphi(x)=\frac{1}{\sqrt{2\pi}}e^{-x^{2}/2}">P(X = k) ≈ φ(x)/√(npq), x = (k − np)/√(npq), φ(x) = e^(−x²/2)/√(2π)</span></p>
+    <p><strong>Інтегральна.</strong> Ймовірність потрапити в проміжок:</p>
+    <p class="eq"><span class="tex" data-tex="P(a\le X\le b)\approx\Phi(x_2)-\Phi(x_1),\qquad x_1=\frac{a-np}{\sqrt{npq}},\quad x_2=\frac{b-np}{\sqrt{npq}}">P(a ≤ X ≤ b) ≈ Φ(x₂) − Φ(x₁), x₁ = (a − np)/√(npq), x₂ = (b − np)/√(npq)</span></p>
+    <p>Тут <span class="tex">Φ</span> — функція розподілу стандартного нормального розподілу. <strong>Поправка на неперервність:</strong> цілі значення <span class="tex">a</span> і <span class="tex">b</span> замінюють на <span class="tex" data-tex="a-\tfrac12">a − ½</span> і <span class="tex" data-tex="b+\tfrac12">b + ½</span>, бо стовпчик біноміального розподілу займає відрізок завширшки 1 навколо цілого числа. Порівняйте два рядки в таблиці події.</p>
+    <p><strong>Теорема Пуассона.</strong> Якщо <span class="tex" data-tex="n\to\infty">n → ∞</span>, <span class="tex" data-tex="p\to 0">p → 0</span> і <span class="tex" data-tex="np\to\lambda">np → λ</span>, то</p>
+    <p class="eq"><span class="tex" data-tex="P(X=k)\to\frac{\lambda^{k}e^{-\lambda}}{k!}">P(X = k) → λᵏ e^(−λ)/k!</span></p>
+    <p>На практиці беруть <span class="tex" data-tex="\lambda=np">λ = np</span>. Перемикач «Що тримати сталим» → <span class="tex">λ = np</span> саме так і показує: збільшуйте <span class="tex">n</span>, а стовпчики сповзають до крапок Пуассона.</p>
+    <p><strong>Коли яке наближення.</strong> Для нормального потрібне велике <span class="tex">npq</span> (часто використовують <span class="tex">npq ≥ 10</span>): тоді розподіл широкий і майже симетричний. Для Пуассона потрібне мале <span class="tex">p</span> і велике <span class="tex">n</span>, тоді <span class="tex">λ = np</span> помірне. Це орієнтири, а не теореми. Точність дивіться за похибкою <span class="tex">d</span> у блоці «Наскільки добре наближення» і в таблиці.</p>
+    <p><strong>Чому нормальне погане при малому p.</strong> Асиметрія біноміального розподілу <span class="tex" data-tex="\gamma=\frac{q-p}{\sqrt{npq}}">γ = (q − p)/√(npq)</span>: при малому <span class="tex">p</span> вона помітна, а нормальна крива симетрична (<span class="tex">γ = 0</span>).</p>
+  </section>
+
+  <details class="tablebox panel">
+    <summary>Таблиця значень</summary>
+    <p class="tnote" id="tNote"></p>
+    <div class="twrap"><table>
+      <caption class="sr-only">Точні й наближені ймовірності для кожного k</caption>
+      <thead id="tHead"></thead>
+      <tbody id="tBody"></tbody>
+    </table></div>
+  </details>
+</main>
+<div class="sr-only" id="sr" role="status" aria-live="polite"></div>
+
+<script src="common.js"></script>
+<script src="formulas.js"></script>
+<script src="distributions.js"></script>
+<script src="approximations.js"></script>
+<script>
+(function () {
+  "use strict";
+  var S = Stat, A = Approx;
+  var $ = function (id) { return document.getElementById(id); };
+  var fmtSig = S.fmtSig, fmt = S.fmt;
+
+  /* ---------- Готові приклади ---------- */
+  var PRESETS = [
+    { id: "coin", name: "Монета: n = 40, p = 0,5", n: 40, p: 0.5, lock: "p",
+      note: "Розподіл симетричний, npq = 10: нормальне наближення дуже добре. Пуассон тут не підходить, бо p завелике." },
+    { id: "rare", name: "Рідкісна подія: n = 200, p = 0,01", n: 200, p: 0.01, lock: "p",
+      note: "p мале, λ = np = 2: Пуассон добре, а нормальна крива не вгадує скошеної форми." },
+    { id: "mid", name: "n = 100, p = 0,3", n: 100, p: 0.3, lock: "p",
+      note: "npq = 21: нормальне добре. Пуассон тут слабкий, бо p завелике." },
+    { id: "both", name: "Обидва: n = 500, p = 0,02", n: 500, p: 0.02, lock: "p",
+      note: "λ = np = 10, npq = 9,8. Тут Пуассон точніший за нормальне." },
+    { id: "small", name: "Мало випробувань: n = 10, p = 0,3", n: 10, p: 0.3, lock: "p",
+      note: "n замале: обидва наближення грубі. Потім збільшуйте n кнопкою «Збільшувати n»." }
+  ];
+  var BY_ID = {}; PRESETS.forEach(function (p) { BY_ID[p.id] = p; });
+
+  var state = { n: 40, p: 0.5, lock: "p", lam: 20, showN: true, showP: true, a: 15, b: 25, preset: "coin" };
+  var NMAX_POS = 300;
+  function posToN(pos) { return Math.max(1, Math.round(Math.pow(10, pos / 100))); }
+  function nToPos(n) { return Math.round(Math.log(n) / Math.LN10 * 100); }
+  function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
+
+  var sayTimer = null;
+  function say(t, d) { clearTimeout(sayTimer); sayTimer = setTimeout(function () { $("sr").textContent = ""; $("sr").textContent = t; }, d || 0); }
+
+  function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+  function pr(v) { return v === null ? "—" : fmtSig(v); }
+  function setText(el, parts) { Tex.mix(el, parts); }
+
+  /* ---------- Стан ---------- */
+  function setN(n) {
+    state.n = clamp(Math.round(n), 1, 1000);
+    if (state.lock === "lam") state.p = clamp(state.lam / state.n, 0.001, 0.999);
+    fixEvent();
+  }
+  function setP(p) { state.p = clamp(Math.round(p * 1000) / 1000, 0.001, 0.999); state.lam = clamp(state.n * state.p, 0.1, 50); fixEvent(); }
+  function setLam(l) { state.lam = clamp(Math.round(l * 10) / 10, 0.1, 50); state.p = clamp(state.lam / state.n, 0.001, 0.999); fixEvent(); }
+  function fixEvent() {
+    state.a = clamp(Math.round(state.a), 0, state.n); state.b = clamp(Math.round(state.b), 0, state.n);
+    if (state.a > state.b) { var t = state.a; state.a = state.b; state.b = t; }
+  }
+  function centerEvent() {
+    var m = state.n * state.p, s = A.sigma(state.n, state.p);
+    state.a = Math.max(0, Math.round(m - s)); state.b = Math.min(state.n, Math.round(m + s)); fixEvent();
+  }
+
+  /* ---------- Приклади ---------- */
+  var chipEls = {};
+  PRESETS.forEach(function (p) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "chip"; b.textContent = p.name; b.setAttribute("aria-pressed", "false");
+    b.addEventListener("click", function () {
+      stop(); state.preset = p.id; state.lock = p.lock; state.n = p.n; state.p = p.p; state.lam = clamp(p.n * p.p, 0.1, 50);
+      centerEvent(); update(true);
+    });
+    $("chips").appendChild(b); chipEls[p.id] = b;
+  });
+
+  /* ---------- Керування ---------- */
+  $("nRange").addEventListener("input", function () { stop(); state.preset = ""; setN(posToN(Number(this.value))); update(); });
+  $("vRange").addEventListener("input", function () {
+    stop(); state.preset = "";
+    if (state.lock === "p") setP(Number(this.value)); else setLam(Number(this.value));
+    update();
+  });
+  function setLock(k) {
+    if (state.lock === k) return;
+    state.lock = k; if (k === "lam") state.lam = clamp(state.n * state.p, 0.1, 50);
+    update();
+  }
+  $("lockP").addEventListener("click", function () { setLock("p"); });
+  $("lockL").addEventListener("click", function () { setLock("lam"); });
+  $("showN").addEventListener("change", function () { state.showN = this.checked; draw(); });
+  $("showP").addEventListener("change", function () { state.showP = this.checked; draw(); });
+  function evInput() {
+    state.a = Number($("aIn").value); state.b = Number($("bIn").value);
+    if (!isFinite(state.a)) state.a = 0; if (!isFinite(state.b)) state.b = state.n;
+    fixEvent(); renderEvent();
+  }
+  $("aIn").addEventListener("input", evInput); $("bIn").addEventListener("input", evInput);
+  $("aIn").addEventListener("change", function () { $("aIn").value = state.a; });
+  $("bIn").addEventListener("change", function () { $("bIn").value = state.b; });
+
+  /* ---------- Анімація: n зростає ---------- */
+  var timer = null;
+  function stop() { if (timer) { clearInterval(timer); timer = null; } $("play").textContent = "▶ Збільшувати n"; }
+  $("play").addEventListener("click", function () {
+    if (timer) { stop(); return; }
+    var pos = nToPos(state.n); if (pos >= NMAX_POS) pos = 0;
+    state.preset = "";
+    $("play").textContent = "⏸ Зупинити";
+    timer = setInterval(function () {
+      pos += 2;
+      if (pos >= NMAX_POS) { pos = NMAX_POS; stop(); }
+      setN(posToN(pos)); update(); // n зростає й, залежно від перемикача, p чи λ лишаються сталими
+    }, 90);
+  });
+
+  /* ---------- Обчислення ---------- */
+  function compute() {
+    var n = state.n, p = state.p, r = A.rules(n, p);
+    return {
+      n: n, p: p, lam: n * p, s: A.sigma(n, p), r: r,
+      dN: A.tvNormal(n, p), dP: A.tvPoisson(n, p),
+      skew: (1 - 2 * p) / A.sigma(n, p), win: A.window(n, p)
+    };
+  }
+
+  /* ---------- Показники ---------- */
+  function grade(d) { return d === null ? "—" : d < 0.01 ? "дуже добре" : d < 0.03 ? "добре" : d < 0.06 ? "грубо" : "погано"; }
+  function qRow(name, d, condText, condOk) {
+    var row = document.createElement("div"); row.className = "qrow";
+    var nm = document.createElement("span"); nm.className = "qname"; nm.textContent = name;
+    var dd = document.createElement("span"); dd.className = "qd"; dd.textContent = d === null ? "—" : fmt(d, 4);
+    var sub = document.createElement("span"); sub.className = "qsub";
+    var st = document.createElement("span"); st.className = condOk ? "ok" : "no"; st.textContent = condOk ? "виконано" : "не виконано";
+    Tex.mix(sub, ["Орієнтир ", { m: condText }, ": "]); sub.appendChild(st); sub.appendChild(document.createTextNode(". Похибка: " + grade(d) + "."));
+    row.appendChild(nm); row.appendChild(dd); row.appendChild(sub);
+    return row;
+  }
+  function renderQuality(C) {
+    var b = $("qBody"); b.textContent = "";
+    b.appendChild(qRow("Нормальне (Муавр–Лаплас)", C.dN, "npq ≥ 10", C.r.laplace));
+    b.appendChild(qRow("Пуассона", C.dP, "p ≤ 0,1", C.r.poisson));
+    var v = "";
+    if (C.dN === null) v = "Для p = 0 чи 1 розподіл вироджений.";
+    else if (Math.min(C.dN, C.dP) >= 0.06) v = "Жодне наближення не годиться: похибка перевищує 0,06. Збільште n (для Пуассона ще й зменшіть p).";
+    else if (Math.min(C.dN, C.dP) >= 0.03) v = "Обидва наближення грубі: " + fmt(C.dN, 4) + " (нормальне) і " + fmt(C.dP, 4) + " (Пуассон). Збільште n.";
+    else if (C.dP < C.dN * 0.8) v = "Пуассон наближає краще: " + fmt(C.dP, 4) + " проти " + fmt(C.dN, 4) + ".";
+    else if (C.dN < C.dP * 0.8) v = "Нормальне наближає краще: " + fmt(C.dN, 4) + " проти " + fmt(C.dP, 4) + ".";
+    else v = "Обидва наближення дають схожу похибку: " + fmt(C.dN, 4) + " і " + fmt(C.dP, 4) + ".";
+    $("verdict").textContent = v;
+  }
+
+  /* ---------- Подія a ≤ X ≤ b ---------- */
+  function renderEvent() {
+    var n = state.n, p = state.p, a = state.a, b = state.b;
+    $("aIn").max = n; $("bIn").max = n;
+    if (document.activeElement !== $("aIn")) $("aIn").value = a;
+    if (document.activeElement !== $("bIn")) $("bIn").value = b;
+    var ex = A.exactProb(n, p, a, b);
+    var rows = [
+      ["Точно", ex, true],
+      ["Лаплас, з поправкою ±½", A.normalProb(n, p, a, b, true)],
+      ["Лаплас, без поправки", A.normalProb(n, p, a, b, false)],
+      ["Пуассон, λ = np", A.poissonProb(n * p, a, b)]
+    ];
+    var tb = $("eBody"); tb.textContent = "";
+    rows.forEach(function (r) {
+      var tr = document.createElement("tr"); if (r[2]) tr.className = "exact";
+      var th = document.createElement("th"); th.scope = "row"; th.textContent = r[0]; tr.appendChild(th);
+      var v = document.createElement("td"); v.textContent = r[1] === null ? "—" : fmt(r[1], 4); tr.appendChild(v);
+      var e = document.createElement("td"); e.textContent = r[2] ? "" : (r[1] === null ? "—" : S.fmtSigned(r[1] - ex, 4)); tr.appendChild(e);
+      tb.appendChild(tr);
+    });
+    Tex.mix($("eNote"), ["Ймовірність ", { m: "P(" + a + " ≤ X ≤ " + b + ")" }, ". Похибка це наближене мінус точне значення."]);
+  }
+
+  /* ---------- Таблиця ---------- */
+  function renderTable(C) {
+    var hd = $("tHead"); hd.textContent = "";
+    var hr = document.createElement("tr");
+    ["k", "P(X = k)", "Нормальне", "Пуассона", "Різниця (нормальне)", "Різниця (Пуассон)"].forEach(function (h, i) {
+      var th = document.createElement("th"); th.scope = "col"; if (i === 1) Tex.set(th, h); else th.textContent = h; hr.appendChild(th);
+    });
+    hd.appendChild(hr);
+    var lo = C.win[0], hi = Math.min(C.win[1], lo + 60), tb = $("tBody"); tb.textContent = "";
+    for (var k = lo; k <= hi; k++) {
+      var e = A.exactPmf(C.n, C.p, k), q = A.localNormal(C.n, C.p, k), po = A.poissonPmf(C.lam, k), tr = document.createElement("tr");
+      [String(k), fmt(e, 5), q === null ? "—" : fmt(q, 5), fmt(po, 5), q === null ? "—" : S.fmtSigned(q - e, 5), S.fmtSigned(po - e, 5)].forEach(function (t, i) {
+        var c = document.createElement(i === 0 ? "th" : "td"); if (i === 0) c.scope = "row"; c.textContent = t; tr.appendChild(c);
+      });
+      tb.appendChild(tr);
+    }
+    $("tNote").textContent = "Показано k від " + lo + " до " + hi + ": там зосереджена майже вся ймовірність. Нормальне значення це φ(x)/√(npq) із локальної теореми.";
+  }
+
+  /* ---------- Полотно ---------- */
+  var cv = $("cv"), ctx = cv.getContext("2d"), W = 0, H = 0, view = null;
+  function resize() {
+    var r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    W = r.width; H = r.height;
+    cv.width = Math.max(1, Math.round(W * dpr)); cv.height = Math.max(1, Math.round(H * dpr));
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); draw();
+  }
+  function halo(t, x, y, k) { ctx.lineJoin = "round"; ctx.lineWidth = 4; ctx.strokeStyle = k.panel; ctx.strokeText(t, x, y); ctx.fillText(t, x, y); }
+  function draw() {
+    if (!W || !H) return;
+    var C = compute(), k = { panel: cssVar("--panel"), grid: cssVar("--grid"), muted: cssVar("--muted"), ink: cssVar("--ink"),
+      b: cssVar("--h1"), n: cssVar("--h2"), p: cssVar("--h3"), data: cssVar("--font-data") };
+    var lo = C.win[0], hi = C.win[1], cnt = hi - lo + 1;
+    var M = { l: 46, r: 14, t: 26, b: 34 }, pw = Math.max(10, W - M.l - M.r), ph = Math.max(10, H - M.t - M.b);
+    var x0 = lo - 0.5, x1 = hi + 0.5;
+    function px(v) { return M.l + (v - x0) / (x1 - x0) * pw; }
+    var ymax = 0, i, kk, v;
+    for (kk = lo; kk <= hi; kk++) {
+      ymax = Math.max(ymax, A.exactPmf(C.n, C.p, kk));
+      if (state.showN) { v = A.localNormal(C.n, C.p, kk); if (v !== null) ymax = Math.max(ymax, v); }
+      if (state.showP) ymax = Math.max(ymax, A.poissonPmf(C.lam, kk));
+    }
+    if (state.showN && C.s > 0) ymax = Math.max(ymax, 1 / (C.s * Math.sqrt(2 * Math.PI)));
+    ymax = Math.max(ymax * 1.12, 1e-6);
+    function py(v2) { return M.t + ph - v2 / ymax * ph; }
+    view = { x0: x0, x1: x1, M: M, pw: pw, lo: lo, hi: hi };
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.font = "11px " + k.data; ctx.textBaseline = "middle"; ctx.textAlign = "right";
+    var ty = S.ticksFor(0, ymax, Math.max(2, Math.min(6, ph / 40)));
+    ty.major.forEach(function (t) {
+      if (t > ymax) return;
+      ctx.strokeStyle = k.grid; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(M.l, py(t)); ctx.lineTo(W - M.r, py(t)); ctx.stroke();
+      ctx.fillStyle = k.muted; ctx.fillText(fmt(t, ty.decimals), M.l - 6, py(t));
+    });
+    // вісь x: цілі k, підписи рідше при тісноті
+    var step = 1; while (pw / cnt * step < 26) step = step < 2 ? 2 : step < 5 ? 5 : step * 2;
+    ctx.textAlign = "center"; ctx.textBaseline = "top"; ctx.fillStyle = k.muted;
+    for (kk = Math.ceil(lo / step) * step; kk <= hi; kk += step) ctx.fillText(String(kk), px(kk), M.t + ph + 6);
+    ctx.strokeStyle = k.muted; ctx.beginPath(); ctx.moveTo(M.l, M.t + ph); ctx.lineTo(W - M.r, M.t + ph); ctx.stroke();
+
+    // стовпчики: точний біноміальний
+    var bw = Math.max(1, pw / cnt * (cnt > 70 ? 0.92 : 0.8));
+    ctx.fillStyle = k.b; ctx.globalAlpha = 0.38;
+    for (kk = lo; kk <= hi; kk++) { v = A.exactPmf(C.n, C.p, kk); ctx.fillRect(px(kk) - bw / 2, py(v), bw, M.t + ph - py(v)); }
+    ctx.globalAlpha = 1; ctx.strokeStyle = k.b; ctx.lineWidth = 1;
+    for (kk = lo; kk <= hi; kk++) { v = A.exactPmf(C.n, C.p, kk); ctx.strokeRect(px(kk) - bw / 2 + 0.5, py(v), bw - 1, M.t + ph - py(v)); }
+
+    // нормальна крива (неперервна): φ(x)/σ
+    if (state.showN && C.s > 0) {
+      ctx.strokeStyle = k.n; ctx.lineWidth = 2.5; ctx.beginPath();
+      var steps = Math.max(60, Math.round(pw / 3));
+      for (i = 0; i <= steps; i++) {
+        var xv = x0 + (x1 - x0) * i / steps, yv = A.localNormal(C.n, C.p, xv);
+        if (i === 0) ctx.moveTo(px(xv), py(yv)); else ctx.lineTo(px(xv), py(yv));
+      }
+      ctx.stroke();
+    }
+    // Пуассон: крапки в цілих k
+    if (state.showP) {
+      ctx.fillStyle = k.p; ctx.strokeStyle = k.p; ctx.lineWidth = 1.5; ctx.setLineDash([2, 3]); ctx.beginPath();
+      for (kk = lo; kk <= hi; kk++) { v = A.poissonPmf(C.lam, kk); if (kk === lo) ctx.moveTo(px(kk), py(v)); else ctx.lineTo(px(kk), py(v)); }
+      ctx.stroke(); ctx.setLineDash([]);
+      var rad = cnt > 70 ? 2 : 3.5;
+      for (kk = lo; kk <= hi; kk++) { v = A.poissonPmf(C.lam, kk); ctx.beginPath(); ctx.arc(px(kk), py(v), rad, 0, 2 * Math.PI); ctx.fill(); }
+    }
+    ctx.fillStyle = k.ink; ctx.font = "500 12px " + k.data; ctx.textAlign = "left"; ctx.textBaseline = "top"; halo("P(X = k)", M.l + 2, 4, k);
+    ctx.textAlign = "right"; halo("k", W - M.r, M.t + ph + 20, k);
+    cv.setAttribute("aria-label", "Біноміальний розподіл n = " + C.n + ", p = " + fmtSig(C.p) + ", показано k від " + lo + " до " + hi +
+      ". Відстань до нормального наближення " + (C.dN === null ? "не визначена" : fmt(C.dN, 4)) + ", до Пуассона " + fmt(C.dP, 4) + ".");
+  }
+  cv.addEventListener("pointermove", function (e) {
+    if (!view) return;
+    var r = cv.getBoundingClientRect(), x = view.x0 + (e.clientX - r.left - view.M.l) / view.pw * (view.x1 - view.x0), k = clamp(Math.round(x), view.lo, view.hi);
+    var C = compute(), q = A.localNormal(C.n, C.p, k);
+    $("hover").textContent = "k = " + k + " · точно " + fmt(A.exactPmf(C.n, C.p, k), 5) + " · нормальне " + (q === null ? "—" : fmt(q, 5)) + " · Пуассон " + fmt(A.poissonPmf(C.lam, k), 5);
+  });
+  cv.addEventListener("pointerleave", function () { $("hover").textContent = "Наведіть вказівник на графік"; });
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(cv); else window.addEventListener("resize", resize);
+  if (window.matchMedia) window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw);
+
+  /* ---------- Оновлення ---------- */
+  function update(announce) {
+    var C = compute();
+    $("nRange").value = nToPos(state.n); $("nOut").textContent = String(state.n);
+    var v = $("vRange");
+    if (state.lock === "p") {
+      v.min = 0.001; v.max = 0.999; v.step = 0.001; v.value = state.p;
+      Tex.mix($("vLabel"), ["Ймовірність успіху ", { m: "p" }]); $("vOut").textContent = fmt(state.p, 3);
+    } else {
+      v.min = 0.1; v.max = 50; v.step = 0.1; v.value = state.lam;
+      Tex.mix($("vLabel"), ["Параметр ", { m: "λ = np" }, " (", { m: "p = λ/n" }, ")"]); $("vOut").textContent = fmt(state.lam, 1);
+    }
+    $("lockP").setAttribute("aria-pressed", String(state.lock === "p")); $("lockL").setAttribute("aria-pressed", String(state.lock === "lam"));
+    for (var id in chipEls) chipEls[id].setAttribute("aria-pressed", String(id === state.preset));
+    var pre = BY_ID[state.preset];
+    $("srcNote").textContent = pre ? pre.note : "Значення змінено вами. Подивіться на похибки праворуч.";
+    Tex.mix($("derived"), [{ m: "np = " + fmtSig(C.lam) }, ",  ", { m: "npq = " + fmtSig(C.r.npq) }, ",  ", { m: "σ = " + fmtSig(C.s) }, ",  ", { m: "p = " + fmtSig(C.p) }, ",  ", { m: "γ = " + fmtSig(C.skew) }]);
+    renderQuality(C); renderEvent(); renderTable(C); draw();
+    if (announce) say("n = " + C.n + ", p = " + fmtSig(C.p) + ". Похибка нормального наближення " + (C.dN === null ? "—" : fmt(C.dN, 4)) + ", Пуассона " + fmt(C.dP, 4) + ".", 300);
+  }
+
+  state.lock = "p"; centerEvent(); update(false);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+name: Тести
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Тести математики
+        run: node --test tests/*.mjs
+      - name: Встановлення Playwright
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Браузерні тести
+        run: npm run test:browser

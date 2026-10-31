@@ -105,7 +105,7 @@ thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500;
           <button type="button" id="stMax" aria-pressed="false">Максимум</button>
         </div>
       </div>
-      <label class="check"><input type="checkbox" id="showNorm" checked> Нормальна крива N(μ; σ²/n)</label>
+      <label class="check"><input type="checkbox" id="showNorm" checked> Нормальна крива <span class="tex">N(μ; σ²/n)</span></label>
     </div>
   </section>
 
@@ -136,12 +136,12 @@ thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500;
       <dl>
         <div class="big"><dt>Накопичено середніх</dt><dd id="rM">0</dd></div>
         <div><dt>Середнє середніх</dt><dd id="rMean">—</dd></div>
-        <div><dt>Математичне сподівання μ</dt><dd id="rMu">—</dd></div>
+        <div><dt>Математичне сподівання <span class="tex">μ</span></dt><dd id="rMu">—</dd></div>
         <div><dt>Розкид середніх (SD)</dt><dd id="rSd">—</dd></div>
-        <div><dt>Очікуваний σ/√n</dt><dd id="rSdT">—</dd></div>
+        <div><dt>Очікуваний <span class="tex">σ/√n</span></dt><dd id="rSdT">—</dd></div>
         <div><dt>Асиметрія середніх</dt><dd id="rSk">—</dd></div>
-        <div><dt>Очікувана γ/√n</dt><dd id="rSkT">—</dd></div>
-        <div class="big"><dt>Середні в межах μ ± 1,96σ/√n (за нормальністю це 95 %)</dt><dd id="rIn">—</dd></div>
+        <div><dt>Очікувана <span class="tex">γ/√n</span></dt><dd id="rSkT">—</dd></div>
+        <div class="big"><dt>Середні в межах <span class="tex">μ ± 1,96σ/√n</span> (за нормальністю це 95 %)</dt><dd id="rIn">—</dd></div>
       </dl>
     </section>
 
@@ -149,16 +149,16 @@ thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500;
       <h2 id="eTitle">Що тут відбувається</h2>
       <div id="expMain">
         <p class="key"><strong>Верхній графік — одне число, нижній — середнє n чисел.</strong> При n = 1 вони однакові. Збільшуйте n і дивіться на нижній графік: він вужчий і дедалі більше схожий на дзвін, хоч би яким дивним був верхній.</p>
-        <p><strong>Ширина зменшується як 1/√n.</strong> Розкид середніх приблизно σ/√n, де σ — розкид одного числа. Щоб розкид став удвічі меншим, потрібно вчетверо більше чисел.</p>
-        <p><strong>Це і є теорема:</strong> середнє багатьох незалежних чисел з одного розподілу (зі скінченними μ і σ) розподілене майже нормально, N(μ; σ²/n). Що більше n, то краще наближення.</p>
-        <p><strong>Скошені розподіли потребують більшого n.</strong> Для симетричного розподілу дзвін виходить уже при n = 3–5. Для показникового чи монети з p = 0,1 треба помітно більше. Асиметрія середніх зменшується як γ/√n, де γ — асиметрія одного числа. «n = 30 завжди досить» — лише приблизне правило.</p>
+        <p><strong>Ширина зменшується як <span class="tex">1/√n</span>.</strong> Розкид середніх приблизно <span class="tex">σ/√n</span>, де <span class="tex">σ</span> — розкид одного числа. Щоб розкид став удвічі меншим, потрібно вчетверо більше чисел.</p>
+        <p><strong>Це і є теорема:</strong> середнє багатьох незалежних чисел з одного розподілу (зі скінченними <span class="tex">μ</span> і <span class="tex">σ</span>) розподілене майже нормально, <span class="tex">N(μ; σ²/n)</span>. Що більше n, то краще наближення.</p>
+        <p><strong>Скошені розподіли потребують більшого n.</strong> Для симетричного розподілу дзвін виходить уже при n = 3–5. Для показникового чи монети з p = 0,1 треба помітно більше. Асиметрія середніх зменшується як <span class="tex">γ/√n</span>, де γ — асиметрія одного числа. «n = 30 завжди досить» — лише приблизне правило.</p>
       </div>
       <div id="expCauchy" hidden>
-        <p class="key"><strong>Для розподілу Коші теорема не працює.</strong> У нього немає ні μ, ні σ, бо іноді випадають дуже великі значення. Середнє n чисел розподілене так само, як одне число: гістограма не звужується, скільки б n не було.</p>
+        <p class="key"><strong>Для розподілу Коші теорема не працює.</strong> У нього немає ні <span class="tex">μ</span>, ні <span class="tex">σ</span>, бо іноді випадають дуже великі значення. Середнє n чисел розподілене так само, як одне число: гістограма не звужується, скільки б n не було.</p>
         <p>Спробуйте переключити на медіану: вона з ростом n стискається до центру. Тобто медіана тут добра оцінка, а середнє безкорисне.</p>
       </div>
       <div id="expMed" hidden>
-        <p class="key"><strong>Медіана n чисел.</strong> Теорема стосується середнього й суми. Для медіани розподіл теж майже нормальний, але його ширина інша, тому крива N(μ; σ²/n) тут не показана.</p>
+        <p class="key"><strong>Медіана n чисел.</strong> Теорема стосується середнього й суми. Для медіани розподіл теж майже нормальний, але його ширина інша, тому крива <span class="tex">N(μ; σ²/n)</span> тут не показана.</p>
       </div>
       <div id="expMax" hidden>
         <p class="key"><strong>Максимум n чисел не стає нормальним.</strong> Він збирається біля найбільших можливих значень і зсувається вбік. Це показує, що теорема стосується саме середніх і сум, а не будь-якої величини з n чисел.</p>
@@ -168,11 +168,11 @@ thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500;
 
   <details class="tablebox panel" id="tableBox">
     <summary>Таблиця: як змінюється розкид і асиметрія з n</summary>
-    <p class="tnote">Для кожного n зроблено окремо по 2 000 повторів. Для середнього порівняно з теорією σ/√n та γ/√n (γ — асиметрія одного числа).</p>
+    <p class="tnote">Для кожного n зроблено окремо по 2 000 повторів. Для середнього порівняно з теорією <span class="tex">σ/√n</span> та <span class="tex">γ/√n</span> (γ — асиметрія одного числа).</p>
     <div class="twrap">
       <table>
         <caption class="sr-only">Розкид і асиметрія залежно від n</caption>
-        <thead><tr><th scope="col">n</th><th scope="col">SD</th><th scope="col">σ/√n</th><th scope="col">Асиметрія</th><th scope="col">γ/√n</th></tr></thead>
+        <thead><tr><th scope="col">n</th><th scope="col">SD</th><th scope="col"><span class="tex">σ/√n</span></th><th scope="col">Асиметрія</th><th scope="col"><span class="tex">γ/√n</span></th></tr></thead>
         <tbody id="tbody"></tbody>
       </table>
     </div>
@@ -182,6 +182,7 @@ thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500;
 <div class="sr-only" id="sr" role="status" aria-live="polite"></div>
 
 <script src="common.js"></script>
+<script src="formulas.js"></script>
 <script src="random.js"></script>
 <script>
 (function () {
@@ -321,7 +322,7 @@ thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500;
     $("stMax").setAttribute("aria-pressed", String(state.stat === "max"));
     $("stMax").disabled = state.src === "cauchy";
     $("showNorm").disabled = !hasTheory();
-    $("srcNote").textContent = src().note;
+    Tex.text($("srcNote"), src().note);
     var c = state.src === "cauchy", st = state.stat;
     $("expCauchy").hidden = !(c && st === "mean");
     $("expMed").hidden = st !== "median";
@@ -555,7 +556,7 @@ thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500;
     if (hasTheory()) { items.push(["", "нормальна крива N(μ; σ²/n)"]); items.push(["m", "математичне сподівання μ"]); }
     items.forEach(function (it) {
       var span = document.createElement("span"), sw = document.createElement("span");
-      sw.className = "sw " + it[0]; span.appendChild(sw); span.appendChild(document.createTextNode(it[1]));
+      sw.className = "sw " + it[0]; span.appendChild(sw); var lt = document.createElement("span"); Tex.text(lt, it[1]); span.appendChild(lt);
       el.appendChild(span);
     });
   }

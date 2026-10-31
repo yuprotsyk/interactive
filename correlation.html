@@ -157,12 +157,12 @@ td input {
       <h2 class="sr-only" id="dTitle">Показники</h2>
       <dl class="stats">
         <div><dt>Кількість точок, n</dt><dd id="sN">0</dd></div>
-        <div><dt>Коефіцієнт детермінації r²</dt><dd id="sR2">—</dd></div>
-        <div><dt>Ранговий ρ Спірмена</dt><dd id="sRho">—</dd></div>
-        <div><dt>p-значення (H₀: ρ = 0)</dt><dd id="sP">—</dd></div>
+        <div><dt>Коефіцієнт детермінації <span class="tex">r²</span></dt><dd id="sR2">—</dd></div>
+        <div><dt>Ранговий <span class="tex">ρ</span> Спірмена</dt><dd id="sRho">—</dd></div>
+        <div><dt>p-значення <span class="tex">(H₀: ρ = 0)</span></dt><dd id="sP">—</dd></div>
         <div><dt>Нахил прямої, b</dt><dd id="sB">—</dd></div>
         <div><dt>Вільний член прямої, a</dt><dd id="sA">—</dd></div>
-        <div class="wide"><dt>Вибіркові середні x̄ / ȳ</dt><dd id="sMean">—</dd></div>
+        <div class="wide"><dt>Вибіркові середні <span class="tex">x̄ / ȳ</span></dt><dd id="sMean">—</dd></div>
         <div class="wide"><dt>95 % довірчий інтервал для r</dt><dd id="sCI">—</dd></div>
       </dl>
       <p class="eq" id="eq">Пряма регресії y на x: y = a + b·x</p>
@@ -234,6 +234,7 @@ td input {
 <div class="sr-only" id="sr" role="status" aria-live="polite"></div>
 
 <script src="common.js"></script>
+<script src="formulas.js"></script>
 <script>
 (function () {
   "use strict";
@@ -590,9 +591,8 @@ td input {
     $("sA").textContent = fmtSig(st.intercept);
     $("sMean").textContent = st.meanX === null ? "—" : fmtSig(st.meanX) + " / " + fmtSig(st.meanY);
     $("sCI").textContent = st.ci === null ? "—" : "[" + fmt(st.ci[0], 3) + "; " + fmt(st.ci[1], 3) + "]";
-    $("eq").textContent = st.slope === null
-      ? "Пряма регресії y на x: y = a + b·x"
-      : "y = " + fmtSig(st.intercept) + (st.slope < 0 ? " − " : " + ") + fmtSig(Math.abs(st.slope)) + "·x";
+    if (st.slope === null) Tex.mix($("eq"), ["Пряма регресії y на x: ", { m: "y = a + b·x" }]);
+    else Tex.set($("eq"), "y = " + fmtSig(st.intercept) + (st.slope < 0 ? " − " : " + ") + fmtSig(Math.abs(st.slope)) + "·x");
     $("rangeNote").textContent = "Осі: " + lx + " від " + fmtSig(view.xmin) + " до " + fmtSig(view.xmax) +
       ", " + ly + " від " + fmtSig(view.ymin) + " до " + fmtSig(view.ymax);
     $("thX").textContent = lx;
@@ -624,7 +624,7 @@ td input {
       else if (a > 0.5 && st.rho !== null && Math.abs(st.rho - r) > 0.25) hint = "r і ρ Спірмена помітно відрізняються: у даних є викид або крива.";
     }
     $("sig").textContent = sig;
-    $("hint").textContent = hint;
+    Tex.text($("hint"), hint);
     canvas.setAttribute("aria-label", "Діаграма розсіювання. " + summaryText(st));
 
     if (active) {

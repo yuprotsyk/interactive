@@ -128,12 +128,12 @@ tfoot td, tfoot th { font-weight: 700; border-top: 1px solid var(--grid-strong);
   <div class="side">
     <section class="result panel" aria-labelledby="rTitle">
       <p class="eyebrow" id="rTitle">Результат</p>
-      <dl style="margin:0"><div class="big"><dt id="rLbl">Повна ймовірність P(A)</dt><dd id="rVal">—</dd></div></dl>
+      <dl style="margin:0"><div class="big"><dt id="rLbl">Повна ймовірність <span class="tex">P(A)</span></dt><dd id="rVal">—</dd></div></dl>
       <p class="formula" id="formula"></p>
       <div class="twrap">
         <table>
           <caption class="sr-only">Внески гіпотез у повну ймовірність</caption>
-          <thead><tr><th scope="col">Гіпотеза</th><th scope="col">P(H)</th><th scope="col">P(A|H)</th><th scope="col">Добуток</th></tr></thead>
+          <thead><tr><th scope="col">Гіпотеза</th><th scope="col"><span class="tex">P(H)</span></th><th scope="col"><span class="tex">P(A|H)</span></th><th scope="col">Добуток</th></tr></thead>
           <tbody id="tbody"></tbody>
           <tfoot id="tfoot"></tfoot>
         </table>
@@ -142,10 +142,10 @@ tfoot td, tfoot th { font-weight: 700; border-top: 1px solid var(--grid-strong);
 
     <section class="explain panel" aria-labelledby="eTitle">
       <h2 id="eTitle">Що тут відбувається</h2>
-      <p class="key"><strong>Гіпотези H₁…Hₖ</strong> не перетинаються й разом охоплюють усі можливості, тому їхні ймовірності в сумі дають 1. Змінюєте одну, решта підлаштовується.</p>
-      <p><strong>Квадрат.</strong> Ширина стовпчика це P(Hᵢ), заповнена частина по висоті це P(A | Hᵢ). Площа заповненої частини дорівнює P(Hᵢ)·P(A | Hᵢ). Справа всі ці площі складено в один стовпчик, і його висота є повною ймовірністю P(A).</p>
+      <p class="key"><strong>Гіпотези <span class="tex">H₁…Hₖ</span></strong> не перетинаються й разом охоплюють усі можливості, тому їхні ймовірності в сумі дають 1. Змінюєте одну, решта підлаштовується.</p>
+      <p><strong>Квадрат.</strong> Ширина стовпчика це <span class="tex">P(Hᵢ)</span>, заповнена частина по висоті це <span class="tex">P(A | Hᵢ)</span>. Площа заповненої частини дорівнює <span class="tex">P(Hᵢ)·P(A | Hᵢ)</span>. Справа всі ці площі складено в один стовпчик, і його висота є повною ймовірністю <span class="tex">P(A)</span>.</p>
       <p><strong>Дерево.</strong> Ймовірності вздовж шляху перемножуються, а шляхи, що закінчуються на A, додаються.</p>
-      <p><strong>Це зважене середнє.</strong> P(A) завжди лежить між найменшим і найбільшим із P(A | Hᵢ), а вагами є P(Hᵢ). Зробіть одну гіпотезу майже певною, і P(A) наблизиться до її P(A | H).</p>
+      <p><strong>Це зважене середнє.</strong> <span class="tex">P(A)</span> завжди лежить між найменшим і найбільшим із <span class="tex">P(A | Hᵢ)</span>, а вагами є <span class="tex">P(Hᵢ)</span>. Зробіть одну гіпотезу майже певною, і <span class="tex">P(A)</span> наблизиться до її <span class="tex">P(A | H)</span>.</p>
     </section>
   </div>
 </main>
@@ -153,6 +153,7 @@ tfoot td, tfoot th { font-weight: 700; border-top: 1px solid var(--grid-strong);
 <div class="sr-only" id="sr" role="status" aria-live="polite"></div>
 
 <script src="common.js"></script>
+<script src="formulas.js"></script>
 <script src="probability.js"></script>
 <script>
 (function () {
@@ -236,7 +237,7 @@ tfoot td, tfoot th { font-weight: 700; border-top: 1px solid var(--grid-strong);
       function field(label, aria, store, outStore, onInput) {
         var f = document.createElement("div"); f.className = "fld";
         var id = "s" + store.length + "_" + (outStore === priorOut ? "p" : "l") + i;
-        var lb = document.createElement("label"); lb.setAttribute("for", id); lb.textContent = label;
+        var lb = document.createElement("label"); lb.setAttribute("for", id); Tex.set(lb, label);
         var r = document.createElement("div"); r.className = "row";
         var inp = document.createElement("input"); inp.type = "range"; inp.min = "0"; inp.max = "1"; inp.step = "0.001"; inp.id = id;
         inp.setAttribute("aria-label", aria);
@@ -388,7 +389,7 @@ tfoot td, tfoot th { font-weight: 700; border-top: 1px solid var(--grid-strong);
     for (var id in chipEls) chipEls[id].setAttribute("aria-pressed", String(id === state.preset && isPresetValues()));
     document.querySelectorAll("[data-k]").forEach(function (b) { b.setAttribute("aria-pressed", String(Number(b.getAttribute("data-k")) === n)); });
     $("srcNote").textContent = BY_ID[state.preset].note + (isPresetValues() ? "" : " (значення змінено вами)");
-    $("rLbl").textContent = "Повна ймовірність P(A), де A — «" + state.ev + "»";
+    Tex.mix($("rLbl"), ["Повна ймовірність ", { m: "P(A)" }, ", де A — «" + state.ev + "»"]);
     $("rVal").textContent = fmtSig(pa);
 
     var f = $("formula"); f.textContent = "";
@@ -397,9 +398,9 @@ tfoot td, tfoot th { font-weight: 700; border-top: 1px solid var(--grid-strong);
       parts.forEach(function (p) {
         var s = document.createElement("span");
         if (p.i !== undefined) { s.className = "t"; s.style.color = "var(--h" + (p.i + 1) + ")"; }
-        s.textContent = p.t; d.appendChild(s);
+        s.textContent = p.t; if (/\S/.test(p.t)) s.classList.add("tex"); d.appendChild(s);
       });
-      f.appendChild(d);
+      f.appendChild(d); Tex.render(d);
     }
     function build(fn) {
       var out = [{ t: "" }];
@@ -415,7 +416,7 @@ tfoot td, tfoot th { font-weight: 700; border-top: 1px solid var(--grid-strong);
       var tr = document.createElement("tr");
       [hName(i), fmtSig(state.prior[i]), fmtSig(state.lik[i]), fmtSig(tm[i])].forEach(function (t, j) {
         var c = document.createElement(j === 0 ? "th" : "td"); if (j === 0) { c.scope = "row"; }
-        c.textContent = t; tr.appendChild(c);
+        if (j === 0) Tex.set(c, t); else c.textContent = t; tr.appendChild(c);
       });
       tr.firstChild.style.color = "var(--h" + (i + 1) + ")";
       tb.appendChild(tr);

@@ -132,9 +132,9 @@ thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500;
     <section class="calc panel" aria-labelledby="cTitle">
       <p class="eyebrow" id="cTitle">Ймовірність</p>
       <div class="seg" role="group" aria-label="Тип ймовірності">
-        <button type="button" id="cLe" aria-pressed="true">P(X ≤ a)</button>
-        <button type="button" id="cGe" aria-pressed="false">P(X ≥ a)</button>
-        <button type="button" id="cBt" aria-pressed="false">P(a ≤ X ≤ b)</button>
+        <button type="button" id="cLe" aria-pressed="true"><span class="tex">P(X ≤ a)</span></button>
+        <button type="button" id="cGe" aria-pressed="false"><span class="tex">P(X ≥ a)</span></button>
+        <button type="button" id="cBt" aria-pressed="false"><span class="tex">P(a ≤ X ≤ b)</span></button>
       </div>
       <div class="prow">
         <label for="aRange" id="aLabel">a</label>
@@ -147,7 +147,7 @@ thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500;
         <input type="number" id="bNum" step="any" aria-labelledby="bLabel">
       </div>
       <div class="result">
-        <div class="expr" id="expr">P(X ≤ a) =</div>
+        <div class="expr" id="expr"><span class="tex">P(X ≤ a) =</span></div>
         <div class="pval" id="pval">—</div>
         <div class="pct" id="pct"></div>
       </div>
@@ -158,7 +158,7 @@ thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500;
       <p class="formula" id="formula"></p>
       <p class="where" id="where"></p>
       <dl>
-        <div><dt>Математичне сподівання, E(X)</dt><dd id="sMean">—</dd></div>
+        <div><dt>Математичне сподівання, <span class="tex">E(X)</span></dt><dd id="sMean">—</dd></div>
         <div><dt>Дисперсія, D(X)</dt><dd id="sVar">—</dd></div>
         <div><dt>Станд. відхилення</dt><dd id="sSd">—</dd></div>
       </dl>
@@ -182,6 +182,7 @@ thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500;
 <div class="sr-only" id="sr" role="status" aria-live="polite"></div>
 
 <script src="common.js"></script>
+<script src="formulas.js"></script>
 <script src="distributions.js"></script>
 <script>
 (function () {
@@ -204,18 +205,21 @@ thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500;
         { k: "p", label: "p, ймовірність успіху в одному випробуванні", min: 0, max: 1, step: 0.01, def: 0.4 }
       ],
       formula: "P(X = k) = C(n, k) · pᵏ · (1 − p)ⁿ⁻ᵏ,  k = 0, 1, …, n",
+      tex: "P(X=k)=\\binom{n}{k}\\,p^{k}(1-p)^{n-k},\\quad k=0,1,\\dots,n",
       where: "Кількість успіхів у n незалежних випробуваннях з однаковою ймовірністю успіху p. Наприклад, кількість бракованих виробів серед n перевірених.",
       overlay: NORMAL_APPROX },
     { id: "geometric", adj: true, group: "d", name: "Геометричний", D: Dist.geometric,
       sym: function (p) { return "Geom(" + n(p.p) + ")"; },
       params: [{ k: "p", label: "p, ймовірність успіху в одному випробуванні", min: 0.02, max: 0.95, step: 0.01, def: 0.25 }],
       formula: "P(X = k) = (1 − p)ᵏ⁻¹ · p,  k = 1, 2, 3, …",
+      tex: "P(X=k)=(1-p)^{k-1}p,\\quad k=1,2,3,\\dots",
       where: "Номер випробування, на якому успіх настав уперше (разом з цим випробуванням). Наприклад, скільки разів треба підкинути кубик, поки випаде шістка.",
       note: "Тут X починається з 1. Якщо рахувати лише невдачі до першого успіху, усі значення зсунуться на 1 вліво." },
     { id: "poisson", group: "d", name: "Пуассона", D: Dist.poisson,
       sym: function (p) { return "Pois(" + n(p.lam) + ")"; },
       params: [{ k: "lam", label: "λ, середня кількість подій", min: 0.1, max: 50, step: 0.1, def: 4 }],
       formula: "P(X = k) = λᵏ · e^(−λ) / k!,  k = 0, 1, 2, …",
+      tex: "P(X=k)=\\frac{\\lambda^{k}e^{-\\lambda}}{k!},\\quad k=0,1,2,\\dots",
       where: "Кількість рідкісних незалежних подій за фіксований проміжок часу чи простору. Наприклад, кількість дзвінків за годину чи помилок на сторінці тексту.",
       overlay: NORMAL_APPROX },
     { id: "hypergeometric", adj: true, group: "d", name: "Гіпергеометричний", D: Dist.hypergeometric,
@@ -226,6 +230,7 @@ thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500;
         { k: "n", label: "n, обсяг вибірки (без повернення)", min: 0, max: function (P) { return P.N; }, step: 1, def: 10 }
       ],
       formula: "P(X = k) = C(K, k) · C(N − K, n − k) / C(N, n)",
+      tex: "P(X=k)=\\frac{\\binom{K}{k}\\binom{N-K}{n-k}}{\\binom{N}{n}}",
       where: "Кількість «успішних» елементів у вибірці без повернення. Наприклад, скільки бракованих деталей потрапить у контрольну вибірку з партії.",
       overlay: NORMAL_APPROX },
 
@@ -236,12 +241,14 @@ thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500;
         { k: "sigma", label: "σ, стандартне відхилення", min: 0.2, max: 5, step: 0.1, def: 1 }
       ],
       formula: "f(x) = 1 / (σ·√(2π)) · e^(−(x − μ)² / (2σ²))",
+      tex: "f(x)=\\frac{1}{\\sigma\\sqrt{2\\pi}}\\,e^{-\\frac{(x-\\mu)^{2}}{2\\sigma^{2}}}",
       where: "Результат накопичення багатьох малих незалежних впливів: похибки вимірювань, зріст, оцінки на тестах. До нього наближаються суми й середні (центральна гранична теорема).",
       note: "У позначенні N(μ; σ²) другий параметр це дисперсія σ², а не σ." },
     { id: "exponential", adj: true, group: "c", name: "Показниковий", D: Dist.exponential,
       sym: function (p) { return "Exp(" + n(p.lam) + ")"; },
       params: [{ k: "lam", label: "λ, інтенсивність", min: 0.1, max: 5, step: 0.1, def: 1 }],
       formula: "f(x) = λ · e^(−λx),  x ≥ 0;   F(x) = 1 − e^(−λx)",
+      tex: "f(x)=\\lambda e^{-\\lambda x},\\ x\\ge 0;\\qquad F(x)=1-e^{-\\lambda x}",
       where: "Час очікування до наступної події в пуассонівському потоці: тривалість між дзвінками, строк служби пристрою. Не має «пам'яті»: скільки вже чекали, на подальше очікування не впливає." },
     { id: "uniform", adj: true, group: "c", name: "Рівномірний", D: Dist.uniform,
       sym: function (p) { return "U(" + n(p.a) + "; " + n(p.b) + ")"; },
@@ -250,17 +257,20 @@ thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500;
         { k: "b", label: "b, кінець відрізка", min: function (P) { return P.a + 0.5; }, max: 15, step: 0.5, def: 4 }
       ],
       formula: "f(x) = 1 / (b − a) для a ≤ x ≤ b, інакше 0",
+      tex: "f(x)=\\frac{1}{b-a}\\ \\text{для } a\\le x\\le b,\\ \\text{інакше } 0",
       where: "Усі значення на відрізку однаково можливі. Наприклад, час очікування транспорту, який ходить за розкладом, чи випадкове число з генератора." },
     { id: "chisq", group: "c", name: "Хі-квадрат", D: Dist.chisq,
       sym: function (p) { return "χ²(" + n(p.k) + ")"; },
       params: [{ k: "k", label: "k, кількість ступенів свободи", min: 1, max: 50, step: 1, def: 4 }],
       formula: "f(x) = x^(k/2 − 1) · e^(−x/2) / (2^(k/2) · Γ(k/2)),  x > 0",
+      tex: "f(x)=\\frac{x^{k/2-1}e^{-x/2}}{2^{k/2}\\,\\Gamma(k/2)},\\quad x>0",
       where: "Сума квадратів k незалежних стандартних нормальних величин. Застосовується в критеріях згоди, перевірці незалежності та оцінюванні дисперсії.",
       overlay: NORMAL_APPROX },
     { id: "student", group: "c", name: "Стьюдента", D: Dist.student,
       sym: function (p) { return "t(" + n(p.nu) + ")"; },
       params: [{ k: "nu", label: "ν, кількість ступенів свободи", min: 1, max: 100, step: 1, def: 5 }],
       formula: "f(t) = Γ((ν+1)/2) / (√(νπ) · Γ(ν/2)) · (1 + t²/ν)^(−(ν+1)/2)",
+      tex: "f(t)=\\frac{\\Gamma\\!\\left(\\frac{\\nu+1}{2}\\right)}{\\sqrt{\\nu\\pi}\\,\\Gamma\\!\\left(\\frac{\\nu}{2}\\right)}\\left(1+\\frac{t^{2}}{\\nu}\\right)^{-\\frac{\\nu+1}{2}}",
       where: "Розподіл стандартизованого середнього, коли дисперсія невідома і оцінена за малою вибіркою. Лежить в основі t-критеріїв і довірчих інтервалів для середнього.",
       overlay: function () { return { mu: 0, sigma: 1, label: "Стандартний нормальний N(0; 1)" }; },
       note: "Зі зростанням ν розподіл наближається до стандартного нормального. Хвости важчі, ніж у нормального." },
@@ -271,6 +281,7 @@ thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500;
         { k: "d2", label: "d₂, ступені свободи знаменника", min: 1, max: 100, step: 1, def: 10 }
       ],
       formula: "X = (U/d₁) / (V/d₂), де U ~ χ²(d₁), V ~ χ²(d₂) незалежні",
+      tex: "X=\\frac{U/d_{1}}{V/d_{2}},\\ \\text{де } U\\sim\\chi^{2}(d_{1}),\\ V\\sim\\chi^{2}(d_{2})\\ \\text{незалежні}",
       where: "Відношення двох незалежних оцінок дисперсії. Застосовується в дисперсійному аналізі (ANOVA), порівнянні дисперсій і перевірці значущості регресії." }
   ];
   var BY_ID = {};
@@ -336,7 +347,7 @@ thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500;
       var row = document.createElement("div");
       row.className = "prow";
       var label = document.createElement("label");
-      label.textContent = sp.label;
+      Tex.text(label, sp.label);
       label.htmlFor = "r-" + sp.k;
       var range = document.createElement("input");
       range.type = "range"; range.id = "r-" + sp.k;
@@ -711,7 +722,7 @@ thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500;
 
     // назви режимів
     $("modeDens").textContent = disc ? "Ймовірності" : "Щільність";
-    $("title").textContent = titleFor(d, p);
+    Tex.mix($("title"), [(d.adj ? d.name + " розподіл " : "Розподіл " + d.name + " "), { m: d.sym(p) }]);
 
     // повзунки a, b
     var lo = disc ? m.lo : m.xmin, hi = disc ? m.hi : m.xmax, stp = disc ? 1 : m.step;
@@ -728,12 +739,12 @@ thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500;
     var pr = probability(m);
     var A = numText(state.a, m), B = numText(state.b, m);
     var expr = state.calc === "le" ? "P(X ≤ " + A + ")" : state.calc === "ge" ? "P(X ≥ " + A + ")" : "P(" + A + " ≤ X ≤ " + B + ")";
-    $("expr").textContent = expr + " =";
+    Tex.set($("expr"), expr + " =");
     $("pval").textContent = fmtProb(pr);
     $("pct").textContent = pr > 0 && pr < 1e-4 ? "" : "або " + fmt(pr * 100, 2) + " %";
 
     // про розподіл
-    $("formula").textContent = d.formula;
+    Tex.set($("formula"), d.formula, d.tex);
     $("where").textContent = d.where;
     var mean = D.mean(p), vr = D.variance(p);
     $("sMean").textContent = momentText(mean);
@@ -744,7 +755,7 @@ thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500;
     if (d.id === "student" && p.nu <= 1) notes.push("При ν = 1 (розподіл Коші) середнє не існує.");
     else if (d.id === "student" && p.nu <= 2) notes.push("При ν ≤ 2 дисперсія нескінченна.");
     if (d.id === "fisher" && p.d2 <= 4) notes.push(p.d2 <= 2 ? "При d₂ ≤ 2 середнє й дисперсія нескінченні." : "При d₂ ≤ 4 дисперсія нескінченна.");
-    $("sNote").textContent = notes.join(" ");
+    Tex.text($("sNote"), notes.join(" "));
 
     // підписи під графіком
     $("outside").textContent = m.outside > 1e-3 ? "Поза межами графіка: " + fmtProb(m.outside) + " ймовірності" : "";
@@ -753,7 +764,7 @@ thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500;
     function item(cls, text) {
       var span = document.createElement("span");
       var sw = document.createElement("span"); sw.className = "sw " + cls;
-      span.appendChild(sw); span.appendChild(document.createTextNode(text));
+      span.appendChild(sw); var lt = document.createElement("span"); Tex.text(lt, text); span.appendChild(lt);
       $("legend").appendChild(span);
     }
     item("", state.mode === "cdf" ? "функція розподілу F" : main);
@@ -775,7 +786,7 @@ thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500;
     var head = disc ? ["k", "P(X = k)", "F(k)"] : ["x", "f(x)", "F(x)"];
     $("thead").innerHTML = "";
     var tr = document.createElement("tr");
-    head.forEach(function (h) { var th = document.createElement("th"); th.scope = "col"; th.textContent = h; tr.appendChild(th); });
+    head.forEach(function (h) { var th = document.createElement("th"); th.scope = "col"; Tex.set(th, h); tr.appendChild(th); });
     $("thead").appendChild(tr);
     if (disc) {
       for (var i = 0; i < m.ks.length; i++) rows.push([fmt(m.ks[i], 0), fmtProb(m.f[i]), fmtProb(m.F[i])]);

@@ -123,7 +123,7 @@ td input.fin {
 
     <div class="cfgbar">
       <div class="grp">
-        <span class="lbl" id="x0Lbl">Початок x₀</span>
+        <span class="lbl" id="x0Lbl">Початок <span class="tex">x₀</span></span>
         <input class="numin" id="x0In" type="text" inputmode="decimal" aria-labelledby="x0Lbl" autocomplete="off">
         <span class="lbl" id="hLbl">Ширина h</span>
         <input class="numin" id="hIn" type="text" inputmode="decimal" aria-labelledby="hLbl" autocomplete="off">
@@ -140,10 +140,10 @@ td input.fin {
       <div class="grp shows" role="group" aria-label="Що показувати на гістограмі">
         <span class="lbl">Показати:</span>
         <label class="check"><input type="checkbox" id="showPoly" checked> полігон</label>
-        <label class="check"><input type="checkbox" id="showMean" checked> x̄</label>
+        <label class="check"><input type="checkbox" id="showMean" checked> <span class="tex">x̄</span></label>
         <label class="check"><input type="checkbox" id="showMed" checked> Me</label>
         <label class="check"><input type="checkbox" id="showMode" checked> Mo</label>
-        <label class="check"><input type="checkbox" id="showSd"> x̄ ± SD</label>
+        <label class="check"><input type="checkbox" id="showSd"> <span class="tex">x̄ ± SD</span></label>
       </div>
     </div>
     <p class="cmsg">Усі інтервали однакової ширини h. Кожен має вигляд [a; b), тільки останній замкнений [a; b], щоб містити найбільший вимір.</p>
@@ -168,9 +168,9 @@ td input.fin {
       <p class="legend" id="legend"></p>
       <p class="cmsg">Потягніть верх стовпчика, щоб змінити частоту інтервалу. Зелений стовпчик це модальний інтервал, синя риска показує медіанний. Висоти відповідають абсолютним частотам, бо інтервали однакової ширини.</p>
       <div class="boxwrap" id="boxWrap" hidden>
-        <h3>Ящик з вусами (за вимірами)</h3>
+        <h3>Ящик з вусами (за початковими даними)</h3>
         <canvas class="cv" id="cb" role="img" aria-label="Ящик з вусами"></canvas>
-        <p class="cmsg">Ящик від Q₁ до Q₃, лінія всередині це медіана, ромб це вибіркове середнє. Вуса сягають останніх значень у межах Q₁ − 1,5·IQR і Q₃ + 1,5·IQR. Кружечки це потенційні викиди, не обов'язково помилки.</p>
+        <p class="cmsg">Ящик від <span class="tex">Q₁</span> до <span class="tex">Q₃</span>, лінія всередині це медіана, ромб це вибіркове середнє. Вуса сягають останніх значень у межах <span class="tex">Q₁ − 1,5·IQR</span> і <span class="tex">Q₃ + 1,5·IQR</span>. Кружечки це потенційні викиди, не обов'язково помилки.</p>
       </div>
     </section>
 
@@ -196,7 +196,7 @@ td input.fin {
         </div>
       </div>
       <canvas class="cv" id="cc" role="img" aria-label="Кумулятивна крива"></canvas>
-      <p class="cmsg" id="kNote">Початок у точці (x₀; 0), далі накопичені частоти на верхніх межах інтервалів. Відрізки між точками відповідають припущенню, що всередині інтервалу значення розподілені рівномірно. За цим припущенням Q₁, Me, Q₃ читаються на рівнях 1/4, 1/2, 3/4 від n, і це ті самі числа, що дають формули.</p>
+      <p class="cmsg" id="kNote">Початок у точці <span class="tex">(x₀; 0)</span>, далі накопичені частоти на верхніх межах інтервалів. Відрізки між точками відповідають припущенню, що всередині інтервалу значення розподілені рівномірно. За цим припущенням <span class="tex">Q₁, Me, Q₃</span> читаються на рівнях 1/4, 1/2, 3/4 від n, і це ті самі числа, що дають формули.</p>
     </section>
   </div>
 
@@ -233,6 +233,7 @@ td input.fin {
 <div class="sr-only" id="sr" role="status" aria-live="polite"></div>
 
 <script src="common.js"></script>
+<script src="formulas.js"></script>
 <script src="summary.js"></script>
 <script>
 (function () {
@@ -471,7 +472,7 @@ td input.fin {
 
   /* ---------- Результати ---------- */
   function cell(tr, text, th, cls) {
-    var c = document.createElement(th ? "th" : "td"); if (th) c.scope = "row"; c.textContent = text; if (cls) c.className = cls; tr.appendChild(c); return c;
+    var c = document.createElement(th ? "th" : "td"); if (th) c.scope = "row"; Tex.text(c, text); if (cls) c.className = cls; tr.appendChild(c); return c;
   }
   function renderResults() {
     var b = $("rBody"), hd = $("rHead"); b.textContent = ""; hd.textContent = "";
@@ -479,8 +480,8 @@ td input.fin {
     if (!G) { $("nLine").textContent = "Даних немає. Задайте частоти в таблиці чи на стовпчиках, або оберіть набір."; return; }
     $("nLine").textContent = "n = " + G.n + ", інтервалів " + G.m + ", h = " + f4(G.h) + ".";
     var htr = document.createElement("tr");
-    cell(htr, "Характеристика", false).scope = "col"; cell(htr, "За інтервалами (наближено)", false).scope = "col";
-    if (X) cell(htr, "За вимірами (точно)", false).scope = "col";
+    cell(htr, "Характеристика", false).scope = "col"; cell(htr, "За згрупованими даними (наближено)", false).scope = "col";
+    if (X) cell(htr, "За початковими даними (точно)", false).scope = "col";
     hd.appendChild(htr);
     function row(name, a, bx) {
       var tr = document.createElement("tr"); cell(tr, name, true); cell(tr, a, false, "txt"); if (X) cell(tr, bx, false, "txt"); b.appendChild(tr);
@@ -494,7 +495,7 @@ td input.fin {
     row("Вибіркове середнє x̄", f4(G.mean), X ? fx(X.mean) : "");
     row("Дисперсія (÷ " + (state.ddof ? "n − 1" : "n") + ")", G.vr === null ? "—" : f4(G.vr), X ? fx(X.vr) : "");
     row("Станд. відхилення", G.sd === null ? "—" : f4(G.sd), X ? fx(X.sd) : "");
-    function warn(t) { var li = document.createElement("li"); li.textContent = t; w.appendChild(li); }
+    function warn(t) { var li = document.createElement("li"); Tex.text(li, t); w.appendChild(li); }
     if (G.mode.none) warn("Моди немає: " + G.mode.reason + ".");
     else {
       if (G.mode.cands.length > 1) warn("Кілька модальних інтервалів із частотою " + G.mode.maxf + ", тому й мод кілька.");
@@ -504,16 +505,16 @@ td input.fin {
       });
     }
     if (state.ddof === 1 && G.n === 1) warn("Для n = 1 ділити на n − 1 не можна.");
-    if (X) warn("Стовпчик «за інтервалами» наближений, «за вимірами» точний. Різниця виникає через втрату окремих значень при групуванні.");
+    if (X) warn("Стовпчик «за згрупованими даними» наближений, «за початковими даними» точний. Різниця виникає через втрату окремих значень при групуванні.");
     if (X && X.box.outliers.length) warn("Потенційні викиди (за правилом 1,5·IQR): " + X.box.outliers.filter(function (v, i, a) { return a.indexOf(v) === i; }).map(f4).join("; ") + ".");
   }
   function line(parent, text, strong) {
-    var d = document.createElement("div"), s = document.createElement("span"); s.textContent = text; if (strong) s.className = "t"; d.appendChild(s); parent.appendChild(d);
+    var d = document.createElement("div"), s = document.createElement("span"); if (strong) s.className = "t"; if (/[А-Яа-яІіЇї]/.test(text)) Tex.text(s, text); else Tex.set(s, text); d.appendChild(s); parent.appendChild(d);
   }
   function renderHow() {
     var box = $("how"); box.textContent = "";
     function heading(t) { var h = document.createElement("h3"); h.textContent = t; box.appendChild(h); }
-    function para(t) { var p = document.createElement("p"); p.className = "note"; p.textContent = t; box.appendChild(p); }
+    function para(t) { var p = document.createElement("p"); p.className = "note"; Tex.text(p, t); box.appendChild(p); }
     function frm() { var f = document.createElement("div"); f.className = "formula"; box.appendChild(f); return f; }
     if (!G) { para("Задайте частоти, щоб побачити розрахунок."); return; }
     var f, n = G.n, h = f4(G.h);
@@ -678,7 +679,7 @@ td input.fin {
     function add(cls, color, text) {
       var s = document.createElement("span"), sw = document.createElement("span");
       sw.className = "sw " + cls; sw.style.borderTopColor = color; if (cls === "box") sw.style.background = color;
-      s.appendChild(sw); s.appendChild(document.createTextNode(text)); el.appendChild(s);
+      s.appendChild(sw); var lt = document.createElement("span"); Tex.text(lt, text); s.appendChild(lt); el.appendChild(s);
     }
     var k = colors();
     if (state.mean) add("dash", k.mean, "вибіркове середнє x̄"); if (state.med) add("", k.med, "медіана Me"); if (state.mode) add("dot", k.mode, "мода Mo");

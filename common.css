@@ -111,3 +111,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus
   position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
   overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
 }
+
+/* ---------- Формули (KaTeX, див. formulas.js) ---------- */
+.tex .katex { font-size: 1.08em; }
+.tex .katex, .tex .katex-html { white-space: normal; }
+.tex { overflow-wrap: normal; }
+.formula { max-width: 100%; overflow-x: auto; }
+.formula .tex + .tex { margin-left: .25em; }

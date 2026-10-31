@@ -132,11 +132,11 @@ thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500;
       <p class="legend" id="legend1"></p>
     </section>
     <section class="chart" id="chart2" aria-labelledby="h2">
-      <h2 id="h2">Відхилення суми від n · μ (перша серія)</h2>
+      <h2 id="h2">Відхилення суми від <span class="tex">n · μ</span> (перша серія)</h2>
       <canvas id="c2" role="img" aria-label="Графік відхилення суми"></canvas>
       <p class="legend" id="legend2"></p>
     </section>
-    <p class="cmsg" id="noChart2" hidden>Для розподілу Коші математичного сподівання немає, тому відхилення від n · μ порахувати неможливо.</p>
+    <p class="cmsg" id="noChart2" hidden>Для розподілу Коші математичного сподівання немає, тому відхилення від <span class="tex">n · μ</span> порахувати неможливо.</p>
   </div>
 
   <div class="side">
@@ -145,18 +145,18 @@ thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500;
       <dl>
         <div class="big"><dt>Дослідів у кожній серії, n</dt><dd id="rN">0</dd></div>
         <div><dt>Середнє першої серії</dt><dd id="rMean">—</dd></div>
-        <div><dt>Математичне сподівання μ</dt><dd id="rMu">—</dd></div>
+        <div><dt>Математичне сподівання <span class="tex">μ</span></dt><dd id="rMu">—</dd></div>
         <div><dt>Розкид між серіями</dt><dd id="rSpread">—</dd></div>
-        <div><dt>Очікуваний розкид σ/√n</dt><dd id="rTheory">—</dd></div>
+        <div><dt>Очікуваний розкид <span class="tex">σ/√n</span></dt><dd id="rTheory">—</dd></div>
       </dl>
     </section>
 
     <section class="explain panel" aria-labelledby="eTitle">
       <h2 id="eTitle">Що тут відбувається</h2>
       <div id="expMain">
-      <p class="key"><strong>Кожна лінія — окрема серія дослідів.</strong> Вона показує середнє результатів перших n дослідів. На початку лінії стрибають, а потім дедалі точніше тримаються біля математичного сподівання μ (штрихова лінія). Це і є закон великих чисел.</p>
-      <p><strong>Розкид між серіями зменшується повільно</strong>, приблизно як 1/√n. Щоб розкид став удвічі меншим, дослідів потрібно вчетверо більше.</p>
-      <p><strong>Закон не «вирівнює» минулі відхилення.</strong> Після серії з десяти орлів поспіль наступний кидок усе одно 50 на 50. Нижній графік показує: сума результатів типово відходить від n · μ дедалі далі (приблизно як √n), а середнє все одно наближається до μ, бо цю суму ділять на дедалі більше n.</p>
+      <p class="key"><strong>Кожна лінія — окрема серія дослідів.</strong> Вона показує середнє результатів перших n дослідів. На початку лінії стрибають, а потім дедалі точніше тримаються біля математичного сподівання <span class="tex">μ</span> (штрихова лінія). Це і є закон великих чисел.</p>
+      <p><strong>Розкид між серіями зменшується повільно</strong>, приблизно як <span class="tex">1/√n</span>. Щоб розкид став удвічі меншим, дослідів потрібно вчетверо більше.</p>
+      <p><strong>Закон не «вирівнює» минулі відхилення.</strong> Після серії з десяти орлів поспіль наступний кидок усе одно 50 на 50. Нижній графік показує: сума результатів типово відходить від <span class="tex">n · μ</span> дедалі далі (приблизно як <span class="tex">√n</span>), а середнє все одно наближається до <span class="tex">μ</span>, бо цю суму ділять на дедалі більше n.</p>
       </div>
       <div id="cauchyNote" hidden>
         <p class="key"><strong>Кожна лінія — окрема серія дослідів</strong>, а на ній середнє результатів перших n дослідів. Тут лінії не заспокоюються: щоразу, коли випадає дуже велике число, середнє різко стрибає.</p>
@@ -181,6 +181,7 @@ thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500;
 <div class="sr-only" id="sr" role="status" aria-live="polite"></div>
 
 <script src="common.js"></script>
+<script src="formulas.js"></script>
 <script src="random.js"></script>
 <script>
 (function () {
@@ -276,7 +277,7 @@ thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500;
     state.src = id;
     for (var k in chipEls) chipEls[k].setAttribute("aria-pressed", String(k === id));
     $("pFld").hidden = id !== "coin";
-    $("srcNote").textContent = src().note;
+    Tex.text($("srcNote"), src().note);
     var isC = id === "cauchy";
     $("chart2").hidden = isC;
     $("noChart2").hidden = !isC;
@@ -527,7 +528,7 @@ thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500;
       items.forEach(function (it) {
         var span = document.createElement("span");
         var sw = document.createElement("span"); sw.className = "sw " + it[0];
-        span.appendChild(sw); span.appendChild(document.createTextNode(it[1]));
+        span.appendChild(sw); var lt = document.createElement("span"); Tex.text(lt, it[1]); span.appendChild(lt);
         el.appendChild(span);
       });
     }

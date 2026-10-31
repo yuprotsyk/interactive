@@ -118,7 +118,7 @@ tfoot td, tfoot th { font-weight: 700; border-top: 1px solid var(--grid-strong);
   <header class="head">
     <a class="backlink" href="index.html">← Усі сторінки</a>
     <h1>Довірчі інтервали для математичного сподівання</h1>
-    <p class="lead">Комп'ютер бере багато вибірок із сукупності, де математичне сподівання μ відоме, і для кожної будує довірчий інтервал. Дивіться, скільки інтервалів справді накриває μ і від чого залежить їхня ширина.</p>
+    <p class="lead">Комп'ютер бере багато вибірок із сукупності, де математичне сподівання <span class="tex">μ</span> відоме, і для кожної будує довірчий інтервал. Дивіться, скільки інтервалів справді накриває <span class="tex">μ</span> і від чого залежить їхня ширина.</p>
   </header>
 
   <section class="choose panel" aria-label="Налаштування">
@@ -136,8 +136,8 @@ tfoot td, tfoot th { font-weight: 700; border-top: 1px solid var(--grid-strong);
       <div class="btnrow">
         <span class="lbl" id="mLbl">Метод</span>
         <div class="seg" role="group" aria-labelledby="mLbl">
-          <button type="button" id="mT" aria-pressed="true">t: σ невідома</button>
-          <button type="button" id="mZ" aria-pressed="false">z: σ відома</button>
+          <button type="button" id="mT" aria-pressed="true"><span class="tex">t</span>: <span class="tex">σ</span> невідома</button>
+          <button type="button" id="mZ" aria-pressed="false"><span class="tex">z</span>: <span class="tex">σ</span> відома</button>
           <button type="button" id="mZs" aria-pressed="false">z із s (хибно)</button>
         </div>
       </div>
@@ -154,14 +154,14 @@ tfoot td, tfoot th { font-weight: 700; border-top: 1px solid var(--grid-strong);
     <h2 id="chTitle">Серія довірчих інтервалів</h2>
     <canvas id="cv" role="img" aria-label="Серія довірчих інтервалів"></canvas>
     <p class="ivrow" id="legend"></p>
-    <p class="cmsg">Кожен рядок це довірчий інтервал за окремою вибіркою, точка це вибіркове середнє x̄. Вертикальна лінія це справжнє математичне сподівання μ. Інтервал, що виходить за межі графіка, позначено стрілкою.</p>
+    <p class="cmsg">Кожен рядок це довірчий інтервал за окремою вибіркою, точка це вибіркове середнє <span class="tex">x̄</span>. Вертикальна лінія це справжнє математичне сподівання <span class="tex">μ</span>. Інтервал, що виходить за межі графіка, позначено стрілкою.</p>
   </section>
 
   <div class="side">
     <section class="result panel" aria-labelledby="rTitle">
       <p class="eyebrow" id="rTitle">Результат</p>
       <dl class="stats">
-        <div class="big"><dt>Ця серія накрила μ</dt><dd id="rSet">—</dd></div>
+        <div class="big"><dt>Ця серія накрила <span class="tex">μ</span></dt><dd id="rSet">—</dd></div>
         <div><dt>Накопичено</dt><dd id="rAcc">—</dd></div>
         <div><dt>Заявлений рівень довіри</dt><dd id="rLvl">—</dd></div>
         <div><dt>Середня ширина інтервалу (серія)</dt><dd id="rW">—</dd></div>
@@ -174,17 +174,17 @@ tfoot td, tfoot th { font-weight: 700; border-top: 1px solid var(--grid-strong);
       <h2 id="oTitle">Інтервал за власними даними</h2>
       <label class="sr-only" for="dataTa">Список чисел</label>
       <textarea id="dataTa" spellcheck="false" placeholder="наприклад: 4,1 5,3 6,2 5,8 4,9 5,5 6,0 5,1"></textarea>
-      <div class="sigrow"><label for="sigIn">Відома σ (необов'язково)</label><input class="numin" id="sigIn" type="text" inputmode="decimal" autocomplete="off" placeholder="—"></div>
-      <p class="cmsg" id="oMsg" style="margin-top:0">Числа через пробіл, крапку з комою чи новий рядок. Рівень довіри береться з налаштувань вище. Без σ рахується t-інтервал.</p>
+      <div class="sigrow"><label for="sigIn">Відома <span class="tex">σ</span> (необов'язково)</label><input class="numin" id="sigIn" type="text" inputmode="decimal" autocomplete="off" placeholder="—"></div>
+      <p class="cmsg" id="oMsg" style="margin-top:0">Числа через пробіл, крапку з комою чи новий рядок. Рівень довіри береться з налаштувань вище. Без <span class="tex">σ</span> рахується t-інтервал.</p>
       <p class="formula" id="oOut"></p>
     </section>
 
     <section class="explain panel" aria-labelledby="eTitle">
       <h2 id="eTitle">Що тут відбувається</h2>
-      <p class="key"><strong>Що означає «95 %».</strong> Це властивість методу: якщо багато разів брати вибірки й будувати інтервали, приблизно 95 % з них накриють μ. Конкретний інтервал або накриває μ, або ні; не можна сказати, що в ньому μ «з імовірністю 95 %».</p>
-      <p><strong>Ширина.</strong> Більше n дає вужчий інтервал, приблизно як 1/√n. Вищий рівень довіри дає ширший інтервал: щоб рідше помилятися, інтервал має бути довшим.</p>
-      <p><strong>Навіщо t.</strong> Якщо σ невідома, її замінюють на s. Тоді відношення вже не нормальне, і потрібне розподіл Стьюдента з n − 1 ступенями свободи. Метод «z із s» цього не враховує й при малих n накриває μ рідше заявленого. Виберіть його й n = 5, щоб побачити.</p>
-      <p><strong>Це інтервал для математичного сподівання μ,</strong> а не для окремих значень: майже всі значення сукупності в нього не потрапляють.</p>
+      <p class="key"><strong>Що означає «95 %».</strong> Це властивість методу: якщо багато разів брати вибірки й будувати інтервали, приблизно 95 % з них накриють <span class="tex">μ</span>. Конкретний інтервал або накриває <span class="tex">μ</span>, або ні; не можна сказати, що в ньому <span class="tex">μ</span> «з імовірністю 95 %».</p>
+      <p><strong>Ширина.</strong> Більше n дає вужчий інтервал, приблизно як <span class="tex">1/√n</span>. Вищий рівень довіри дає ширший інтервал: щоб рідше помилятися, інтервал має бути довшим.</p>
+      <p><strong>Навіщо t.</strong> Якщо <span class="tex">σ</span> невідома, її замінюють на s. Тоді відношення вже не нормальне, і потрібне розподіл Стьюдента з n − 1 ступенями свободи. Метод «z із s» цього не враховує й при малих n накриває <span class="tex">μ</span> рідше заявленого. Виберіть його й n = 5, щоб побачити.</p>
+      <p><strong>Це інтервал для математичного сподівання <span class="tex">μ</span>,</strong> а не для окремих значень: майже всі значення сукупності в нього не потрапляють.</p>
     </section>
   </div>
 </main>
@@ -192,6 +192,7 @@ tfoot td, tfoot th { font-weight: 700; border-top: 1px solid var(--grid-strong);
 <div class="sr-only" id="sr" role="status" aria-live="polite"></div>
 
 <script src="common.js"></script>
+<script src="formulas.js"></script>
 <script src="random.js"></script>
 <script src="distributions.js"></script>
 <script>
@@ -288,10 +289,10 @@ tfoot td, tfoot th { font-weight: 700; border-top: 1px solid var(--grid-strong);
     else if (state.method === "z") note = "σ відома: ширина майже однакова в усіх інтервалів, міняється лише положення вибіркового середнього.";
     else note = "Ширина інтервалів різна, бо кожна вибірка дає своє s. Накопичене покриття прямує до заявленого рівня.";
     if (state.total >= 1000 && state.method === "t" && state.src === "exp" && state.n < 15) note += " Для скошеної сукупності при малому n покриття нижче за заявлене: умова нормальності порушена.";
-    $("rNote").textContent = note;
-    $("mNote").textContent = state.method === "z" ? "σ вважаємо відомою (для цієї сукупності σ = " + f4(src.sigma) + "). Крит. значення z." :
+    Tex.text($("rNote"), note);
+    Tex.text($("mNote"), state.method === "z" ? "σ вважаємо відомою (для цієї сукупності σ = " + f4(src.sigma) + "). Крит. значення z." :
       state.method === "t" ? "σ невідома, використовуємо s. Крит. значення t з n − 1 = " + (state.n - 1) + " ступенями свободи." :
-      "Демонстрація помилки: s підставлено в формулу з z. Так робити не слід.";
+      "Демонстрація помилки: s підставлено в формулу з z. Так робити не слід.");
   }
 
   /* ---------- Малювання ---------- */
@@ -331,7 +332,7 @@ tfoot td, tfoot th { font-weight: 700; border-top: 1px solid var(--grid-strong);
     var k = { pos: cssVar("--pos"), neg: cssVar("--neg") };
     [["накрив μ", k.pos], ["не накрив μ", k.neg]].forEach(function (it) {
       var s = document.createElement("span"), sw = document.createElement("span"); sw.className = "sw"; sw.style.borderTopColor = it[1];
-      s.appendChild(sw); s.appendChild(document.createTextNode(it[0])); el.appendChild(s);
+      s.appendChild(sw); var lt = document.createElement("span"); Tex.text(lt, it[0]); s.appendChild(lt); el.appendChild(s);
     });
   }
 
@@ -341,22 +342,27 @@ tfoot td, tfoot th { font-weight: 700; border-top: 1px solid var(--grid-strong);
     toks.forEach(function (t) { var v = S.toNumber(t); if (v === null) bad++; else vals.push(v); });
     var sigRaw = $("sigIn").value.trim(), sig = sigRaw === "" ? null : S.toNumber(sigRaw);
     var msg = $("oMsg");
-    if (sig !== null && !(sig > 0)) { msg.textContent = "σ має бути додатним числом."; out.textContent = ""; return; }
-    if (sigRaw !== "" && sig === null) { msg.textContent = "σ має бути числом."; out.textContent = ""; return; }
-    if (vals.length > 5000) { msg.textContent = "Занадто багато чисел: максимум 5000."; out.textContent = ""; return; }
+    if (sig !== null && !(sig > 0)) { Tex.text(msg, "σ має бути додатним числом."); out.textContent = ""; return; }
+    if (sigRaw !== "" && sig === null) { Tex.text(msg, "σ має бути числом."); out.textContent = ""; return; }
+    if (vals.length > 5000) { Tex.text(msg, "Занадто багато чисел: максимум 5000."); out.textContent = ""; return; }
     var base = "Числа через пробіл, крапку з комою чи новий рядок. Рівень довіри береться з налаштувань вище. Без σ рахується t-інтервал.";
-    if (!vals.length) { msg.textContent = base; out.textContent = ""; return; }
+    if (!vals.length) { Tex.text(msg, base); out.textContent = ""; return; }
     var ci = sig === null ? Dist.meanCI(vals, state.level, "t") : Dist.meanCI(vals, state.level, "z", { sigma: sig });
-    if (!ci) { msg.textContent = "Для t-інтервалу потрібно щонайменше два числа."; out.textContent = ""; return; }
-    msg.textContent = bad ? "Пропущено нечислових записів: " + bad + "." : base;
+    if (!ci) { Tex.text(msg, "Для t-інтервалу потрібно щонайменше два числа."); out.textContent = ""; return; }
+    Tex.text(msg, bad ? "Пропущено нечислових записів: " + bad + "." : base);
     var L = [], lv = Math.round(state.level * 100);
     L.push("n = " + ci.n + ",  x̄ = " + f4(ci.mean) + (ci.s === null ? "" : ",  s = " + f4(ci.s)));
     if (sig === null) { L.push("SE = s/√n = " + f4(ci.se)); L.push("t(" + ci.df + "; " + lv + " %) = " + f4(ci.crit)); }
     else { L.push("SE = σ/√n = " + f4(ci.se)); L.push("z(" + lv + " %) = " + f4(ci.crit)); }
-    L.push("x̄ ± крит.·SE = " + f4(ci.mean) + " ± " + f4(ci.half));
+    L.push("x̄ ± " + (sig === null ? "t" : "z") + "·SE = " + f4(ci.mean) + " ± " + f4(ci.half));
     L.push("Інтервал: [" + f4(ci.lo) + "; " + f4(ci.hi) + "]");
     if (ci.se === 0) L.push("Усі числа однакові, тому ширина інтервалу нульова.");
-    out.textContent = L.join("\n"); out.style.whiteSpace = "pre-wrap";
+    out.textContent = "";
+    L.forEach(function (ln) {
+      var d = document.createElement("div");
+      if (/[А-Яа-яІіЇї]/.test(ln)) Tex.text(d, ln); else Tex.set(d, ln);
+      out.appendChild(d);
+    });
   }
   $("dataTa").addEventListener("input", renderOwn); $("sigIn").addEventListener("input", renderOwn);
 
@@ -365,7 +371,7 @@ tfoot td, tfoot th { font-weight: 700; border-top: 1px solid var(--grid-strong);
     LEVELS.forEach(function (l) { lvEls[l].setAttribute("aria-pressed", String(l === state.level)); });
     KS.forEach(function (k) { kEls[k].setAttribute("aria-pressed", String(k === state.K)); });
     $("mT").setAttribute("aria-pressed", String(state.method === "t")); $("mZ").setAttribute("aria-pressed", String(state.method === "z")); $("mZs").setAttribute("aria-pressed", String(state.method === "zs"));
-    $("srcNote").textContent = BY_ID[state.src].note;
+    Tex.text($("srcNote"), BY_ID[state.src].note);
     renderResult(); renderOwn(); draw();
     cv.setAttribute("aria-label", "Серія довірчих інтервалів. " + summary());
   }

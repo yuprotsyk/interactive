@@ -23,14 +23,24 @@ export default async function (h) {
       p.on("console", (m) => { if (m.type() === "error" && !/fonts|ERR_/.test(m.text())) errors.push(`${page}: ${m.text()}`); });
       await p.goto(U(page));
       await p.waitForTimeout(400);
+      const usesTex = await p.evaluate(() => !!document.querySelector('script[src="formulas.js"]'));
+      if (usesTex) await p.waitForFunction(() => !document.querySelector(".tex:not([data-done])"), null, { timeout: 8000 });
       const info = await p.evaluate(() => ({
         over: document.documentElement.scrollWidth - innerWidth,
         lang: document.documentElement.lang,
         title: document.title,
         h1: document.querySelectorAll("h1").length,
         text: document.body.innerText,
-        hasCanvas: !!document.querySelector("canvas")
+        hasCanvas: !!document.querySelector("canvas"),
+        texTotal: document.querySelectorAll(".tex").length,
+        texOk: document.querySelectorAll(".tex .katex").length,
+        texErr: [...document.querySelectorAll('.tex[data-done="err"]')].map((e) => e.getAttribute("data-src"))
       }));
+      if (usesTex) {
+        assert.deepEqual(info.texErr, [], `${page}: формули, які KaTeX не зміг намалювати`);
+        assert.equal(info.texOk, info.texTotal, `${page}: не всі формули намальовано`);
+        assert.ok(info.texTotal > 0, `${page}: підключено formulas.js, але формул немає`);
+      }
       assert.ok(info.over <= 0, `${page} ${w}px: горизонтальне прокручування ${info.over}`);
       assert.equal(info.lang, "uk", `${page}: lang`);
       assert.ok(info.title.length > 3, `${page}: порожній title`);

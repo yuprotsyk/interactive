@@ -134,10 +134,10 @@ td input.fin {
       </div>
       <div class="grp shows" role="group" aria-label="Що показувати на діаграмі">
         <span class="lbl">Показати:</span>
-        <label class="check"><input type="checkbox" id="showMean" checked> x̄</label>
+        <label class="check"><input type="checkbox" id="showMean" checked> <span class="tex">x̄</span></label>
         <label class="check"><input type="checkbox" id="showMed" checked> Me</label>
         <label class="check"><input type="checkbox" id="showMode" checked> Mo</label>
-        <label class="check"><input type="checkbox" id="showSd"> x̄ ± SD</label>
+        <label class="check"><input type="checkbox" id="showSd"> <span class="tex">x̄ ± SD</span></label>
       </div>
     </div>
     <div class="btnrow">
@@ -179,11 +179,11 @@ td input.fin {
         <span class="lbl" id="kLbl">Частоти:</span>
         <div class="seg" role="group" aria-labelledby="kLbl">
           <button type="button" id="kAbs" aria-pressed="true">накопичені</button>
-          <button type="button" id="kRel" aria-pressed="false">відносні F*(x)</button>
+          <button type="button" id="kRel" aria-pressed="false">відносні <span class="tex">F*(x)</span></button>
         </div>
       </div>
       <canvas class="cv" id="cc" role="img" aria-label="Кумулята"></canvas>
-      <p class="cmsg" id="kNote">Кумулята показує, скільки значень не перевищують x. Вона ступінчаста, бо ознака дискретна. У відносному варіанті це емпірична функція розподілу F*(x) = (кількість значень ≤ x) / n зі значеннями від 0 до 1. Медіана це місце, де вона сягає 1/2 (тобто n/2 у частотах). Якщо на цьому рівні лежить горизонтальна ділянка, медіана це її середина.</p>
+      <p class="cmsg" id="kNote">Кумулята показує, скільки значень не перевищують x. Вона ступінчаста, бо ознака дискретна. У відносному варіанті це емпірична функція розподілу <span class="tex">F*(x) =</span> (кількість значень ≤ x) / n зі значеннями від 0 до 1. Медіана це місце, де вона сягає 1/2 (тобто n/2 у частотах). Якщо на цьому рівні лежить горизонтальна ділянка, медіана це її середина.</p>
     </section>
   </div>
 
@@ -212,7 +212,7 @@ td input.fin {
       <h2 id="eTitle">Що тут відбувається</h2>
       <p class="key"><strong>Центр даних.</strong> Вибіркове середнє, медіана й мода це три різні «центри». Збільшіть частоту крайнього значення: вибіркове середнє піде за ним, а медіана майже не зсунеться.</p>
       <p><strong>Мода</strong> це значення з найбільшою частотою. Їх може бути кілька. Якщо всі значення однаково часті, моди немає.</p>
-      <p><strong>Розкид.</strong> Розмах залежить лише від двох крайніх значень. Міжквартильний розмах IQR = Q₃ − Q₁ і ящик з вусами стійкі до крайніх значень. Значення за межами Q₁ − 1,5·IQR і Q₃ + 1,5·IQR позначено кружечками як потенційні викиди. Це привід перевірити значення, а не доказ помилки.</p>
+      <p><strong>Розкид.</strong> Розмах залежить лише від двох крайніх значень. Міжквартильний розмах IQR <span class="tex">= Q₃ − Q₁</span> і ящик з вусами стійкі до крайніх значень. Значення за межами <span class="tex">Q₁ − 1,5·IQR</span> і <span class="tex">Q₃ + 1,5·IQR</span> позначено кружечками як потенційні викиди. Це привід перевірити значення, а не доказ помилки.</p>
       <p><strong>n чи n − 1.</strong> Ділення на n описує саме ці дані. Ділення на n − 1 дає оцінку дисперсії всієї сукупності за вибіркою. Різниця помітна лише для малих n.</p>
     </section>
   </div>
@@ -221,6 +221,7 @@ td input.fin {
 <div class="sr-only" id="sr" role="status" aria-live="polite"></div>
 
 <script src="common.js"></script>
+<script src="formulas.js"></script>
 <script src="summary.js"></script>
 <script>
 (function () {
@@ -436,7 +437,7 @@ td input.fin {
 
   /* ---------- Результати й пояснення ---------- */
   function cell(tr, text, th, cls) {
-    var c = document.createElement(th ? "th" : "td"); if (th) c.scope = "row"; c.textContent = text; if (cls) c.className = cls; tr.appendChild(c); return c;
+    var c = document.createElement(th ? "th" : "td"); if (th) c.scope = "row"; Tex.text(c, text); if (cls) c.className = cls; tr.appendChild(c); return c;
   }
   function renderResults() {
     var b = $("rBody"); b.textContent = "";
@@ -454,7 +455,7 @@ td input.fin {
     row("Коеф. варіації", C.cv === null ? "—" : f4(C.cv) + " %");
     row("Метод квартилів", "медіани половин");
     var w = $("warns"); w.textContent = "";
-    function warn(t) { var li = document.createElement("li"); li.textContent = t; w.appendChild(li); }
+    function warn(t) { var li = document.createElement("li"); Tex.text(li, t); w.appendChild(li); }
     if (C.mode.none && C.n > 1) warn("Моди немає: " + C.mode.reason + ".");
     else if (C.mode.modes.length > 1) warn("Кілька мод: " + C.mode.modes.map(f4).join("; ") + " (кожне зустрічається " + C.mode.maxf + " раз).");
     if (!C.cvOk) warn("Коефіцієнт варіації не обчислено: він має сенс для невід'ємних значень із додатним вибірковим середнім.");
@@ -463,13 +464,18 @@ td input.fin {
   }
   function line(parent, parts) {
     var d = document.createElement("div");
-    parts.forEach(function (p) { var s = document.createElement("span"); if (typeof p === "string") s.textContent = p; else { s.textContent = p.t; s.className = "t"; } d.appendChild(s); });
+    var cyr = /[А-Яа-яІіЇї]/.test(parts.map(function (p) { return typeof p === "string" ? p : p.t; }).join(""));
+    parts.forEach(function (p) {
+      var s = document.createElement("span"), t = typeof p === "string" ? p : p.t; if (typeof p !== "string") s.className = "t";
+      if (cyr) Tex.text(s, t); else Tex.set(s, t);
+      d.appendChild(s);
+    });
     parent.appendChild(d);
   }
   function renderHow() {
     var box = $("how"); box.textContent = "";
     function heading(t) { var h = document.createElement("h3"); h.textContent = t; box.appendChild(h); }
-    function para(t) { var p = document.createElement("p"); p.className = "note"; p.textContent = t; box.appendChild(p); }
+    function para(t) { var p = document.createElement("p"); p.className = "note"; Tex.text(p, t); box.appendChild(p); }
     function frm() { var f = document.createElement("div"); f.className = "formula"; box.appendChild(f); return f; }
     if (!C.n) { para("Задайте частоти, щоб побачити розрахунок."); return; }
     var n = C.n, xs = C.d, f;
@@ -652,7 +658,7 @@ td input.fin {
     function add(cls, color, text) {
       var s = document.createElement("span"), sw = document.createElement("span");
       sw.className = "sw " + cls; sw.style.borderTopColor = color; if (cls === "box") sw.style.background = color;
-      s.appendChild(sw); s.appendChild(document.createTextNode(text)); el.appendChild(s);
+      s.appendChild(sw); var lt = document.createElement("span"); Tex.text(lt, text); s.appendChild(lt); el.appendChild(s);
     }
     var k = colors();
     if (state.mean) add("dash", k.mean, "вибіркове середнє x̄"); if (state.med) add("", k.med, "медіана Me"); if (state.mode) add("dot", k.mode, "мода Mo");

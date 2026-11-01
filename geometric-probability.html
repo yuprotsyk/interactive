@@ -189,34 +189,28 @@ tr.sel td { background: var(--soft); }
 
     <section class="explain panel" aria-labelledby="eTitle">
       <h2 id="eTitle">Що тут відбувається</h2>
-      <p class="key"><strong>Геометричне означення.</strong> Якщо всі можливі результати заповнюють область <span class="tex">G</span>, а події <span class="tex">A</span> сприяє її частина <span class="tex">g</span>, то</p>
+      <p class="key"><strong>Геометричне означення.</strong> Якщо можливі результати заповнюють область <span class="tex">G</span>, а події <span class="tex">A</span> сприяє її частина <span class="tex">g</span>, то</p>
       <p class="eq"><span class="tex" data-tex="P(A)=\dfrac{\operatorname{mes}(g)}{\operatorname{mes}(G)}">P(A) = mes(g)/mes(G)</span></p>
-      <p>Тут mes це довжина, площа чи об'єм залежно від задачі. Умова: ймовірність потрапити в частину області пропорційна її мірі й не залежить від форми та положення цієї частини.</p>
-      <p><strong>Частка влучань не збігається з <span class="tex">P</span> точно.</strong> Вона коливається навколо <span class="tex">P</span> із типовим відхиленням <span class="tex" data-tex="\sqrt{P(1-P)/n}">√(P(1 − P)/n)</span>. Щоб відхилення зменшилося вдесятеро, дослідів потрібно в сто разів більше.</p>
+      <p>Тут mes це довжина, площа чи об'єм. Частка влучань коливається навколо <span class="tex">P</span> із типовим відхиленням <span class="tex" data-tex="\sqrt{P(1-P)/n}">√(P(1 − P)/n)</span>: щоб воно зменшилося вдесятеро, дослідів потрібно в сто разів більше.</p>
 
       <div data-task="point">
-        <p><strong>Точка в крузі.</strong> Область <span class="tex">G</span> це квадрат площі 1, а <span class="tex">g</span> це круг, тому</p>
-        <p class="eq"><span class="tex" data-tex="P=\pi r^{2}">P = πr²</span></p>
-        <p>Для чверті круга радіуса 1 маємо <span class="tex" data-tex="P=\pi/4">P = π/4</span>, звідси оцінка <span class="tex" data-tex="\pi\approx 4k/n">π ≈ 4k/n</span>, де <span class="tex">k</span> це число влучань.</p>
+        <p><strong>Точка в крузі.</strong> <span class="tex">G</span> це квадрат площі 1, <span class="tex">g</span> це круг, тому <span class="tex" data-tex="P=\pi r^{2}">P = πr²</span>. Для чверті круга радіуса 1 маємо <span class="tex" data-tex="P=\pi/4">P = π/4</span>, звідси <span class="tex" data-tex="\pi\approx 4k/n">π ≈ 4k/n</span>, де <span class="tex">k</span> це число влучань.</p>
       </div>
       <div data-task="meeting" hidden>
-        <p><strong>Зустріч.</strong> Нехай <span class="tex">x</span> і <span class="tex">y</span> це моменти приходу в межах від 0 до <span class="tex">T</span> = 60 хв. Зустріч відбувається, якщо <span class="tex" data-tex="|x-y|\le\tau">|x − y| ≤ τ</span>: точка потрапляє в смугу навколо діагоналі квадрата. Решта квадрата це два прямокутні трикутники з катетом <span class="tex" data-tex="T-\tau">T − τ</span>, тому</p>
+        <p><strong>Зустріч.</strong> Нехай <span class="tex">x</span> і <span class="tex">y</span> це моменти приходу від 0 до <span class="tex">T</span> = 60 хв. Зустріч відбувається, якщо <span class="tex" data-tex="|x-y|\le\tau">|x − y| ≤ τ</span>. Решта квадрата це два прямокутні трикутники з катетом <span class="tex" data-tex="T-\tau">T − τ</span>, тому</p>
         <p class="eq"><span class="tex" data-tex="P=1-\Bigl(1-\dfrac{\tau}{T}\Bigr)^{2}">P = 1 − (1 − τ/T)²</span></p>
       </div>
       <div data-task="buffon" hidden>
-        <p><strong>Голка Бюффона.</strong> Нехай <span class="tex">x</span> це відстань від центра голки до найближчої лінії (від 0 до <span class="tex" data-tex="d/2">d/2</span>), а <span class="tex">θ</span> це кут між голкою й лініями (від 0 до <span class="tex" data-tex="\pi/2">π/2</span>). Голка перетинає лінію, якщо</p>
-        <p class="eq"><span class="tex" data-tex="x\le\dfrac{l}{2}\sin\theta">x ≤ (l/2) sin θ</span></p>
-        <p>Це область під синусоїдою в прямокутнику можливих <span class="tex" data-tex="(\theta,x)">(θ, x)</span>. Її площа <span class="tex" data-tex="\int_0^{\pi/2}\tfrac{l}{2}\sin\theta\,d\theta=\tfrac{l}{2}">l/2</span>, площа прямокутника <span class="tex" data-tex="\tfrac{\pi}{2}\cdot\tfrac{d}{2}">(π/2)·(d/2)</span>, тому при <span class="tex" data-tex="l\le d">l ≤ d</span></p>
+        <p><strong>Голка Бюффона.</strong> Нехай <span class="tex">x</span> це відстань від центра голки до найближчої лінії (від 0 до <span class="tex" data-tex="d/2">d/2</span>), а <span class="tex">θ</span> це кут між голкою й лініями (від 0 до <span class="tex" data-tex="\pi/2">π/2</span>). Голка перетинає лінію, якщо <span class="tex" data-tex="x\le\tfrac{l}{2}\sin\theta">x ≤ (l/2) sin θ</span>. Площа цієї області <span class="tex" data-tex="l/2">l/2</span>, площа прямокутника <span class="tex" data-tex="\tfrac{\pi}{2}\cdot\tfrac{d}{2}">(π/2)·(d/2)</span>, тому при <span class="tex" data-tex="l\le d">l ≤ d</span></p>
         <p class="eq"><span class="tex" data-tex="P=\dfrac{2l}{\pi d}">P = 2l/(πd)</span></p>
-        <p>Звідси оцінка <span class="tex" data-tex="\pi\approx\dfrac{2ln}{dk}">π ≈ 2ln/(dk)</span>, де <span class="tex">k</span> це число перетинів.</p>
+        <p>Звідси <span class="tex" data-tex="\pi\approx\dfrac{2ln}{dk}">π ≈ 2ln/(dk)</span>, де <span class="tex">k</span> це число перетинів.</p>
       </div>
       <div data-task="bertrand" hidden>
-        <p><strong>Парадокс Бертрана.</strong> Хорда кола радіуса 1 довша за <span class="tex" data-tex="\sqrt3">√3</span> (сторону вписаного правильного трикутника). Відповідь залежить від того, що означає «навмання»:</p>
-        <p>1. Кінці хорди незалежно рівномірні на колі: <span class="tex" data-tex="P=\tfrac13">P = 1/3</span>.</p>
-        <p>2. Середина хорди лежить на випадковому радіусі, її відстань від центра рівномірна на <span class="tex" data-tex="[0;1]">[0; 1]</span>: хорда довга, якщо ця відстань менша за ½, тому <span class="tex" data-tex="P=\tfrac12">P = 1/2</span>.</p>
-        <p>3. Середина хорди рівномірна в крузі: вона має потрапити в круг радіуса ½, тобто <span class="tex" data-tex="P=\tfrac14">P = 1/4</span>.</p>
-        <p>Хорда довга тоді й лише тоді, коли її середина лежить усередині кола радіуса ½ (штрихове коло на моделі). Способи по-різному розподіляють середини хорд, тому й частки різні: у спосіб 3 у це коло потрапляє 1/4 середин, що дорівнює відношенню площ кругів, у спосіб 2 половина, у спосіб 1 третина. У способах 1 і 2 біля центра густіше, ніж у способі 3.</p>
-        <p>Усі три розрахунки правильні. Вони задають різні міри на множині хорд, тому «навмання» без уточнення способу не визначає задачу. Порівняйте на моделі, як розташовані середини хорд.</p>
+        <p><strong>Парадокс Бертрана.</strong> Яка ймовірність, що навмання проведена хорда кола довша за сторону вписаного правильного трикутника (<span class="tex" data-tex="\sqrt3">√3</span> при радіусі 1)? Відповідь залежить від способу вибору хорди:</p>
+        <p>1. Кінці хорди рівномірно на колі: <span class="tex" data-tex="P=\tfrac13">P = 1/3</span>.</p>
+        <p>2. Точка рівномірно на випадковому радіусі, хорда перпендикулярна до нього: <span class="tex" data-tex="P=\tfrac12">P = 1/2</span>.</p>
+        <p>3. Середина хорди рівномірно в крузі: <span class="tex" data-tex="P=\tfrac14">P = 1/4</span>, бо круг радіуса ½ має чверть площі.</p>
+        <p>Усі три розв'язки правильні для свого способу, а умова не вказує, який обрати, тому без уточнення способу задача не має єдиної відповіді. Хорда довга, коли її середина лежить ближче до центра за ½ (штрихове коло на моделі). Джерело: <a href="https://encyclopediaofmath.org/wiki/Bertrand_paradox" target="_blank" rel="noopener">Encyclopedia of Mathematics, Bertrand paradox</a>.</p>
       </div>
     </section>
   </div>

@@ -1,0 +1,784 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Геометрична ймовірність</title>
+<meta name="description" content="Кидайте випадкові точки, голки й хорди: ймовірність дорівнює відношенню довжин, площ чи інших мір. Точка в області, зустріч, голка Бюффона, парадокс Бертрана.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="common.css">
+<style>
+/* Розкладка: на телефоні один стовпчик (вибір, керування, графіки, показники, пояснення);
+   від 900px графіки зліва, показники й пояснення справа */
+.app {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "head" "choose" "run" "charts" "readout" "explain";
+}
+.head { grid-area: head; }
+.backlink { display: inline-block; margin-bottom: 10px; font-size: 13px; }
+.choose { grid-area: choose; }
+.run { grid-area: run; display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: center; }
+.charts { grid-area: charts; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.readout { grid-area: readout; }
+.explain { grid-area: explain; }
+.side { display: contents; }
+
+.statement { margin: 10px 0 0; font-size: 15px; max-width: 70ch; text-wrap: pretty; }
+.cfg { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-top: 14px; align-items: end; }
+.fld { display: grid; gap: 4px; min-width: 190px; flex: 1 1 190px; max-width: 340px; }
+.fld label { font-size: 13.5px; }
+.fld .row { display: grid; grid-template-columns: minmax(0, 1fr) 64px; gap: 10px; align-items: center; }
+.fld input[type="range"] { width: 100%; margin: 0; accent-color: var(--pos); }
+.fld output, select {
+  font-family: var(--font-data); font-size: 13.5px; font-variant-numeric: tabular-nums;
+  color: var(--ink); background: var(--bg); border: 1px solid var(--grid-strong); border-radius: 4px; padding: 5px 7px;
+}
+.fld output { text-align: right; }
+select { font-family: var(--font-body); padding: 7px 9px; border-radius: 6px; }
+.methods { display: grid; gap: 4px; }
+.methods .seg { display: flex; flex-wrap: wrap; }
+.methods .seg button { flex: 1 1 auto; min-height: 40px; }
+
+.chart h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; text-wrap: balance; }
+.chart canvas {
+  display: block; width: 100%; background: var(--panel);
+  border: 1px solid var(--grid-strong); border-radius: 6px;
+}
+#c1 { aspect-ratio: 1 / 1; max-height: 70vh; }
+#c3 { aspect-ratio: 16 / 7; max-height: 36vh; }
+#c2 { aspect-ratio: 16 / 8; max-height: 40vh; }
+.legend { margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; }
+.legend .sw { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -1px; margin-right: 6px; background: var(--pos); }
+.legend .sw.miss { background: var(--muted); opacity: .7; }
+.legend .sw.line { width: 22px; height: 0; border-radius: 0; border-top: 2px dashed var(--ink); background: none; vertical-align: middle; }
+.legend .sw.band { width: 22px; height: 10px; border-radius: 2px; opacity: .18; }
+.legend .sw.m1 { background: var(--h1); } .legend .sw.m2 { background: var(--h2); } .legend .sw.m3 { background: var(--h3); }
+.cmsg { margin: 8px 0 0; font-size: 13.5px; color: var(--muted); max-width: 70ch; text-wrap: pretty; }
+
+.readout dl { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; margin: 10px 0 0; }
+.readout dt { font-size: 12px; color: var(--muted); }
+.readout dd { margin: 0; font-family: var(--font-data); font-size: 18px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.readout .big { grid-column: 1 / -1; }
+.readout .big dd { font-size: clamp(30px, 8vw, 40px); line-height: 1.1; letter-spacing: -0.02em; color: var(--pos); }
+.twrap { overflow: auto; margin-top: 12px; border: 1px solid var(--grid-strong); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+th, td { padding: 5px 10px; text-align: right; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; font-family: var(--font-body); white-space: normal; }
+thead th { background: var(--panel); font-weight: 500; color: var(--muted); border-bottom: 1px solid var(--grid-strong); }
+tr.sel td { background: var(--soft); }
+
+.explain h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
+.explain p { margin: 8px 0 0; font-size: 14.5px; max-width: 68ch; text-wrap: pretty; }
+.explain p.key { margin-top: 0; }
+.explain p.eq { overflow-x: auto; max-width: 100%; }
+
+@media (min-width: 900px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    column-gap: 24px;
+    grid-template-areas: "head head" "choose choose" "run run" "charts side";
+  }
+  .side { grid-area: side; display: flex; flex-direction: column; gap: 16px; align-self: start; min-width: 0; }
+}
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="head g5">
+    <a class="backlink" href="index.html">← Усі сторінки</a>
+    <p class="kicker">Геометрична ймовірність</p>
+    <div class="titlerow">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="1.5"/><circle cx="12" cy="12" r="5.5"/><path d="M7 6.5h.01M17.5 8h.01M16.5 18h.01M6.5 16.5h.01M12 12h.01" stroke-width="3"/></svg>
+      <h1>Геометрична ймовірність</h1>
+    </div>
+    <p class="lead">Коли результатів безліч і всі вони рівноможливі, ймовірність дорівнює відношенню мір: довжин, площ чи інших. Кидайте випадкові точки, голки й хорди та порівнюйте частку влучань із точним значенням.</p>
+  </header>
+
+  <section class="choose panel" aria-label="Задача">
+    <p class="eyebrow">Задача</p>
+    <div class="chips" id="chips"></div>
+    <p class="statement" id="statement"></p>
+    <div class="cfg">
+      <div class="fld" id="regionFld">
+        <label for="regionSel">Область g усередині квадрата</label>
+        <select id="regionSel">
+          <option value="circle">Круг у центрі квадрата</option>
+          <option value="quarter">Чверть круга (оцінка числа π)</option>
+        </select>
+      </div>
+      <div class="fld" id="rFld">
+        <label for="rRange">Радіус круга r</label>
+        <div class="row"><input type="range" id="rRange" min="0.05" max="0.5" step="0.01" value="0.3"><output id="rOut" for="rRange">0,3</output></div>
+      </div>
+      <div class="fld" id="tauFld" hidden>
+        <label for="tauRange">Скільки хвилин кожен чекає, τ</label>
+        <div class="row"><input type="range" id="tauRange" min="1" max="60" step="1" value="15"><output id="tauOut" for="tauRange">15</output></div>
+      </div>
+      <div class="fld" id="lFld" hidden>
+        <label for="lRange">Довжина голки l (крок ліній d = 1)</label>
+        <div class="row"><input type="range" id="lRange" min="0.1" max="1" step="0.05" value="1"><output id="lOut" for="lRange">1</output></div>
+      </div>
+      <div class="methods" id="mFld" hidden>
+        <span id="mLabel" class="small">Як обирають хорду</span>
+        <div class="seg" id="methodSeg" role="group" aria-labelledby="mLabel"></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="run" role="group" aria-label="Керування дослідами">
+    <button type="button" class="btn primary" id="play">▶ Запустити</button>
+    <button type="button" class="btn" id="add1">+1</button>
+    <button type="button" class="btn" id="add10">+10</button>
+    <button type="button" class="btn" id="add100">+100</button>
+    <button type="button" class="btn" id="add1000">+1 000</button>
+    <button type="button" class="btn" id="add10000">+10 000</button>
+    <label class="sr-only" for="speed">Швидкість</label>
+    <select id="speed" aria-label="Швидкість запуску">
+      <option value="0.02">Повільно</option>
+      <option value="0.05" selected>Звичайно</option>
+      <option value="0.12">Швидко</option>
+    </select>
+    <button type="button" class="btn" id="fresh">Нова симуляція</button>
+  </div>
+
+  <div class="charts">
+    <section class="chart" aria-labelledby="h1">
+      <h2 id="h1">Модель</h2>
+      <canvas id="c1" role="img" aria-label="Модель задачі"></canvas>
+      <p class="legend" id="legend1"></p>
+      <p class="cmsg" id="capMsg" hidden></p>
+    </section>
+    <section class="chart" id="floorBox" aria-labelledby="h3" hidden>
+      <h2 id="h3">Голки на підлозі (останні 40)</h2>
+      <canvas id="c3" role="img" aria-label="Голки на підлозі"></canvas>
+      <p class="cmsg">Кожну голку намальовано за тими самими числами x і θ, що й точку на моделі. Положення вздовж лінії для картинки довільне.</p>
+    </section>
+    <section class="chart" aria-labelledby="h2">
+      <h2 id="h2">Частка влучань після n дослідів</h2>
+      <canvas id="c2" role="img" aria-label="Графік частки"></canvas>
+      <p class="legend" id="legend2"></p>
+    </section>
+  </div>
+
+  <div class="side">
+    <section class="readout panel" aria-labelledby="rTitle">
+      <p class="eyebrow" id="rTitle">Зараз</p>
+      <dl id="rList">
+        <div class="big"><dt id="rFracL">Частка влучань</dt><dd id="rFrac">—</dd></div>
+        <div><dt>Дослідів, n</dt><dd id="rN">0</dd></div>
+        <div><dt id="rHitsL">Влучань</dt><dd id="rHits">0</dd></div>
+        <div><dt>Точне значення <span class="tex">P</span></dt><dd id="rExact">—</dd></div>
+        <div><dt>Різниця</dt><dd id="rDiff">—</dd></div>
+        <div><dt>Типове відхилення <span class="tex" data-tex="\sqrt{P(1-P)/n}">√(P(1 − P)/n)</span></dt><dd id="rSe">—</dd></div>
+        <div id="rPiBox" hidden><dt>Оцінка <span class="tex">π</span></dt><dd id="rPi">—</dd></div>
+      </dl>
+      <div class="twrap" id="bertBox" hidden>
+        <table>
+          <caption class="sr-only">Три способи вибору хорди</caption>
+          <thead><tr><th scope="col">Спосіб</th><th scope="col">Частка</th><th scope="col"><span class="tex">P</span></th></tr></thead>
+          <tbody id="bertBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="explain panel" aria-labelledby="eTitle">
+      <h2 id="eTitle">Що тут відбувається</h2>
+      <p class="key"><strong>Геометричне означення.</strong> Якщо всі можливі результати заповнюють область <span class="tex">G</span>, а події <span class="tex">A</span> сприяє її частина <span class="tex">g</span>, то</p>
+      <p class="eq"><span class="tex" data-tex="P(A)=\dfrac{\operatorname{mes}(g)}{\operatorname{mes}(G)}">P(A) = mes(g)/mes(G)</span></p>
+      <p>Тут mes це довжина, площа чи об'єм залежно від задачі. Умова: ймовірність потрапити в частину області пропорційна її мірі й не залежить від форми та положення цієї частини.</p>
+      <p><strong>Частка влучань не збігається з <span class="tex">P</span> точно.</strong> Вона коливається навколо <span class="tex">P</span> із типовим відхиленням <span class="tex" data-tex="\sqrt{P(1-P)/n}">√(P(1 − P)/n)</span>. Щоб відхилення зменшилося вдесятеро, дослідів потрібно в сто разів більше.</p>
+
+      <div data-task="point">
+        <p><strong>Точка в крузі.</strong> Область <span class="tex">G</span> це квадрат площі 1, а <span class="tex">g</span> це круг, тому</p>
+        <p class="eq"><span class="tex" data-tex="P=\pi r^{2}">P = πr²</span></p>
+        <p>Для чверті круга радіуса 1 маємо <span class="tex" data-tex="P=\pi/4">P = π/4</span>, звідси оцінка <span class="tex" data-tex="\pi\approx 4k/n">π ≈ 4k/n</span>, де <span class="tex">k</span> це число влучань.</p>
+      </div>
+      <div data-task="meeting" hidden>
+        <p><strong>Зустріч.</strong> Нехай <span class="tex">x</span> і <span class="tex">y</span> це моменти приходу в межах від 0 до <span class="tex">T</span> = 60 хв. Зустріч відбувається, якщо <span class="tex" data-tex="|x-y|\le\tau">|x − y| ≤ τ</span>: точка потрапляє в смугу навколо діагоналі квадрата. Решта квадрата це два прямокутні трикутники з катетом <span class="tex" data-tex="T-\tau">T − τ</span>, тому</p>
+        <p class="eq"><span class="tex" data-tex="P=1-\Bigl(1-\dfrac{\tau}{T}\Bigr)^{2}">P = 1 − (1 − τ/T)²</span></p>
+      </div>
+      <div data-task="buffon" hidden>
+        <p><strong>Голка Бюффона.</strong> Нехай <span class="tex">x</span> це відстань від центра голки до найближчої лінії (від 0 до <span class="tex" data-tex="d/2">d/2</span>), а <span class="tex">θ</span> це кут між голкою й лініями (від 0 до <span class="tex" data-tex="\pi/2">π/2</span>). Голка перетинає лінію, якщо</p>
+        <p class="eq"><span class="tex" data-tex="x\le\dfrac{l}{2}\sin\theta">x ≤ (l/2) sin θ</span></p>
+        <p>Це область під синусоїдою в прямокутнику можливих <span class="tex" data-tex="(\theta,x)">(θ, x)</span>. Її площа <span class="tex" data-tex="\int_0^{\pi/2}\tfrac{l}{2}\sin\theta\,d\theta=\tfrac{l}{2}">l/2</span>, площа прямокутника <span class="tex" data-tex="\tfrac{\pi}{2}\cdot\tfrac{d}{2}">(π/2)·(d/2)</span>, тому при <span class="tex" data-tex="l\le d">l ≤ d</span></p>
+        <p class="eq"><span class="tex" data-tex="P=\dfrac{2l}{\pi d}">P = 2l/(πd)</span></p>
+        <p>Звідси оцінка <span class="tex" data-tex="\pi\approx\dfrac{2ln}{dk}">π ≈ 2ln/(dk)</span>, де <span class="tex">k</span> це число перетинів.</p>
+      </div>
+      <div data-task="bertrand" hidden>
+        <p><strong>Парадокс Бертрана.</strong> Хорда кола радіуса 1 довша за <span class="tex" data-tex="\sqrt3">√3</span> (сторону вписаного правильного трикутника). Відповідь залежить від того, що означає «навмання»:</p>
+        <p>1. Кінці хорди незалежно рівномірні на колі: <span class="tex" data-tex="P=\tfrac13">P = 1/3</span>.</p>
+        <p>2. Середина хорди лежить на випадковому радіусі, її відстань від центра рівномірна на <span class="tex" data-tex="[0;1]">[0; 1]</span>: хорда довга, якщо ця відстань менша за ½, тому <span class="tex" data-tex="P=\tfrac12">P = 1/2</span>.</p>
+        <p>3. Середина хорди рівномірна в крузі: вона має потрапити в круг радіуса ½, тобто <span class="tex" data-tex="P=\tfrac14">P = 1/4</span>.</p>
+        <p>Усі три розрахунки правильні. Вони задають різні міри на множині хорд, тому «навмання» без уточнення способу не визначає задачу. Порівняйте на моделі, як розташовані середини хорд.</p>
+      </div>
+    </section>
+  </div>
+</main>
+
+<div class="sr-only" id="sr" role="status" aria-live="polite"></div>
+
+<script src="common.js"></script>
+<script src="formulas.js"></script>
+<script src="random.js"></script>
+<script src="geometry.js"></script>
+<script>
+(function () {
+  "use strict";
+  var S = Stat, fmt = S.fmt, fmtSig = S.fmtSig, clamp = S.clamp;
+  var CAP = 1000000;        /* найбільше число дослідів */
+  var PT_CAP = 6000;        /* скільки точок зберігаємо для малювання (лічильники враховують усі) */
+  var RECENT = 40;          /* скільки останніх голок чи хорд малюємо окремо */
+  var TWO_PI = 2 * Math.PI, HALF_PI = Math.PI / 2;
+  var T_MIN = 60;           /* зустріч: проміжок часу в хвилинах */
+
+  function $(id) { return document.getElementById(id); }
+  function group(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " "); }
+
+  /* ---------- Задачі ---------- */
+  var TASKS = [
+    { id: "point", name: "Точка в області",
+      statement: function () {
+        return state.region === "quarter"
+          ? "Точку кидають навмання в квадрат зі стороною 1. Яка ймовірність, що вона потрапить у чверть круга радіуса 1 з центром у кутку квадрата? За часткою влучань можна оцінити число π."
+          : "Точку кидають навмання в квадрат зі стороною 1. Яка ймовірність, що вона потрапить у круг радіуса r із центром у центрі квадрата?";
+      },
+      hits: function () { return state.region === "quarter" ? "Влучань у чверть круга" : "Влучань у круг"; },
+      exact: function () { return state.region === "quarter" ? Geom.quarterProb() : Geom.circleProb(state.r); },
+      ar: 1 },
+    { id: "meeting", name: "Зустріч",
+      statement: function () {
+        return "Двоє домовилися зустрітися між 12:00 і 13:00. Кожен приходить у випадковий момент і чекає на іншого τ хвилин, потім іде. Яка ймовірність, що вони зустрінуться?";
+      },
+      hits: function () { return "Зустрічей"; },
+      exact: function () { return Geom.meetingProb(T_MIN, state.tau); },
+      ar: 1 },
+    { id: "buffon", name: "Голка Бюффона",
+      statement: function () {
+        return "Голку довжини l кидають на підлогу, розкреслену паралельними лініями з кроком d = 1. Яка ймовірність, що голка перетне лінію? Тут l ≤ d.";
+      },
+      hits: function () { return "Перетинів"; },
+      exact: function () { return Geom.buffonProb(state.l, 1); },
+      ar: 3 },
+    { id: "bertrand", name: "Парадокс Бертрана",
+      statement: function () {
+        return "У колі радіуса 1 навмання проводять хорду. Яка ймовірність, що вона довша за сторону вписаного правильного трикутника (√3)? Відповідь залежить від способу, яким хорду обирають.";
+      },
+      hits: function () { return "Довгих хорд, спосіб " + state.method; },
+      exact: function () { return Geom.bertrandProb(state.method); },
+      ar: 1 }
+  ];
+  var BY_ID = {};
+  TASKS.forEach(function (t) { BY_ID[t.id] = t; });
+
+  /* ---------- Стан ---------- */
+  var state = { task: "point", region: "circle", r: 0.3, tau: 15, l: 1, method: 1,
+                seed: 2026, running: false, factor: 0.05 };
+  var sim = null, raf = 0;
+
+  function task() { return BY_ID[state.task]; }
+  function exactP() { return task().exact(); }
+
+  /* ---------- Симуляція ---------- */
+  function newSim(seed) {
+    state.seed = seed;
+    sim = {
+      rng: Rand.create(Rand.seedFor(seed, 0)),
+      n: 0, hits: [0, 0, 0],
+      px: [], py: [], ph: [],        /* точки в одиничних координатах і ознака влучання */
+      recent: [[], [], []], mids: [[], [], []],          /* останні голки чи хорди (для кожного способу Бертрана) */
+      hist: [], nextCk: 1
+    };
+  }
+  function pushPoint(x, y, h) {
+    if (sim.px.length < PT_CAP) { sim.px.push(x); sim.py.push(y); sim.ph.push(h ? 1 : 0); }
+  }
+  function pushRecent(i, item) {
+    var a = sim.recent[i];
+    a.push(item);
+    if (a.length > RECENT) a.shift();
+  }
+  /* Одне випробування; усі координати беруться з одного генератора, тому результат відтворюється за зерном */
+  function throwOne() {
+    var r = sim.rng, t = state.task, x, y, h;
+    if (t === "point") {
+      x = r.next(); y = r.next();
+      h = state.region === "quarter" ? Geom.quarterHit(x, y) : Geom.circleHit(state.r, x, y);
+      if (h) sim.hits[0]++;
+      pushPoint(x, y, h);
+    } else if (t === "meeting") {
+      x = r.next(); y = r.next();
+      h = Geom.meetingHit(state.tau, x * T_MIN, y * T_MIN);
+      if (h) sim.hits[0]++;
+      pushPoint(x, y, h);
+    } else if (t === "buffon") {
+      var th = r.next() * HALF_PI, d = r.next() * 0.5;
+      h = Geom.buffonHit(state.l, d, th);
+      if (h) sim.hits[0]++;
+      pushPoint(th / HALF_PI, d / 0.5, h);
+      pushRecent(0, { th: th, d: d, h: h });
+    } else {
+      for (var m = 1; m <= 3; m++) {
+        var c = Geom.bertrandChord(m, r.next(), r.next());
+        if (c.long) sim.hits[m - 1]++;
+        pushMid(m - 1, c);
+      }
+    }
+    sim.n++;
+  }
+  /* Для Бертрана зберігаємо середини всіх хорд (до PT_CAP) і останні хорди */
+  function pushMid(i, c) {
+    var mids = sim.mids;
+    if (mids[i].length < PT_CAP) mids[i].push([c.mx, c.my, c.long ? 1 : 0]);
+    pushRecent(i, c);
+  }
+  function currentFractions() {
+    var out = [], i;
+    if (state.task === "bertrand") for (i = 0; i < 3; i++) out.push(sim.hits[i] / sim.n);
+    else out.push(sim.hits[0] / sim.n);
+    return out;
+  }
+  function record() { sim.hist.push({ n: sim.n, f: currentFractions() }); }
+  function advance(k) {
+    k = Math.min(k, CAP - sim.n);
+    if (k <= 0) return 0;
+    for (var i = 0; i < k; i++) {
+      throwOne();
+      if (sim.n >= sim.nextCk) { record(); sim.nextCk = Math.max(sim.n + 1, Math.floor(sim.n * 1.04)); }
+    }
+    if (sim.hist.length === 0 || sim.hist[sim.hist.length - 1].n !== sim.n) record();
+    return k;
+  }
+  function reset() {
+    stop();
+    newSim(state.seed);
+    update(true);
+  }
+
+  /* ---------- Вибір і параметри ---------- */
+  var chipEls = {};
+  function buildChips() {
+    TASKS.forEach(function (t) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "chip"; b.textContent = t.name;
+      b.setAttribute("aria-pressed", "false");
+      b.addEventListener("click", function () { choose(t.id); });
+      $("chips").appendChild(b);
+      chipEls[t.id] = b;
+    });
+  }
+  var methodEls = [];
+  function buildMethods() {
+    Geom.bertrandMethods.forEach(function (m) {
+      var b = document.createElement("button");
+      b.type = "button"; b.textContent = m.id + ". " + m.name;
+      b.setAttribute("aria-pressed", String(m.id === state.method));
+      b.addEventListener("click", function () {
+        state.method = m.id;
+        methodEls.forEach(function (e, i) { e.setAttribute("aria-pressed", String(i + 1 === m.id)); });
+        $("statement").textContent = ""; Tex.text($("statement"), task().statement());
+        update(true);
+        say("Спосіб " + m.id + ": " + m.name + ".");
+      });
+      $("methodSeg").appendChild(b);
+      methodEls.push(b);
+    });
+  }
+  function showExplain(id) {
+    var key = id === "point" ? "point" : id;
+    var nodes = document.querySelectorAll("[data-task]");
+    for (var i = 0; i < nodes.length; i++) nodes[i].hidden = nodes[i].getAttribute("data-task") !== key;
+  }
+  function setLegends() {
+    var t = state.task, l1 = $("legend1"), l2 = $("legend2");
+    function item(cls, text) { var s = document.createElement("span"), i = document.createElement("i"); i.className = "sw " + cls; s.appendChild(i); s.appendChild(document.createTextNode(text)); return s; }
+    l1.textContent = ""; l2.textContent = "";
+    if (t === "bertrand") {
+      l1.appendChild(item("", "довга хорда (середина)")); l1.appendChild(item("miss", "коротка хорда"));
+      l1.appendChild(document.createTextNode("штрихова лінія: вписаний правильний трикутник"));
+      l2.appendChild(item("m1", "спосіб 1")); l2.appendChild(item("m2", "спосіб 2")); l2.appendChild(item("m3", "спосіб 3"));
+      l2.appendChild(item("line", "точне значення"));
+    } else {
+      var yes = t === "buffon" ? "перетин" : t === "meeting" ? "зустріч" : "влучання";
+      var no = t === "buffon" ? "без перетину" : t === "meeting" ? "без зустрічі" : "промах";
+      l1.appendChild(item("", yes)); l1.appendChild(item("miss", no));
+      l1.appendChild(document.createTextNode(t === "buffon" ? "область під кривою: перетин" : "заливка: область g"));
+      l2.appendChild(item("", "частка влучань")); l2.appendChild(item("line", "точне значення P")); l2.appendChild(item("band", "розкид ±2 типові відхилення"));
+    }
+  }
+  function choose(id) {
+    stop();
+    state.task = id;
+    for (var k in chipEls) chipEls[k].setAttribute("aria-pressed", String(k === id));
+    $("regionFld").hidden = id !== "point";
+    $("rFld").hidden = !(id === "point" && state.region === "circle");
+    $("tauFld").hidden = id !== "meeting";
+    $("lFld").hidden = id !== "buffon";
+    $("mFld").hidden = id !== "bertrand";
+    $("floorBox").hidden = id !== "buffon";
+    $("bertBox").hidden = id !== "bertrand";
+    $("c1").style.aspectRatio = task().ar === 3 ? "2.6 / 1" : "1 / 1";
+    $("h1").textContent = id === "buffon" ? "Модель: прямокутник можливих (θ, x)" :
+      id === "bertrand" ? "Модель: коло й хорди" : id === "meeting" ? "Модель: моменти приходу" : "Модель: квадрат і випадкові точки";
+    $("statement").textContent = ""; Tex.text($("statement"), task().statement());
+    showExplain(id);
+    setLegends();
+    newSim(state.seed);
+    resizeAll();
+    update(true);
+    say(task().name + ".");
+  }
+
+  /* ---------- Керування ---------- */
+  var sayTimer = null;
+  function say(text, delay) {
+    clearTimeout(sayTimer);
+    sayTimer = setTimeout(function () { $("sr").textContent = ""; $("sr").textContent = text; }, delay || 0);
+  }
+  function stop() {
+    state.running = false;
+    cancelAnimationFrame(raf);
+    $("play").textContent = "▶ Запустити";
+    $("play").classList.add("primary");
+  }
+  function frame() {
+    if (!state.running) return;
+    advance(Math.max(1, Math.round(sim.n * state.factor)));
+    update(false);
+    if (sim.n >= CAP) { stop(); update(true); say(announce()); return; }
+    raf = requestAnimationFrame(frame);
+  }
+  function play() {
+    if (state.running) { stop(); update(true); say(announce()); return; }
+    if (sim.n >= CAP) return;
+    state.running = true;
+    $("play").textContent = "❚❚ Пауза";
+    $("play").classList.remove("primary");
+    raf = requestAnimationFrame(frame);
+  }
+  function step(k) {
+    stop();
+    if (sim.n >= CAP) { say("Досягнуто межу: " + group(CAP) + " дослідів."); return; }
+    advance(k);
+    update(true);
+    say(announce(), 400);
+  }
+  function selIndex() { return state.task === "bertrand" ? state.method - 1 : 0; }
+  function announce() {
+    if (sim.n === 0) return "Дослідів ще немає.";
+    var f = sim.hits[selIndex()] / sim.n;
+    return "Дослідів: " + group(sim.n) + ". Частка " + fmt(f, 4) + ", точне значення " + fmt(exactP(), 4) + ".";
+  }
+  [["add1", 1], ["add10", 10], ["add100", 100], ["add1000", 1000], ["add10000", 10000]].forEach(function (p) {
+    $(p[0]).addEventListener("click", function () { step(p[1]); });
+  });
+  $("play").addEventListener("click", play);
+  $("fresh").addEventListener("click", function () {
+    stop();
+    newSim(Math.floor(Math.random() * 1e9));
+    update(true);
+    say("Нова симуляція.");
+  });
+  $("speed").addEventListener("change", function (e) { state.factor = Number(e.target.value); });
+  $("regionSel").addEventListener("change", function (e) {
+    state.region = e.target.value;
+    $("rFld").hidden = state.region !== "circle";
+    $("statement").textContent = ""; Tex.text($("statement"), task().statement());
+    reset();
+  });
+  function slider(id, outId, key, digits) {
+    $(id).addEventListener("input", function (e) {
+      state[key] = Number(e.target.value);
+      $(outId).textContent = fmt(state[key], digits);
+      reset();
+    });
+  }
+  slider("rRange", "rOut", "r", 2);
+  slider("tauRange", "tauOut", "tau", 0);
+  slider("lRange", "lOut", "l", 2);
+
+  /* ---------- Показники ---------- */
+  function update(final) {
+    var p = exactP(), i = selIndex(), h = sim.hits[i], n = sim.n;
+    var f = n > 0 ? h / n : null;
+    $("rFracL").textContent = state.task === "buffon" ? "Частка перетинів" : state.task === "meeting" ? "Частка зустрічей" :
+      state.task === "bertrand" ? "Частка довгих хорд, спосіб " + state.method : "Частка влучань";
+    $("rHitsL").textContent = task().hits();
+    $("rFrac").textContent = f === null ? "—" : fmt(f, 4);
+    $("rN").textContent = group(n);
+    $("rHits").textContent = group(h);
+    $("rExact").textContent = fmt(p, 4);
+    $("rDiff").textContent = f === null ? "—" : S.fmtSigned(f - p, 4);
+    var sg = Geom.se(p, n);
+    $("rSe").textContent = sg === null ? "—" : fmt(sg, 4);
+    var pi = null, hasPi = false;
+    if (state.task === "point" && state.region === "quarter") { hasPi = true; pi = Geom.piFromQuarter(h, n); }
+    if (state.task === "buffon") { hasPi = true; pi = Geom.piFromBuffon(state.l, 1, h, n); }
+    $("rPiBox").hidden = !hasPi;
+    $("rPi").textContent = pi === null ? "—" : fmt(pi, 4);
+    if (state.task === "bertrand") fillTable();
+    var cm = $("capMsg");
+    cm.hidden = n <= PT_CAP;
+    if (!cm.hidden) cm.textContent = "На моделі показано перші " + group(PT_CAP) + " точок, а числа й графік частки враховують усі " + group(n) + " дослідів.";
+    $("c1").setAttribute("aria-label", "Модель задачі «" + task().name + "». Дослідів " + n + (f === null ? "" : ", частка " + fmt(f, 4) + ", точне значення " + fmt(p, 4)));
+    $("c2").setAttribute("aria-label", "Графік частки влучань. Точне значення " + fmt(p, 4) + (f === null ? "" : ", зараз " + fmt(f, 4)));
+    draw();
+  }
+  function fillTable() {
+    var tb = $("bertBody"), i;
+    tb.textContent = "";
+    for (i = 0; i < 3; i++) {
+      var tr = document.createElement("tr");
+      if (i === state.method - 1) tr.className = "sel";
+      var name = Geom.bertrandMethods[i].name;
+      var cells = [(i + 1) + ". " + name, sim.n > 0 ? fmt(sim.hits[i] / sim.n, 4) : "—", fmt(Geom.bertrandMethods[i].prob, 4)];
+      cells.forEach(function (c) { var td = document.createElement("td"); td.textContent = c; tr.appendChild(td); });
+      tb.appendChild(tr);
+    }
+  }
+
+  /* ---------- Малювання ---------- */
+  function Chart(el) { this.el = el; this.ctx = el.getContext("2d"); this.W = 0; this.H = 0; }
+  Chart.prototype.resize = function () {
+    var rect = this.el.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    this.W = rect.width; this.H = rect.height;
+    this.el.width = Math.max(1, Math.round(this.W * dpr));
+    this.el.height = Math.max(1, Math.round(this.H * dpr));
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  };
+  var c1 = new Chart($("c1")), c2 = new Chart($("c2")), c3 = new Chart($("c3"));
+  function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  function colors() {
+    return {
+      panel: cssVar("--panel"), grid: cssVar("--grid"), strong: cssVar("--grid-strong"),
+      muted: cssVar("--muted"), ink: cssVar("--ink"), pos: cssVar("--pos"),
+      h1: cssVar("--h1"), h2: cssVar("--h2"), h3: cssVar("--h3"),
+      data: cssVar("--font-data"), body: cssVar("--font-body")
+    };
+  }
+
+  /* Прямокутник моделі: найбільший з відношенням сторін ar, по центру полотна */
+  function fitRect(ch, ar, M) {
+    var aw = ch.W - M.l - M.r, ah = ch.H - M.t - M.b, w = aw, h = w / ar;
+    if (h > ah) { h = ah; w = h * ar; }
+    return { x: M.l + (aw - w) / 2, y: M.t + (ah - h) / 2, w: Math.max(1, w), h: Math.max(1, h) };
+  }
+  /* Осі моделі: підписи й сітка; xt, yt це масиви {v, s}; повертає функції переходу з даних у пікселі */
+  function modelAxes(ch, R, dom, xt, yt, xl, yl, k) {
+    var ctx = ch.ctx;
+    function px(v) { return R.x + (v - dom[0]) / (dom[1] - dom[0]) * R.w; }
+    function py(v) { return R.y + (1 - (v - dom[2]) / (dom[3] - dom[2])) * R.h; }
+    ctx.fillStyle = k.panel; ctx.fillRect(0, 0, ch.W, ch.H);
+    ctx.lineWidth = 1; ctx.strokeStyle = k.grid; ctx.beginPath();
+    xt.forEach(function (t) { var x = Math.round(px(t.v)) + 0.5; ctx.moveTo(x, R.y); ctx.lineTo(x, R.y + R.h); });
+    yt.forEach(function (t) { var y = Math.round(py(t.v)) + 0.5; ctx.moveTo(R.x, y); ctx.lineTo(R.x + R.w, y); });
+    ctx.stroke();
+    ctx.strokeStyle = k.ink; ctx.lineWidth = 1.2; ctx.strokeRect(R.x + 0.5, R.y + 0.5, R.w, R.h);
+    ctx.fillStyle = k.muted; ctx.font = "11px " + k.data;
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    xt.forEach(function (t) { ctx.fillText(t.s, clamp(px(t.v), R.x + 8, R.x + R.w - 8), R.y + R.h + 6); });
+    ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    yt.forEach(function (t) { ctx.fillText(t.s, R.x - 6, py(t.v)); });
+    ctx.fillStyle = k.ink; ctx.font = "500 12px " + k.body;
+    ctx.textAlign = "right"; ctx.textBaseline = "bottom";
+    ctx.fillText(xl, R.x + R.w, ch.H - 3);
+    ctx.textAlign = "left"; ctx.textBaseline = "top";
+    ctx.fillText(yl, 4, 2);
+    return { px: px, py: py };
+  }
+  function ticks(a, b, n, digits) {
+    var out = [];
+    for (var i = 0; i <= n; i++) { var v = a + (b - a) * i / n; out.push({ v: v, s: fmt(v, digits) }); }
+    return out;
+  }
+
+  /* Точки зберігаємо в частках сторін прямокутника моделі, тому відображення однакове для всіх задач */
+  function UNIT(R) {
+    return { px: function (v) { return R.x + v * R.w; }, py: function (v) { return R.y + (1 - v) * R.h; } };
+  }
+  function dots(ctx, A, R, k) {
+    var i, n = sim.px.length;
+    ctx.save(); ctx.beginPath(); ctx.rect(R.x, R.y, R.w, R.h); ctx.clip();
+    ctx.fillStyle = k.muted; ctx.globalAlpha = 0.55; ctx.beginPath();
+    for (i = 0; i < n; i++) if (!sim.ph[i]) { var X = A.px(sim.px[i]), Y = A.py(sim.py[i]); ctx.moveTo(X + 2, Y); ctx.arc(X, Y, 2, 0, TWO_PI); }
+    ctx.fill();
+    ctx.fillStyle = k.pos; ctx.globalAlpha = 0.85; ctx.beginPath();
+    for (i = 0; i < n; i++) if (sim.ph[i]) { var X2 = A.px(sim.px[i]), Y2 = A.py(sim.py[i]); ctx.moveTo(X2 + 2, Y2); ctx.arc(X2, Y2, 2, 0, TWO_PI); }
+    ctx.fill();
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+
+  function drawModel(k) {
+    var ch = c1, ctx = ch.ctx, t = state.task, M = { l: 40, r: 14, t: 30, b: 34 }, R, A;
+    ctx.clearRect(0, 0, ch.W, ch.H);
+    if (t === "bertrand") return drawBertrand(k);
+    if (t === "point") {
+      R = fitRect(ch, 1, M);
+      A = modelAxes(ch, R, [0, 1, 0, 1], ticks(0, 1, 4, 2), ticks(0, 1, 4, 2), "x", "y", k);
+      ctx.fillStyle = k.pos; ctx.globalAlpha = 0.14; ctx.strokeStyle = k.pos; ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      if (state.region === "quarter") { ctx.moveTo(A.px(0), A.py(0)); ctx.arc(A.px(0), A.py(0), R.w, -HALF_PI, 0); ctx.closePath(); }
+      else ctx.arc(A.px(0.5), A.py(0.5), state.r * R.w, 0, TWO_PI);
+      ctx.fill(); ctx.globalAlpha = 1; ctx.stroke();
+      dots(ctx, UNIT(R), R, k);
+    } else if (t === "meeting") {
+      R = fitRect(ch, 1, M);
+      A = modelAxes(ch, R, [0, T_MIN, 0, T_MIN], ticks(0, T_MIN, 4, 0), ticks(0, T_MIN, 4, 0), "Прихід першої особи, хв", "Прихід другої, хв", k);
+      var tau = state.tau;
+      ctx.fillStyle = k.pos; ctx.globalAlpha = 0.14; ctx.beginPath();
+      ctx.moveTo(A.px(0), A.py(0)); ctx.lineTo(A.px(Math.min(tau, T_MIN)), A.py(0));
+      ctx.lineTo(A.px(T_MIN), A.py(T_MIN - tau)); ctx.lineTo(A.px(T_MIN), A.py(T_MIN));
+      ctx.lineTo(A.px(T_MIN - tau), A.py(T_MIN)); ctx.lineTo(A.px(0), A.py(tau)); ctx.closePath();
+      ctx.fill(); ctx.globalAlpha = 1;
+      ctx.strokeStyle = k.pos; ctx.lineWidth = 1.5; ctx.stroke();
+      dots(ctx, UNIT(R), R, k);
+    } else {
+      R = fitRect(ch, 3, M);
+      var xt = [0, 30, 60, 90].map(function (d) { return { v: d / 180 * Math.PI, s: d + "°" }; });
+      A = modelAxes(ch, R, [0, HALF_PI, 0, 0.5], xt, ticks(0, 0.5, 2, 2), "Кут θ між голкою й лініями", "Відстань x до лінії (в одиницях d)", k);
+      ctx.fillStyle = k.pos; ctx.globalAlpha = 0.14; ctx.beginPath(); ctx.moveTo(A.px(0), A.py(0));
+      var q, N = 60;
+      for (q = 0; q <= N; q++) { var th = HALF_PI * q / N; ctx.lineTo(A.px(th), A.py(state.l / 2 * Math.sin(th))); }
+      ctx.lineTo(A.px(HALF_PI), A.py(0)); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+      ctx.strokeStyle = k.pos; ctx.lineWidth = 1.5; ctx.beginPath();
+      for (q = 0; q <= N; q++) { var t2 = HALF_PI * q / N; var X = A.px(t2), Y = A.py(state.l / 2 * Math.sin(t2)); if (q === 0) ctx.moveTo(X, Y); else ctx.lineTo(X, Y); }
+      ctx.stroke();
+      dots(ctx, UNIT(R), R, k);
+    }
+  }
+
+  function drawBertrand(k) {
+    var ch = c1, ctx = ch.ctx, i, m = state.method - 1;
+    var side = Math.min(ch.W, ch.H) - 24, cx = ch.W / 2, cy = ch.H / 2, Rr = Math.max(10, side / 2);
+    ctx.fillStyle = k.panel; ctx.fillRect(0, 0, ch.W, ch.H);
+    function X(v) { return cx + v * Rr; }
+    function Y(v) { return cy - v * Rr; }
+    ctx.strokeStyle = k.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(cx, cy, Rr, 0, TWO_PI); ctx.stroke();
+    ctx.strokeStyle = k.muted; ctx.lineWidth = 1; ctx.setLineDash([5, 4]); ctx.beginPath();
+    for (i = 0; i < 3; i++) { var a = -HALF_PI + i * TWO_PI / 3; ctx.lineTo(X(Math.cos(a)), Y(Math.sin(a))); }
+    ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
+    var mids = sim.mids[m], n = mids.length;
+    ctx.fillStyle = k.muted; ctx.globalAlpha = 0.5; ctx.beginPath();
+    for (i = 0; i < n; i++) if (!mids[i][2]) { ctx.moveTo(X(mids[i][0]) + 1.8, Y(mids[i][1])); ctx.arc(X(mids[i][0]), Y(mids[i][1]), 1.8, 0, TWO_PI); }
+    ctx.fill();
+    ctx.fillStyle = k.pos; ctx.globalAlpha = 0.8; ctx.beginPath();
+    for (i = 0; i < n; i++) if (mids[i][2]) { ctx.moveTo(X(mids[i][0]) + 1.8, Y(mids[i][1])); ctx.arc(X(mids[i][0]), Y(mids[i][1]), 1.8, 0, TWO_PI); }
+    ctx.fill(); ctx.globalAlpha = 1;
+    var rec = sim.recent[m];
+    ctx.lineWidth = 1.3;
+    for (i = 0; i < rec.length; i++) {
+      var c = rec[i];
+      ctx.strokeStyle = c.long ? k.pos : k.muted; ctx.globalAlpha = c.long ? 0.55 : 0.4;
+      ctx.beginPath(); ctx.moveTo(X(c.x1), Y(c.y1)); ctx.lineTo(X(c.x2), Y(c.y2)); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawFloor(k) {
+    var ch = c3, ctx = ch.ctx, W = ch.W, H = ch.H, i;
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = k.panel; ctx.fillRect(0, 0, W, H);
+    var sp = H / 3.6, y0 = sp * 1.1;
+    ctx.strokeStyle = k.strong; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (i = 0; i < 3; i++) { var y = Math.round(y0 + i * sp) + 0.5; ctx.moveTo(0, y); ctx.lineTo(W, y); }
+    ctx.stroke();
+    var rec = sim.recent[0], L = state.l * sp;
+    ctx.lineWidth = 2.4; ctx.lineCap = "round";
+    for (i = 0; i < rec.length; i++) {
+      var q = rec[i], line = i % 2, side = i % 3 === 0 ? -1 : 1, orient = i % 4 < 2 ? 1 : -1;
+      var cxx = W * (0.06 + 0.88 * ((i * 0.61803 + 0.13) % 1)), cyy = y0 + line * sp + side * q.d * sp;
+      var dx = Math.cos(q.th) * L / 2, dy = orient * Math.sin(q.th) * L / 2;
+      ctx.strokeStyle = q.h ? k.pos : k.muted; ctx.globalAlpha = q.h ? 1 : 0.7;
+      ctx.beginPath(); ctx.moveTo(cxx - dx, cyy - dy); ctx.lineTo(cxx + dx, cyy + dy); ctx.stroke();
+    }
+    ctx.globalAlpha = 1; ctx.lineCap = "butt";
+  }
+
+  /* Графік частки: x це n (логарифмічна шкала), y це частка влучань */
+  function drawFraction(k) {
+    var ch = c2, ctx = ch.ctx, W = ch.W, H = ch.H, M = { l: 48, r: 14, t: 22, b: 36 };
+    ctx.clearRect(0, 0, W, H); ctx.fillStyle = k.panel; ctx.fillRect(0, 0, W, H);
+    var bert = state.task === "bertrand", p = exactP();
+    var y0 = bert ? 0 : Math.max(0, p - 0.25), y1 = bert ? 0.75 : Math.min(1, p + 0.25);
+    if (y1 - y0 < 0.3) { if (y0 === 0) y1 = 0.3; else y0 = y1 - 0.3; }
+    var nv = Math.max(100, sim.n), pw = W - M.l - M.r, ph = H - M.t - M.b;
+    function px(n) { return M.l + Math.log(Math.max(1, n)) / Math.log(nv) * pw; }
+    function py(v) { return M.t + (1 - (v - y0) / (y1 - y0)) * ph; }
+    var ty = S.ticksFor(y0, y1, clamp(ph / 40, 3, 7)), e, mnr;
+    ctx.lineWidth = 1; ctx.strokeStyle = k.grid; ctx.beginPath();
+    for (e = 1; e <= nv; e *= 10) for (mnr = 2; mnr <= 9; mnr++) if (e * mnr < nv) { var xm = Math.round(px(e * mnr)) + 0.5; ctx.moveTo(xm, M.t); ctx.lineTo(xm, M.t + ph); }
+    ctx.stroke();
+    ctx.strokeStyle = k.strong; ctx.beginPath();
+    for (e = 1; e <= nv; e *= 10) { var xM = Math.round(px(e)) + 0.5; ctx.moveTo(xM, M.t); ctx.lineTo(xM, M.t + ph); }
+    ty.major.forEach(function (v) { var yy = Math.round(py(v)) + 0.5; ctx.moveTo(M.l, yy); ctx.lineTo(M.l + pw, yy); });
+    ctx.stroke();
+    ctx.strokeStyle = k.ink; ctx.lineWidth = 1.2; ctx.beginPath();
+    ctx.moveTo(M.l + 0.5, M.t); ctx.lineTo(M.l + 0.5, M.t + ph + 0.5); ctx.lineTo(M.l + pw, M.t + ph + 0.5); ctx.stroke();
+    ctx.fillStyle = k.muted; ctx.font = "11px " + k.data; ctx.textBaseline = "top";
+    for (e = 1; e <= nv; e *= 10) {
+      var lab = group(e), w = ctx.measureText(lab).width, x = px(e);
+      if (x + w / 2 > W - 2) { ctx.textAlign = "right"; x = W - 2; } else if (x - w / 2 < M.l - 6) { ctx.textAlign = "left"; x = M.l - 6; } else ctx.textAlign = "center";
+      ctx.fillText(lab, x, M.t + ph + 8);
+    }
+    ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    ty.major.forEach(function (v) { ctx.fillText(fmt(v, ty.decimals), M.l - 7, py(v)); });
+    ctx.fillStyle = k.ink; ctx.font = "500 12px " + k.body; ctx.textBaseline = "bottom";
+    ctx.textAlign = "right"; ctx.fillText("n", W - M.r, H - 4);
+    ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.fillText("Частка влучань", M.l, 4);
+
+    ctx.save(); ctx.beginPath(); ctx.rect(M.l, M.t, pw, ph); ctx.clip();
+    var cols = [k.h1, k.h2, k.h3];
+    if (!bert) {
+      ctx.fillStyle = k.pos; ctx.globalAlpha = 0.14; ctx.beginPath();
+      var st = 120, j;
+      for (j = 0; j <= st; j++) { var a = Math.exp(j / st * Math.log(nv)); var yy = py(p + 2 * Math.sqrt(p * (1 - p) / a)); if (j === 0) ctx.moveTo(px(a), yy); else ctx.lineTo(px(a), yy); }
+      for (j = st; j >= 0; j--) { var b = Math.exp(j / st * Math.log(nv)); ctx.lineTo(px(b), py(p - 2 * Math.sqrt(p * (1 - p) / b))); }
+      ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+    }
+    var ps = bert ? [1 / 3, 1 / 2, 1 / 4] : [p];
+    ctx.setLineDash([6, 5]); ctx.lineWidth = 1.5;
+    ps.forEach(function (v, i) { ctx.strokeStyle = bert ? cols[i] : k.ink; ctx.beginPath(); ctx.moveTo(M.l, py(v)); ctx.lineTo(M.l + pw, py(v)); ctx.stroke(); });
+    ctx.setLineDash([]);
+    var series = bert ? 3 : 1, s, q;
+    for (s = 0; s < series; s++) {
+      ctx.strokeStyle = bert ? cols[s] : k.pos; ctx.lineWidth = bert && s !== state.method - 1 ? 1.4 : 2.4; ctx.lineJoin = "round";
+      ctx.globalAlpha = bert && s !== state.method - 1 ? 0.65 : 1;
+      ctx.beginPath();
+      for (q = 0; q < sim.hist.length; q++) { var hx = px(sim.hist[q].n), hy = py(sim.hist[q].f[s]); if (q === 0) ctx.moveTo(hx, hy); else ctx.lineTo(hx, hy); }
+      ctx.stroke(); ctx.globalAlpha = 1;
+    }
+    ctx.restore();
+  }
+
+  function draw() {
+    if (!sim || !c1.W) return;
+    var k = colors();
+    drawModel(k);
+    if (state.task === "buffon" && c3.W) drawFloor(k);
+    if (c2.W) drawFraction(k);
+  }
+  function resizeAll() { c1.resize(); c2.resize(); c3.resize(); draw(); }
+
+  /* ---------- Старт ---------- */
+  buildChips();
+  buildMethods();
+  if (window.ResizeObserver) {
+    var ro = new ResizeObserver(function () { resizeAll(); });
+    ro.observe($("c1")); ro.observe($("c2")); ro.observe($("c3"));
+  } else window.addEventListener("resize", resizeAll);
+  if (window.matchMedia) {
+    var mq = window.matchMedia("(prefers-color-scheme: dark)");
+    if (mq.addEventListener) mq.addEventListener("change", draw);
+  }
+  choose("point");
+})();
+</script>
+</body>
+</html>

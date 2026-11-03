@@ -14,7 +14,7 @@
   --neg: #d4521b;
   --fit: #14202e;
   --soft: #e3e8f0;
-  --h1: #2556d9; --h2: #d4521b; --h3: #167a5f; --h4: #8a4fc9; --h5: #0e7490;
+  --h1: #2556d9; --h2: #d4521b; --h3: #167a5f; --h4: #8a4fc9; --h5: #0e7490; --h6: #b02a5e;
   --font-body: "Onest", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-data: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
@@ -23,7 +23,7 @@
     --bg: #0e141c; --panel: #151d28; --ink: #e7ecf3; --muted: #97a4b6;
     --grid: #212b38; --grid-strong: #32404f; --pt: #7ea1ff; --pos: #7ea1ff;
     --neg: #ff8c5a; --fit: #e7ecf3; --soft: #1d2735;
-    --h1: #7ea1ff; --h2: #ff8c5a; --h3: #4fd1a5; --h4: #c29cff; --h5: #5cc8e8;
+    --h1: #7ea1ff; --h2: #ff8c5a; --h3: #4fd1a5; --h4: #c29cff; --h5: #5cc8e8; --h6: #ff8fb8;
     color-scheme: dark;
   }
 }
@@ -31,7 +31,7 @@
   --bg: #0e141c; --panel: #151d28; --ink: #e7ecf3; --muted: #97a4b6;
   --grid: #212b38; --grid-strong: #32404f; --pt: #7ea1ff; --pos: #7ea1ff;
   --neg: #ff8c5a; --fit: #e7ecf3; --soft: #1d2735;
-  --h1: #7ea1ff; --h2: #ff8c5a; --h3: #4fd1a5; --h4: #c29cff; --h5: #5cc8e8;
+  --h1: #7ea1ff; --h2: #ff8c5a; --h3: #4fd1a5; --h4: #c29cff; --h5: #5cc8e8; --h6: #ff8fb8;
   color-scheme: dark;
 }
 
@@ -125,6 +125,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus
 .g3 { --c: var(--h3); }
 .g4 { --c: var(--h4); }
 .g5 { --c: var(--h5); }
+.g6 { --c: var(--h6); }
 .head[class*="g"] { border-left: 4px solid var(--c); padding-left: 14px; }
 .head .kicker {
   margin: 0 0 8px; font-size: 12px; font-weight: 500; letter-spacing: 0.09em; text-transform: uppercase;

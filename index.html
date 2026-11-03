@@ -18,6 +18,7 @@ main { max-width: 980px; margin: 0 auto; }
 .group.g3 { --c: var(--h3); }
 .group.g4 { --c: var(--h4); }
 .group.g5 { --c: var(--h5); }
+.group.g6 { --c: var(--h6); }
 .group-title {
   display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; margin: 0;
   font-size: 13px; font-weight: 500; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted);
@@ -51,7 +52,7 @@ main { max-width: 980px; margin: 0 auto; }
 
   <!--
     Як додати сторінку: скопіюйте один блок <li class="topic"> у потрібну групу, змініть посилання, значок, назву й опис (одне речення).
-    Як додати групу: скопіюйте блок <div class="group g1"> і змініть клас кольору (g1–g5) та заголовок; лічильник тем оновіть вручну.
+    Як додати групу: скопіюйте блок <div class="group g1"> і змініть клас кольору (g1–g6) та заголовок; лічильник тем оновіть вручну.
     Як додати нову дисципліну: скопіюйте цілий блок <section class="subject"> і змініть заголовок.
   -->
   <section class="subject" aria-labelledby="s-prob">
@@ -188,6 +189,20 @@ main { max-width: 980px; margin: 0 auto; }
             <div class="txt">
               <h4>Коефіцієнт кореляції</h4>
               <p>Ставте точки на діаграмі, а коефіцієнт Пірсона, p-значення й довірчий інтервал перераховуються одразу. Є парадокс Сімпсона й власні дані.</p>
+            </div>
+          </a>
+        </li>
+      </ul>
+    </div>
+      <div class="group g6" role="group" aria-labelledby="g-hyp">
+      <h3 class="group-title" id="g-hyp">Перевірка гіпотез <span class="count">1 тема</span></h3>
+      <ul class="topics">
+        <li class="topic">
+          <a href="hypothesis-testing.html">
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 19h20"/><path d="M3 19c2 0 3-12 6-12s4 12 6 12"/><path d="M9 19c2 0 3-12 6-12s4 12 6 12" stroke-dasharray="2 2.2"/><path d="M15.5 7v12"/></svg>
+            <div class="txt">
+              <h4>Перевірка гіпотез: p-значення і рішення</h4>
+              <p>Нульовий розподіл, p-значення як ймовірність хвоста, порівняння з α. Біноміальний критерій на прикладах (Пауль, Бонд, генератор бітів) і експеримент за істинної H₀.</p>
             </div>
           </a>
         </li>

@@ -85,3 +85,26 @@ test("біноміальний критерій: рішення збігаєть
     near(Math.min(1, s), Hyp.binomPValue(16, k, alt), 1e-12, `${alt}, k=${k}: сума екстремальних стовпчиків дорівнює p`);
   }
 });
+
+test("z- і t-критерій у єдиному записі: p-значення, критичні й довірчі межі звірені зі scipy", () => {
+  assert.ok(fx.mean.length > 100);
+  for (const c of fx.mean) {
+    const id = `${c.kind}, n=${c.n}, ${c.tail}`;
+    if (c.stat !== undefined) { near(Hyp.pValueNull(c.stat, c.kind, c.n, c.tail), c.p, 1e-9, `${id}, статистика ${c.stat}`); continue; }
+    const cr = Hyp.criticalNull(c.alpha, c.kind, c.n, c.tail), b = Hyp.meanBound(c.xbar, c.scale, c.n, c.alpha, c.kind, c.tail);
+    near(cr.lo, lim(c.crit[0], -Infinity), 1e-7, `${id}, α=${c.alpha} lo`); near(cr.hi, lim(c.crit[1], Infinity), 1e-7, `${id}, α=${c.alpha} hi`);
+    near(b.lo, lim(c.bound[0], -Infinity), 1e-6, `${id}, α=${c.alpha} межа знизу`); near(b.hi, lim(c.bound[1], Infinity), 1e-6, `${id}, α=${c.alpha} межа зверху`);
+  }
+});
+
+test("t-критерій збігається з розрахунками (вага немовлят: n=25, x̄=3075, μ₀=2800, s=500)", () => {
+  const t = Hyp.zStat(3075, 2800, 500, 25);
+  near(t, 2.75, 1e-9, "t");
+  near(Hyp.pValueNull(t, "t", 25, "two"), 0.0111, 5e-5, "p двостороннє");
+  near(Hyp.pValueNull(t, "t", 25, "right"), 0.00555, 5e-5, "p одностороннє");
+  const ci = Hyp.meanBound(3075, 500, 25, 0.05, "t", "two");
+  near(ci.lo, 3075 - 2.0638985616 * 100, 1e-6, "межа знизу"); near(ci.hi, 3075 + 2.0638985616 * 100, 1e-6, "межа зверху");
+  // t має важчі хвости, ніж нормальний: p більше, а за великого n збігається
+  assert.ok(Hyp.pValueNull(2, "t", 5, "two") > Hyp.pValueNull(2, "z", 5, "two"));
+  near(Hyp.pValueNull(2, "t", 100000, "two"), Hyp.pValueNull(2, "z", 5, "two"), 1e-4, "n → ∞");
+});

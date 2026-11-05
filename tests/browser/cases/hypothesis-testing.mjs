@@ -16,7 +16,7 @@ export default async function (h) {
   const txt = (id) => page.textContent("#" + id);
   const setRange = (id, v) => page.evaluate(([i, val]) => { const e = document.getElementById(i); e.value = val; e.dispatchEvent(new Event("input", { bubbles: true })); }, [id, v]);
 
-  // Пауль 11 з 13, одностороння: p = 0,0112 (лекція), відхиляємо при α = 0,05
+  // Пауль 11 з 13, одностороння: p = 0,0112, відхиляємо при α = 0,05
   ok(Math.abs(num(await txt("rP")) - 0.0112) < 5e-5, "Пауль: p = 0,0112");
   ok(/відхиляємо H/.test(await txt("verdict")) && !/не відхиляємо/.test(await txt("verdict")), "Пауль: H₀ відхиляється");
   ok(/k ≥ 10/.test(await txt("critMsg")), "n = 13, α = 0,05: поріг k ≥ 10");

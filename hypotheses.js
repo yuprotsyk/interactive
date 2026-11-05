@@ -1,5 +1,5 @@
 /* ============================================================
-   hypotheses.js: перевірка гіпотез (z-критерій для середнього; біноміальний критерій для частки).
+   hypotheses.js: перевірка гіпотез (z- і t-критерій для середнього; біноміальний критерій для частки).
    Глобальний об'єкт Hyp. Потрібен Dist (distributions.js).
 
    Z-критерій для математичного сподівання нормальної сукупності з відомим σ
@@ -70,6 +70,36 @@
     return mu !== mu0;
   }
 
+  /* ---------- Критерії Стьюдента для середнього (σ невідома) і z-критерій у єдиному записі ----------
+     kind "z": σ відома, нульовий розподіл N(0; 1);  kind "t": σ невідома, замість σ беремо вибіркове
+     стандартне відхилення s, нульовий розподіл Стьюдента з n − 1 ступенями свободи (Гмурман; Casella–Berger).
+     Статистика та сама: (x̄ − μ₀)/(scale/√n), де scale = σ або s (функція zStat).
+     p-значення: left: F(t); right: 1 − F(t); two: 2·(1 − F(|t|)), де F функція розподілу нульового розподілу.
+     Довірча межа, двоїста до критерію (рівень довіри 1 − α):
+       two:   x̄ ± c₁₋α/₂·scale/√n;  right: [x̄ − c₁₋α·scale/√n; ∞);  left: (−∞; x̄ + c₁₋α·scale/√n],
+     де c це квантиль нульового розподілу. Для t потрібно n ≥ 2. */
+  function nullDist(kind, n) { return kind === "t" ? { d: D.student, P: { nu: n - 1 } } : { d: D.normal, P: STD }; }
+
+  function pValueNull(stat, kind, n, tail) {
+    var nd = nullDist(kind, n), F = function (x) { return nd.d.cdf(x, nd.P); };
+    if (tail === "right") return F(-stat);
+    if (tail === "left") return F(stat);
+    return Math.min(1, 2 * F(-Math.abs(stat)));
+  }
+
+  function criticalNull(alpha, kind, n, tail) {
+    var nd = nullDist(kind, n), q = function (p) { return D.quantile(nd.d, nd.P, p); };
+    if (tail === "right") return { lo: -Infinity, hi: q(1 - alpha) };
+    if (tail === "left") return { lo: -q(1 - alpha), hi: Infinity };
+    var c = q(1 - alpha / 2);
+    return { lo: -c, hi: c };
+  }
+
+  function meanBound(xbar, scale, n, alpha, kind, tail) {
+    var c = criticalNull(alpha, kind, n, tail), se = scale / Math.sqrt(n);
+    return { lo: tail === "left" ? -Infinity : xbar - c.hi * se, hi: tail === "right" ? Infinity : xbar - c.lo * se };
+  }
+
   /* ---------- Біноміальний критерій для частки (H₀: p = ½) ----------
      Статистика T = кількість успіхів у n випробуваннях; за H₀ вона має розподіл Bin(n; ½)
      (нульовий розподіл). p-значення це ймовірність за H₀ отримати таке ж значення T, як спостережене k,
@@ -114,6 +144,7 @@
 
   var api = { zStat: zStat, critical: critical, criticalMean: criticalMean, reject: reject,
               pValue: pValue, power: power, inAlternative: inAlternative,
+              pValueNull: pValueNull, criticalNull: criticalNull, meanBound: meanBound,
               binomPmf: binomPmf, binomPValue: binomPValue, binomExtreme: binomExtreme, binomCritical: binomCritical };
   root.Hyp = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;

@@ -183,9 +183,11 @@ tr.tail td { background: var(--soft); }
       <p><strong>Статистика й нульовий розподіл.</strong> Статистика <span class="tex">T</span> це кількість успіхів. Якщо <span class="tex">H₀</span> справедлива, <span class="tex">T</span> має розподіл Біном(<span class="tex">n</span>; ½): це нульовий розподіл. Пара «статистика + нульовий розподіл» і є статистичним критерієм.</p>
       <p><strong><span class="tex">p</span>-значення</strong> (досягнутий рівень значущості) це ймовірність за справедливості <span class="tex">H₀</span> отримати таке ж значення статистики, як в експерименті, або ще більш екстремальне (крайнє). Що вважати екстремальним, визначає альтернатива: для <span class="tex" data-tex="\theta>\tfrac12">θ > ½</span> це великі <span class="tex">k</span>, для <span class="tex" data-tex="\theta\ne\tfrac12">θ ≠ ½</span> великі й малі <span class="tex">k</span>. На графіку це сума зафарбованих стовпчиків.</p>
       <p><strong>Рішення.</strong> Порівнюємо <span class="tex">p</span> з рівнем значущості <span class="tex">α</span> (найчастіше 0,05). Якщо <span class="tex" data-tex="p\le\alpha">p ≤ α</span>, відхиляємо <span class="tex">H₀</span> на користь альтернативи. Якщо <span class="tex" data-tex="p>\alpha">p > α</span>, не відхиляємо <span class="tex">H₀</span>. Це не доказ, що вона вірна: відсутність доказів проти <span class="tex">H₀</span> не є доказом її справедливості.</p>
+      <p><strong>Вибір альтернативи.</strong> Для симетричного нульового розподілу одностороннє <span class="tex">p</span> удвічі менше за двостороннє, тому односторонню альтернативу можна обирати лише до експерименту, коли напрям зміни відомий заздалегідь. Якщо обрати її після того, як побачили, в який бік відхилилися дані, це підгонка під результат.</p>
       <p><strong>Чим <span class="tex">p</span>-значення не є.</strong> Це не ймовірність того, що <span class="tex">H₀</span> справедлива, і не ймовірність того, що дані «випадкові». Це лише ймовірність таких або екстремальніших даних за умови <span class="tex">H₀</span>.</p>
       <p><strong>Помилка першого роду</strong> це відхилити справедливу <span class="tex">H₀</span>. Критерій влаштований так, що її ймовірність не перевищує <span class="tex">α</span>. Це видно в блоці «Експеримент за істинної H₀»: навіть за істинної <span class="tex">H₀</span> інколи випадає <span class="tex" data-tex="p\le\alpha">p ≤ α</span>, але за багатьох повторень частка таких експериментів не перевищує <span class="tex">α</span>.</p>
     </section>
+
   </div>
 
   <details class="tablebox panel" id="tableBox">
@@ -334,7 +336,7 @@ tr.tail td { background: var(--soft); }
   function update() {
     var sc = scenario(), n = state.n, k = state.k, p = pv(), a = altName(), rej = p <= state.alpha;
     $("statement").textContent = ""; Tex.text($("statement"), sc ? sc.text + " " + sc.q[state.alt] : "Власні значення: n випробувань, k успіхів. " + (state.alt === "right" ? "Чи більша ймовірність успіху за ½?" : "Чи відрізняється ймовірність успіху від ½?"));
-    $("hyp").textContent = ""; Tex.text($("hyp"), "H₀: θ = ½ (" + (sc ? sc.h0 : "успіх і невдача рівноймовірні") + "). H₁: " + a.h1 + ".");
+    Tex.mix($("hyp"), [{ m: "H₀: θ = ½" }, " (" + (sc ? sc.h0 : "успіх і невдача рівноймовірні") + "). ", { m: "H₁: " + a.h1 }, "."]);
     $("kOut").textContent = String(k);
     $("rP").textContent = fmt(p, 4);
     $("rData").textContent = k + " із " + n;
@@ -479,6 +481,7 @@ tr.tail td { background: var(--soft); }
     l1.appendChild(item("tail", "не менш крайні (екстремальні) значення: їхня сума це p")); l1.appendChild(item("rest", "решта")); l1.appendChild(item("obs", "спостережене k"));
     l2.appendChild(item("cur", "обрана альтернатива")); l2.appendChild(item("oth", "інша альтернатива")); l2.appendChild(item("line", "рівень значущості α"));
   }
+
 
   /* ---------- Старт ---------- */
   buildControls(); legends();

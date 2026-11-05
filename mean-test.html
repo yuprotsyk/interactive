@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Z- і t-критерій для середнього</title>
+<meta name="description" content="Перевірка гіпотези про математичне сподівання нормальної сукупності: z-критерій (σ відома) і t-критерій Стьюдента (σ невідома), p-значення як хвіст нульового розподілу, довірчий інтервал, вибір альтернативи.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="common.css">
+<style>
+/* Розкладка: на телефоні один стовпчик (задача, графіки, результат, пояснення);
+   від 900px графіки зліва, показники й пояснення справа */
+.app {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "head" "choose" "charts" "readout" "explain";
+}
+.head { grid-area: head; }
+.backlink { display: inline-block; margin-bottom: 10px; font-size: 13px; }
+.choose { grid-area: choose; }
+.charts { grid-area: charts; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.side { display: contents; }
+.readout { grid-area: readout; }
+.explain { grid-area: explain; }
+
+.statement { margin: 10px 0 0; font-size: 15px; max-width: 72ch; text-wrap: pretty; }
+.hyp { margin: 8px 0 0; font-size: 15px; font-weight: 500; }
+.cfg { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-top: 14px; align-items: end; }
+.fld { display: grid; gap: 4px; min-width: 190px; flex: 1 1 190px; max-width: 340px; }
+.fld label, .fld .lab { font-size: 13.5px; }
+.fld .row { display: grid; grid-template-columns: minmax(0, 1fr) 76px; gap: 10px; align-items: center; }
+.fld input[type="range"] { width: 100%; margin: 0; accent-color: var(--pos); }
+.fld output {
+  font-family: var(--font-data); font-size: 13.5px; font-variant-numeric: tabular-nums; text-align: right;
+  color: var(--ink); background: var(--bg); border: 1px solid var(--grid-strong); border-radius: 4px; padding: 5px 7px;
+}
+.fld .seg { display: flex; flex-wrap: wrap; }
+.fld .seg button { flex: 1 1 auto; min-height: 40px; }
+.note { margin: 12px 0 0; font-size: 13.5px; color: var(--muted); max-width: 72ch; text-wrap: pretty; }
+
+.chart h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; text-wrap: balance; }
+.chart canvas {
+  display: block; width: 100%; background: var(--panel);
+  border: 1px solid var(--grid-strong); border-radius: 6px;
+}
+#c1 { aspect-ratio: 16 / 9; max-height: 52vh; }
+#c2 { aspect-ratio: 16 / 5; max-height: 30vh; min-height: 120px; }
+.legend { margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; }
+.legend .sw { display: inline-block; width: 14px; height: 12px; border-radius: 2px; vertical-align: -1px; margin-right: 6px; }
+.legend .sw.tail { background: var(--neg); opacity: .8; }
+.legend .sw.line { width: 22px; height: 0; border-radius: 0; border-top: 2px dashed var(--neg); vertical-align: middle; }
+.legend .sw.cur { width: 22px; height: 0; border-radius: 0; border-top: 2.5px solid var(--pos); vertical-align: middle; }
+.legend .sw.oth { width: 22px; height: 0; border-radius: 0; border-top: 2px dashed var(--muted); vertical-align: middle; }
+.legend .sw.obs { width: 0; height: 14px; border-radius: 0; border-left: 2.5px solid var(--ink); vertical-align: middle; }
+.cmsg { margin: 8px 0 0; font-size: 13.5px; color: var(--muted); max-width: 72ch; text-wrap: pretty; }
+
+.readout dl { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; margin: 10px 0 0; }
+.readout dt { font-size: 12px; color: var(--muted); }
+.readout dd { margin: 0; font-family: var(--font-data); font-size: 18px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.readout .big { grid-column: 1 / -1; }
+.readout .big dd { font-size: clamp(30px, 8vw, 40px); line-height: 1.1; letter-spacing: -0.02em; color: var(--neg); }
+.readout .wide { grid-column: 1 / -1; }
+.readout .wide dd { font-size: 16px; }
+.readout hr { border: 0; border-top: 1px solid var(--grid-strong); margin: 16px 0 0; }
+.verdict { margin: 12px 0 0; font-size: 15px; font-weight: 500; text-wrap: pretty; }
+.xbtns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+
+.explain h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
+.explain p { margin: 8px 0 0; font-size: 14.5px; max-width: 68ch; text-wrap: pretty; }
+.explain p.key { margin-top: 0; }
+
+@media (min-width: 900px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    column-gap: 24px;
+    grid-template-areas: "head head" "choose choose" "charts side";
+  }
+  .side { grid-area: side; display: flex; flex-direction: column; gap: 16px; align-self: start; min-width: 0; }
+}
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="head g6">
+    <a class="backlink" href="index.html">← Усі сторінки</a>
+    <p class="kicker">Перевірка гіпотез</p>
+    <div class="titlerow">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 19h20"/><path d="M3 19c2 0 3-12 6-12s4 12 6 12"/><path d="M9 19c2 0 3-12 6-12s4 12 6 12" stroke-dasharray="2 2.2"/><path d="M15.5 7v12"/></svg>
+      <h1>Z- і t-критерій для середнього</h1>
+    </div>
+    <p class="lead">Чи відрізняється математичне сподівання μ від заданого значення μ₀? Це перевіряють за вибіркою: z-критерієм, якщо σ відома, і t-критерієм Стьюдента, якщо σ невідома. Нульовий розподіл, p-значення й довірчий інтервал показують результат і різницю між z та t.</p>
+  </header>
+
+  <section class="choose panel" aria-label="Задача і параметри">
+    <p class="eyebrow">Приклад</p>
+    <div class="chips" id="chips" role="group" aria-label="Готові приклади"></div>
+    <p class="statement" id="statement"></p>
+    <p class="hyp" id="hyp"></p>
+    <div class="cfg">
+      <div class="fld">
+        <label for="nRange">Обсяг вибірки n</label>
+        <div class="row"><input type="range" id="nRange" min="2" max="200" step="1" value="25"><output id="nOut" for="nRange">25</output></div>
+      </div>
+      <div class="fld">
+        <label for="xRange" id="xLab">Вибіркове середнє x̄</label>
+        <div class="row"><input type="range" id="xRange" min="0" max="1" step="0.01" value="0"><output id="xOut" for="xRange">0</output></div>
+      </div>
+      <div class="fld">
+        <label for="sRange" id="sLab">Вибіркове стандартне відхилення s</label>
+        <div class="row"><input type="range" id="sRange" min="0" max="1" step="0.01" value="0"><output id="sOut" for="sRange">0</output></div>
+      </div>
+      <div class="fld">
+        <span class="lab" id="kindLab">Критерій</span>
+        <div class="seg" id="kindSeg" role="group" aria-labelledby="kindLab"></div>
+      </div>
+      <div class="fld">
+        <span class="lab" id="altLab">Альтернатива</span>
+        <div class="seg" id="altSeg" role="group" aria-labelledby="altLab"></div>
+      </div>
+      <div class="fld">
+        <span class="lab" id="alphaLab">Рівень значущості α</span>
+        <div class="seg" id="alphaSeg" role="group" aria-labelledby="alphaLab"></div>
+      </div>
+    </div>
+    <p class="note" id="kindNote"></p>
+    <p class="note">Альтернативу обирають до експерименту, виходячи з постановки задачі, а не після того, як побачили дані.</p>
+  </section>
+
+  <div class="charts">
+    <section class="chart" aria-labelledby="h1">
+      <h2 id="h1">Нульовий розподіл статистики</h2>
+      <canvas id="c1" role="img" aria-label="Нульовий розподіл статистики"></canvas>
+      <p class="legend" id="legend1"></p>
+      <p class="cmsg" id="critMsg"></p>
+    </section>
+    <section class="chart" aria-labelledby="h2">
+      <h2 id="h2">Довірчий інтервал для μ</h2>
+      <canvas id="c2" role="img" aria-label="Довірчий інтервал для μ"></canvas>
+      <p class="cmsg" id="ciMsg"></p>
+    </section>
+  </div>
+
+  <div class="side">
+    <section class="readout panel" aria-labelledby="rTitle">
+      <p class="eyebrow" id="rTitle">Результат</p>
+      <dl>
+        <div class="big"><dt><span class="tex">p</span>-значення</dt><dd id="rP">—</dd></div>
+        <div><dt id="rStatLab">Статистика</dt><dd id="rStat">—</dd></div>
+        <div><dt id="rDfLab">Ступені свободи</dt><dd id="rDf">—</dd></div>
+        <div><dt>Різниця x̄ − μ₀</dt><dd id="rDiff">—</dd></div>
+        <div><dt>Рівень значущості α</dt><dd id="rAlpha">—</dd></div>
+        <div class="wide" id="rCmpBox"><dt>Для порівняння: z із s замість t (хибно)</dt><dd id="rCmp">—</dd></div>
+      </dl>
+      <p class="verdict" id="verdict"></p>
+      <hr>
+      <p class="eyebrow" style="margin-top:14px" id="xTitle">Експеримент за істинної H₀</p>
+      <p class="cmsg" style="margin-top:6px" id="xIntro"></p>
+      <div class="xbtns" role="group" aria-label="Експеримент за H₀">
+        <button type="button" class="btn primary" id="add1">+1</button>
+        <button type="button" class="btn" id="add10">+10</button>
+        <button type="button" class="btn" id="add100">+100</button>
+        <button type="button" class="btn" id="add1000">+1 000</button>
+        <button type="button" class="btn" id="xReset">Скинути</button>
+      </div>
+      <dl>
+        <div><dt>Експериментів</dt><dd id="xN">0</dd></div>
+        <div><dt id="xKLab">Відхилень H₀</dt><dd id="xK">0</dd></div>
+        <div class="big"><dt id="xFracLab">Частка відхилень H₀</dt><dd id="xFrac">—</dd></div>
+        <div id="xFrac2Box"><dt>Частка для z із s (хибно)</dt><dd id="xFrac2">—</dd></div>
+      </dl>
+      <p class="cmsg" id="xNote"></p>
+    </section>
+
+    <section class="explain panel" aria-labelledby="eTitle">
+      <h2 id="eTitle">Що тут відбувається</h2>
+      <p class="key"><strong>Постановка.</strong> Вибірка <span class="tex" data-tex="X^n=(X_1,\dots,X_n)">Xⁿ = (X₁, …, Xₙ)</span> із нормального розподілу <span class="tex" data-tex="N(\mu,\sigma^2)">N(μ, σ²)</span>. Нульова гіпотеза <span class="tex" data-tex="H_0:\ \mu=\mu_0">H₀: μ = μ₀</span>. Альтернатива <span class="tex" data-tex="H_1:\ \mu<\mu_0">H₁: μ &lt; μ₀</span>, <span class="tex" data-tex="\mu>\mu_0">μ &gt; μ₀</span> або <span class="tex" data-tex="\mu\ne\mu_0">μ ≠ μ₀</span>.</p>
+      <p><strong>z-критерій</strong>, якщо σ відома: статистика <span class="tex" data-tex="Z=\dfrac{\bar X-\mu_0}{\sigma/\sqrt n}">Z = (x̄ − μ₀)/(σ/√n)</span>, нульовий розподіл <span class="tex" data-tex="N(0,1)">N(0, 1)</span>.</p>
+      <p><strong>t-критерій Стьюдента</strong>, якщо σ невідома: у статистиці σ замінюють вибірковим стандартним відхиленням <span class="tex">S</span>, <span class="tex" data-tex="T=\dfrac{\bar X-\mu_0}{S/\sqrt n}">T = (x̄ − μ₀)/(S/√n)</span>. Нульовий розподіл тепер розподіл Стьюдента з <span class="tex" data-tex="n-1">n − 1</span> ступенями свободи.</p>
+      <p><strong><span class="tex">p</span>-значення</strong> рахують однаково для обох: це ймовірність хвоста нульового розподілу. Для <span class="tex">F</span>, функції розподілу нульового розподілу: <span class="tex" data-tex="p=F(t)">p = F(t)</span> при <span class="tex" data-tex="\mu<\mu_0">μ &lt; μ₀</span>, <span class="tex" data-tex="p=1-F(t)">p = 1 − F(t)</span> при <span class="tex" data-tex="\mu>\mu_0">μ &gt; μ₀</span>, <span class="tex" data-tex="p=2\,(1-F(|t|))">p = 2(1 − F(|t|))</span> при <span class="tex" data-tex="\mu\ne\mu_0">μ ≠ μ₀</span>. Якщо <span class="tex" data-tex="p\le\alpha">p ≤ α</span>, відхиляємо <span class="tex">H₀</span>.</p>
+      <p><strong>Чим t відрізняється від z.</strong> Розподіл Стьюдента має важчі хвости, тому для того самого значення статистики <span class="tex">p</span> більше. Зі зростанням <span class="tex">n</span> вибіркова дисперсія точніше оцінює <span class="tex" data-tex="\sigma^2">σ²</span>, а розподіл Стьюдента наближається до нормального, і від приблизно 30 ступенів свободи візуально від нього майже не відрізняється. Тому для великих вибірок результат практично збігається.</p>
+      <p><strong>Вибір альтернативи.</strong> При односторонній альтернативі <span class="tex">p</span> удвічі менше, ніж при двосторонній, але так робити можна не завжди. Односторонню беруть, якщо середнє може змінитися лише в один бік або зміна в протилежний бік малоймовірна, і напрям визначили до отримання даних. Якщо обрати напрям після того, як побачили знак відхилення <span class="tex" data-tex="\bar x-\mu_0">x̄ − μ₀</span>, це підгонка під дані, і так робити не можна.</p>
+      <p><strong>Інтервал і критерій.</strong> Двобічний довірчий інтервал рівня <span class="tex" data-tex="1-\alpha">1 − α</span> містить <span class="tex">μ₀</span> саме тоді, коли двосторонній критерій не відхиляє <span class="tex">H₀</span> на рівні <span class="tex">α</span>. Для односторонньої альтернативи так само працює одностороння довірча межа.</p>
+      <p><strong>Парні вибірки.</strong> Якщо одні й ті самі об'єкти виміряно двічі, t-критерій для зв'язаних вибірок збігається з одновибірковим для різниць <span class="tex" data-tex="D_i=X_{1i}-X_{2i}">Dᵢ = X₁ᵢ − X₂ᵢ</span> при <span class="tex" data-tex="\mu_0=0">μ₀ = 0</span>.</p>
+      <p><strong>Припущення.</strong> Вибірка з нормального розподілу. Критерії Стьюдента нечутливі до невеликих відхилень від нормальності, але на малих вибірках із явно ненормальними даними можуть працювати погано. Експеримент у блоці «Експеримент за істинної H₀» показує, що t-критерій дотримується рівня <span class="tex">α</span>, а z із s на малих <span class="tex">n</span> відхиляє <span class="tex">H₀</span> занадто часто.</p>
+    </section>
+  </div>
+</main>
+
+<div class="sr-only" id="sr" role="status" aria-live="polite"></div>
+
+<script src="common.js"></script>
+<script src="formulas.js"></script>
+<script src="distributions.js"></script>
+<script src="random.js"></script>
+<script src="hypotheses.js"></script>
+<script>
+(function () {
+  "use strict";
+  var S = Stat, fmt = S.fmt, clamp = S.clamp;
+
+  /* ---------- Приклади ----------
+     xr, sr: діапазон повзунків [мін, макс, крок]; dec: кількість знаків після коми для виведення. */
+  var SCENARIOS = [
+    { id: "weight", name: "Вага немовлят", n: 25, xbar: 3075, mu0: 2800, scale: 500, kind: "t", alt: "two", unit: "г", dec: 0,
+      xr: [2500, 3700, 5], sr: [100, 1000, 10],
+      text: "Середня вага новонароджених у сім'ях за межею бідності 2800 г. Щоб її збільшити, розробили програму ведення вагітності й випробували на жінках із таких сімей. Чи ефективна програма?",
+      h0: "програма не впливає" },
+    { id: "paired", name: "Парні вибірки: різниці", n: 24, xbar: 4.95, mu0: 0, scale: 7.53, kind: "t", alt: "two", unit: "", dec: 2,
+      xr: [-4, 12, 0.01], sr: [2, 20, 0.01],
+      text: "Для 24 дітей виміряли здатність стримувати імпульсивні реакції після плацебо й після препарату. Тут x̄ це середня різниця Dᵢ = «після препарату» − «після плацебо», а μ₀ = 0.",
+      h0: "препарат не змінює показник" },
+    { id: "api", name: "Час відповіді API (IT)", n: 16, xbar: 214, mu0: 200, scale: 30, kind: "t", alt: "right", unit: "мс", dec: 1,
+      xr: [180, 250, 0.5], sr: [5, 80, 1],
+      text: "За угодою про рівень сервісу середній час відповіді має бути 200 мс. Після оновлення виміряли час відповіді на вибірці запитів. Чи збільшився середній час? (Умовний приклад, нормальність вважаємо виконаною.)",
+      h0: "середній час не змінився" },
+    { id: "pack", name: "Фасування (σ відома)", n: 36, xbar: 498.6, mu0: 500, scale: 5, kind: "z", alt: "left", unit: "г", dec: 1,
+      xr: [495, 505, 0.1], sr: [1, 10, 0.5],
+      text: "Автомат фасує цукор по 500 г, стандартне відхилення σ відоме з паспорта обладнання. Чи не занижує автомат вагу? (Умовний приклад.)",
+      h0: "середня вага пакета 500 г" },
+    { id: "small", name: "Мала вибірка (n = 5)", n: 5, xbar: 103.5, mu0: 100, scale: 3.5, kind: "t", alt: "two", unit: "", dec: 1,
+      xr: [94, 110, 0.1], sr: [1, 10, 0.1],
+      text: "Дуже мала вибірка. Перемкніть критерій на z і порівняйте p: розподіл Стьюдента має важчі хвости. (Умовний приклад.)",
+      h0: "середнє дорівнює μ₀" }
+  ];
+  var ALTS = [
+    { id: "left", name: "μ < μ₀", sign: "<" },
+    { id: "right", name: "μ > μ₀", sign: ">" },
+    { id: "two", name: "μ ≠ μ₀", sign: "≠" }
+  ];
+  var KINDS = [
+    { id: "t", name: "t (σ невідома)" },
+    { id: "z", name: "z (σ відома)" }
+  ];
+  var ALPHAS = [0.01, 0.05, 0.1];
+
+  function $(id) { return document.getElementById(id); }
+  function group(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " "); }
+  function fmtP(p) { return p < 0.0001 ? "< 0,0001" : fmt(p, 4); }
+
+  var state = { sc: 0, n: 25, xbar: 3075, mu0: 2800, scale: 500, kind: "t", alt: "two", alpha: 0.05, seed: 2026 };
+  var X = null;   /* експерименти за H₀ */
+  var meta = SCENARIOS[0];
+
+  function altOf() { return ALTS.filter(function (a) { return a.id === state.alt; })[0]; }
+  function statistic() { return Hyp.zStat(state.xbar, state.mu0, state.scale, state.n); }
+  function pval() { return Hyp.pValueNull(statistic(), state.kind, state.n, state.alt); }
+  function unitText(v) { return fmt(v, meta.dec) + (meta.unit ? " " + meta.unit : ""); }
+
+  /* ---------- Експерименти за H₀ ----------
+     Вибірки з N(μ₀; scale²): статистику рахуємо так само, як для даних. Для t беремо s із самої вибірки,
+     для порівняння рахуємо й «z із s» (хибний критерій: s замість σ з нормальним критичним значенням). */
+  function newX() { X = { N: 0, K: 0, K2: 0, rng: Rand.create(Rand.seedFor(state.seed, 0)) }; }
+  function runX(count) {
+    var n = state.n, i, j, v, sum, ss, m, s, st, mu = state.mu0, sd = state.scale;
+    var ct = Hyp.criticalNull(state.alpha, state.kind, n, state.alt);
+    var cz = Hyp.criticalNull(state.alpha, "z", n, state.alt);
+    for (i = 0; i < count; i++) {
+      sum = 0; ss = 0;
+      var vals = [];
+      for (j = 0; j < n; j++) { v = mu + sd * X.rng.normal(); vals.push(v); sum += v; }
+      m = sum / n;
+      if (state.kind === "z") {
+        st = (m - mu) / (sd / Math.sqrt(n));
+        if (st < ct.lo || st > ct.hi) X.K++;
+      } else {
+        for (j = 0; j < n; j++) ss += (vals[j] - m) * (vals[j] - m);
+        s = Math.sqrt(ss / (n - 1));
+        st = (m - mu) / (s / Math.sqrt(n));
+        if (st < ct.lo || st > ct.hi) X.K++;
+        if (st < cz.lo || st > cz.hi) X.K2++;
+      }
+      X.N++;
+    }
+  }
+
+  /* ---------- Керування ---------- */
+  var sayTimer = null;
+  function say(text, delay) {
+    clearTimeout(sayTimer);
+    sayTimer = setTimeout(function () { $("sr").textContent = ""; $("sr").textContent = text; }, delay || 0);
+  }
+  var chipEls = [], altEls = [], alphaEls = [], kindEls = [];
+  function seg(parent, list, els, onPick) {
+    list.forEach(function (it, i) {
+      var b = document.createElement("button");
+      b.type = "button"; b.textContent = it.name;
+      b.addEventListener("click", function () { onPick(it, i); });
+      parent.appendChild(b); els.push(b);
+    });
+  }
+  function buildControls() {
+    SCENARIOS.forEach(function (s, i) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "chip"; b.textContent = s.name;
+      b.setAttribute("aria-pressed", "false");
+      b.addEventListener("click", function () {
+        meta = s; state.sc = i; state.n = s.n; state.xbar = s.xbar; state.mu0 = s.mu0; state.scale = s.scale;
+        state.kind = s.kind; state.alt = s.alt;
+        syncControls(); newX(); update(); say(s.name + ".");
+      });
+      $("chips").appendChild(b); chipEls.push(b);
+    });
+    seg($("altSeg"), ALTS, altEls, function (a) { state.alt = a.id; syncControls(); newX(); update(); say("Альтернатива " + a.name + "."); });
+    seg($("kindSeg"), KINDS, kindEls, function (k) { state.kind = k.id; syncControls(); newX(); update(); say("Критерій " + k.name + "."); });
+    ALPHAS.forEach(function (v) {
+      var b = document.createElement("button");
+      b.type = "button"; b.textContent = fmt(v, 2);
+      b.addEventListener("click", function () { state.alpha = v; syncControls(); newX(); update(); say("α = " + fmt(v, 2) + "."); });
+      $("alphaSeg").appendChild(b); alphaEls.push(b);
+    });
+  }
+  function setRange(id, r, v) {
+    var e = $(id);
+    e.min = String(r[0]); e.max = String(r[1]); e.step = String(r[2]); e.value = String(v);
+  }
+  function syncControls() {
+    chipEls.forEach(function (b, i) { b.setAttribute("aria-pressed", String(i === state.sc)); });
+    altEls.forEach(function (b, i) { b.setAttribute("aria-pressed", String(ALTS[i].id === state.alt)); });
+    kindEls.forEach(function (b, i) { b.setAttribute("aria-pressed", String(KINDS[i].id === state.kind)); });
+    alphaEls.forEach(function (b, i) { b.setAttribute("aria-pressed", String(ALPHAS[i] === state.alpha)); });
+    $("nRange").value = String(state.n); $("nOut").textContent = String(state.n);
+    setRange("xRange", meta.xr, state.xbar); setRange("sRange", meta.sr, state.scale);
+    $("sLab").textContent = state.kind === "t" ? "Вибіркове стандартне відхилення s" : "Стандартне відхилення σ (відоме)";
+    $("kindNote").textContent = state.kind === "t"
+      ? "t-критерій застосовують, коли σ невідома й оцінюється за самою вибіркою."
+      : "z-критерій застосовують, лише якщо σ відома незалежно від цієї вибірки (з паспорта, з великого архіву), а не оцінена за нею.";
+  }
+  $("nRange").addEventListener("input", function (e) { state.n = Number(e.target.value); $("nOut").textContent = String(state.n); newX(); update(); });
+  $("xRange").addEventListener("input", function (e) { state.xbar = Number(e.target.value); update(); });
+  $("sRange").addEventListener("input", function (e) { state.scale = Number(e.target.value); newX(); update(); });
+  function addX(count) { runX(count); update(); say(announceX(), 400); }
+  [["add1", 1], ["add10", 10], ["add100", 100], ["add1000", 1000]].forEach(function (p) {
+    $(p[0]).addEventListener("click", function () { addX(p[1]); });
+  });
+  $("xReset").addEventListener("click", function () { newX(); update(); say("Лічильник скинуто."); });
+  function announceX() {
+    return "Експериментів: " + group(X.N) + ". Відхилили H₀ у " + group(X.K) + " випадках, частка " + fmt(X.N ? X.K / X.N : 0, 3) + ".";
+  }
+
+  /* ---------- Тексти ---------- */
+  function setText(id, s) { var e = $(id); e.textContent = ""; Tex.text(e, s); }
+  function critText() {
+    var c = Hyp.criticalNull(state.alpha, state.kind, state.n, state.alt), st = state.kind === "t" ? "t" : "z", se = state.scale / Math.sqrt(state.n);
+    var df = state.kind === "t" ? " (ν = " + (state.n - 1) + ")" : "";
+    var rule, mean;
+    if (state.alt === "two") {
+      rule = "|" + st + "| > " + fmt(c.hi, 3);
+      mean = "x̄ < " + unitText(state.mu0 - c.hi * se) + " або x̄ > " + unitText(state.mu0 + c.hi * se);
+    } else if (state.alt === "right") { rule = st + " > " + fmt(c.hi, 3); mean = "x̄ > " + unitText(state.mu0 + c.hi * se); }
+    else { rule = st + " < " + fmt(c.lo, 3); mean = "x̄ < " + unitText(state.mu0 + c.lo * se); }
+    return "Критична область при α = " + fmt(state.alpha, 2) + df + ": " + rule + ", тобто " + mean + ".";
+  }
+
+  function update() {
+    var st = statistic(), p = pval(), a = altOf(), rej = p <= state.alpha, isT = state.kind === "t", sName = isT ? "t" : "z", n = state.n;
+    setText("statement", meta.text + " Вибірка: n = " + n + ", x̄ = " + unitText(state.xbar) + ", " + (isT ? "$s = " + fmt(state.scale, meta.dec) + "$" + (meta.unit ? " " + meta.unit : "") : "σ = " + unitText(state.scale)) + ".");
+    var u0 = meta.unit ? " " + meta.unit : "";
+    Tex.mix($("hyp"), [{ m: "H₀: μ = " + fmt(state.mu0, meta.dec) }, u0 + " (" + meta.h0 + "). ", { m: "H₁: μ " + a.sign + " " + fmt(state.mu0, meta.dec) }, u0 + "."]);
+    $("xOut").textContent = fmt(state.xbar, meta.dec); $("sOut").textContent = fmt(state.scale, meta.dec);
+    $("rP").textContent = fmtP(p);
+    $("rStatLab").textContent = isT ? "t-статистика" : "z-статистика";
+    $("rStat").textContent = fmt(st, 3);
+    $("rDfLab").textContent = isT ? "Ступені свободи" : "Нульовий розподіл";
+    $("rDf").textContent = isT ? String(n - 1) : "N(0; 1)";
+    $("rDiff").textContent = unitText(state.xbar - state.mu0);
+    $("rAlpha").textContent = fmt(state.alpha, 2);
+    /* порівняння з z */
+    $("rCmpBox").style.display = isT ? "" : "none";
+    if (isT) {
+      var pz = Hyp.pValueNull(st, "z", n, state.alt);
+      $("rCmp").textContent = "p = " + fmtP(pz) + (((pz <= state.alpha) !== rej) ? " (інше рішення)" : "");
+    }
+    var v = $("verdict");
+    v.textContent = "";
+    Tex.text(v, rej ? "p ≤ α: відхиляємо H₀ на користь H₁: μ " + a.sign + " " + unitText(state.mu0) + "."
+                    : "p > α: не відхиляємо H₀. Це не доказ, що μ = " + unitText(state.mu0) + ", а лише відсутність достатніх доказів проти.");
+    setText("critMsg", critText());
+    /* довірчий інтервал або межа, двоїсті до критерію */
+    var b = Hyp.meanBound(state.xbar, state.scale, n, state.alpha, state.kind, state.alt), lvl = Math.round((1 - state.alpha) * 100);
+    var title = state.alt === "two" ? "Двобічний довірчий інтервал для μ (рівень " + lvl + " %)"
+      : state.alt === "right" ? "Нижня довірча межа для μ (рівень " + lvl + " %)" : "Верхня довірча межа для μ (рівень " + lvl + " %)";
+    $("h2").textContent = title;
+    var lo = b.lo === -Infinity ? "(−∞" : "[" + fmt(b.lo, meta.dec), hi = b.hi === Infinity ? "∞)" : fmt(b.hi, meta.dec) + "]";
+    var inside = state.mu0 >= b.lo && state.mu0 <= b.hi;
+    $("ciMsg").textContent = (state.alt === "two" ? "Інтервал " : "Межа ") + lo + "; " + hi + (meta.unit ? " " + meta.unit : "") + ". " +
+      "μ₀ = " + unitText(state.mu0) + (inside ? " належить" : " не належить") + " йому, тому H₀ " + (inside ? "не відхиляється" : "відхиляється") + " (так само, як за p і α).";
+    /* експеримент */
+    $("xIntro").textContent = isT
+      ? "Беремо n значень із N(μ₀; s²), де s зафіксовано на повзунку, і для кожної вибірки рахуємо t за її власним s. H₀ тут істинна."
+      : "Беремо n значень із N(μ₀; σ²), де σ відома. H₀ тут істинна.";
+    $("xN").textContent = group(X.N); $("xK").textContent = group(X.K);
+    $("xKLab").textContent = isT ? "t: відхилень H₀" : "z: відхилень H₀";
+    $("xFracLab").textContent = isT ? "t: частка відхилень H₀" : "z: частка відхилень H₀";
+    $("xFrac").textContent = X.N > 0 ? fmt(X.K / X.N, 4) : "—";
+    $("xFrac2Box").style.display = isT ? "" : "none";
+    $("xFrac2").textContent = X.N > 0 ? fmt(X.K2 / X.N, 4) : "—";
+    var note = "Для " + sName + "-критерію очікуємо " + fmt(state.alpha, 3) + " (рівно α, бо статистика неперервна).";
+    if (isT) {
+      var cz = Hyp.criticalNull(state.alpha, "z", n, state.alt), bd = state.alt === "left" ? cz.lo : cz.hi;
+      note += " Для z із s точне значення " + fmt(Hyp.pValueNull(bd, "t", n, state.alt), 3) + ": при малому n воно помітно більше за α.";
+    }
+    $("xNote").textContent = note;
+    $("c1").setAttribute("aria-label", "Нульовий розподіл " + (isT ? "Стьюдента з " + (n - 1) + " ступенями свободи" : "N(0; 1)") + ". Статистика " + fmt(st, 3) + ". p-значення " + fmtP(p));
+    $("c2").setAttribute("aria-label", title + ": " + (b.lo === -Infinity ? "від мінус нескінченності" : "від " + fmt(b.lo, meta.dec)) + (b.hi === Infinity ? " до нескінченності" : " до " + fmt(b.hi, meta.dec)) + "; μ₀ = " + fmt(state.mu0, meta.dec));
+    draw();
+    say("p-значення " + fmtP(p) + (rej ? ", відхиляємо H₀." : ", не відхиляємо H₀."), 500);
+  }
+
+  /* ---------- Малювання ---------- */
+  function Chart(el) { this.el = el; this.ctx = el.getContext("2d"); this.W = 0; this.H = 0; }
+  Chart.prototype.resize = function () {
+    var rect = this.el.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    this.W = rect.width; this.H = rect.height;
+    this.el.width = Math.max(1, Math.round(this.W * dpr));
+    this.el.height = Math.max(1, Math.round(this.H * dpr));
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  };
+  var c1 = new Chart($("c1")), c2 = new Chart($("c2"));
+  function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  function colors() {
+    return {
+      panel: cssVar("--panel"), grid: cssVar("--grid"), strong: cssVar("--grid-strong"),
+      muted: cssVar("--muted"), ink: cssVar("--ink"), pos: cssVar("--pos"), neg: cssVar("--neg"),
+      data: cssVar("--font-data"), body: cssVar("--font-body")
+    };
+  }
+  function halo(ctx, k, text, x, y) {
+    ctx.lineWidth = 3; ctx.strokeStyle = k.panel; ctx.lineJoin = "round"; ctx.strokeText(text, x, y); ctx.fillText(text, x, y);
+  }
+
+  function nullPdf(kind, x) { return kind === "t" ? Dist.student.pdf(x, { nu: state.n - 1 }) : Dist.normal.pdf(x, { mu: 0, sigma: 1 }); }
+
+  function drawNull(k) {
+    var ch = c1, ctx = ch.ctx, W = ch.W, H = ch.H, M = { l: 46, r: 14, t: 24, b: 34 };
+    var pw = W - M.l - M.r, ph = H - M.t - M.b;
+    var st = statistic(), isT = state.kind === "t";
+    var R = clamp(Math.max(4, Math.abs(st) * 1.1 + 0.3), 4, 8);
+    var ymax = 0.4 * 1.1;
+    function px(x) { return M.l + (x + R) / (2 * R) * pw; }
+    function py(v) { return M.t + (1 - v / ymax) * ph; }
+    ctx.clearRect(0, 0, W, H); ctx.fillStyle = k.panel; ctx.fillRect(0, 0, W, H);
+    var ty = S.ticksFor(0, ymax, clamp(ph / 42, 3, 6)), i, x;
+    ctx.lineWidth = 1; ctx.strokeStyle = k.grid; ctx.beginPath();
+    ty.major.forEach(function (v) { var y = Math.round(py(v)) + 0.5; ctx.moveTo(M.l, y); ctx.lineTo(M.l + pw, y); });
+    ctx.stroke();
+    /* зафарбований хвіст: ймовірність, яка дає p */
+    var cr = Hyp.criticalNull(state.alpha, state.kind, state.n, state.alt), steps = Math.max(60, Math.round(pw / 3));
+    function fillRange(a, b) {
+      if (b <= a) return;
+      ctx.beginPath(); ctx.moveTo(px(a), py(0));
+      for (i = 0; i <= steps; i++) { x = a + (b - a) * i / steps; ctx.lineTo(px(x), py(nullPdf(state.kind, x))); }
+      ctx.lineTo(px(b), py(0)); ctx.closePath(); ctx.fill();
+    }
+    ctx.fillStyle = k.neg; ctx.globalAlpha = 0.55;
+    var sc = clamp(st, -R, R);
+    if (state.alt === "right") fillRange(sc, R);
+    else if (state.alt === "left") fillRange(-R, sc);
+    else { fillRange(Math.abs(sc), R); fillRange(-R, -Math.abs(sc)); }
+    ctx.globalAlpha = 1;
+    /* крива N(0; 1) для порівняння */
+    if (isT) {
+      ctx.setLineDash([5, 4]); ctx.strokeStyle = k.muted; ctx.lineWidth = 1.6; ctx.beginPath();
+      for (i = 0; i <= steps; i++) { x = -R + 2 * R * i / steps; var yy = py(nullPdf("z", x)); if (i === 0) ctx.moveTo(px(x), yy); else ctx.lineTo(px(x), yy); }
+      ctx.stroke(); ctx.setLineDash([]);
+    }
+    /* нульовий розподіл */
+    ctx.strokeStyle = k.pos; ctx.lineWidth = 2.4; ctx.lineJoin = "round"; ctx.beginPath();
+    for (i = 0; i <= steps; i++) { x = -R + 2 * R * i / steps; var y = py(nullPdf(state.kind, x)); if (i === 0) ctx.moveTo(px(x), y); else ctx.lineTo(px(x), y); }
+    ctx.stroke();
+    /* осі */
+    ctx.strokeStyle = k.ink; ctx.lineWidth = 1.2; ctx.beginPath();
+    ctx.moveTo(M.l + 0.5, M.t); ctx.lineTo(M.l + 0.5, M.t + ph + 0.5); ctx.lineTo(M.l + pw, M.t + ph + 0.5); ctx.stroke();
+    ctx.fillStyle = k.muted; ctx.font = "11px " + k.data; ctx.textBaseline = "top"; ctx.textAlign = "center";
+    var tx = S.ticksFor(-R, R, clamp(pw / 60, 4, 10));
+    tx.major.forEach(function (v) { if (v >= -R && v <= R) ctx.fillText(fmt(v, tx.decimals), px(v), M.t + ph + 6); });
+    ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    ty.major.forEach(function (v) { ctx.fillText(fmt(v, ty.decimals), M.l - 6, py(v)); });
+    ctx.fillStyle = k.ink; ctx.font = "500 12px " + k.body; ctx.textAlign = "left"; ctx.textBaseline = "top";
+    ctx.fillText("щільність", 4, 2);
+    ctx.textAlign = "right"; ctx.textBaseline = "bottom"; ctx.fillText(isT ? "t" : "z", M.l + pw, H - 3);
+    /* критичні межі */
+    ctx.setLineDash([6, 4]); ctx.strokeStyle = k.neg; ctx.lineWidth = 1.5;
+    [cr.lo, cr.hi].forEach(function (c) {
+      if (c === -Infinity || c === Infinity || Math.abs(c) > R) return;
+      ctx.beginPath(); ctx.moveTo(px(c), M.t); ctx.lineTo(px(c), M.t + ph); ctx.stroke();
+    });
+    ctx.setLineDash([]);
+    /* спостережена статистика */
+    ctx.strokeStyle = k.ink; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(px(sc), M.t + ph); ctx.lineTo(px(sc), M.t + 6); ctx.stroke();
+    ctx.fillStyle = k.ink; ctx.font = "500 11px " + k.body; ctx.textBaseline = "top";
+    ctx.textAlign = px(sc) > W - 100 ? "right" : "left";
+    halo(ctx, k, (isT ? "t = " : "z = ") + fmt(st, 2) + (Math.abs(st) > R ? " (за межами графіка)" : ""), px(sc) + (px(sc) > W - 100 ? -5 : 5), M.t + 4);
+  }
+
+  function drawCI(k) {
+    var ch = c2, ctx = ch.ctx, W = ch.W, H = ch.H, M = { l: 14, r: 14, t: 14, b: 34 };
+    var pw = W - M.l - M.r, b = Hyp.meanBound(state.xbar, state.scale, state.n, state.alpha, state.kind, state.alt);
+    var pts = [state.mu0, state.xbar];
+    if (isFinite(b.lo)) pts.push(b.lo);
+    if (isFinite(b.hi)) pts.push(b.hi);
+    var mn = Math.min.apply(null, pts), mx = Math.max.apply(null, pts), span = (mx - mn) || state.scale;
+    mn -= 0.3 * span; mx += 0.3 * span;
+    function px(v) { return M.l + (v - mn) / (mx - mn) * pw; }
+    var yc = M.t + (H - M.t - M.b) / 2, base = H - M.b;
+    ctx.clearRect(0, 0, W, H); ctx.fillStyle = k.panel; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = k.ink; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(M.l, base + 0.5); ctx.lineTo(M.l + pw, base + 0.5); ctx.stroke();
+    var tx = S.ticksFor(mn, mx, clamp(pw / 80, 3, 8));
+    ctx.fillStyle = k.muted; ctx.font = "11px " + k.data; ctx.textAlign = "center"; ctx.textBaseline = "top";
+    tx.major.forEach(function (v) { if (v >= mn && v <= mx) ctx.fillText(fmt(v, tx.decimals), px(v), base + 6); });
+    /* μ₀ */
+    ctx.setLineDash([6, 4]); ctx.strokeStyle = k.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(px(state.mu0), M.t); ctx.lineTo(px(state.mu0), base); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = k.ink; ctx.font = "500 11px " + k.body; ctx.textAlign = "center"; ctx.textBaseline = "top";
+    halo(ctx, k, "μ₀", px(state.mu0), M.t - 12 < 0 ? 0 : M.t - 12);
+    /* інтервал */
+    var x0 = isFinite(b.lo) ? px(b.lo) : M.l, x1 = isFinite(b.hi) ? px(b.hi) : M.l + pw;
+    ctx.strokeStyle = k.pos; ctx.fillStyle = k.pos; ctx.lineWidth = 5; ctx.lineCap = "butt";
+    ctx.beginPath(); ctx.moveTo(x0, yc); ctx.lineTo(x1, yc); ctx.stroke();
+    ctx.lineWidth = 2;
+    if (isFinite(b.lo)) { ctx.beginPath(); ctx.moveTo(x0, yc - 9); ctx.lineTo(x0, yc + 9); ctx.stroke(); }
+    else { ctx.beginPath(); ctx.moveTo(M.l + 9, yc - 8); ctx.lineTo(M.l, yc); ctx.lineTo(M.l + 9, yc + 8); ctx.closePath(); ctx.fill(); }
+    if (isFinite(b.hi)) { ctx.beginPath(); ctx.moveTo(x1, yc - 9); ctx.lineTo(x1, yc + 9); ctx.stroke(); }
+    else { ctx.beginPath(); ctx.moveTo(M.l + pw - 9, yc - 8); ctx.lineTo(M.l + pw, yc); ctx.lineTo(M.l + pw - 9, yc + 8); ctx.closePath(); ctx.fill(); }
+    /* x̄ */
+    ctx.fillStyle = k.ink; ctx.strokeStyle = k.panel; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(px(state.xbar), yc, 5.5, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+  }
+
+  function draw() {
+    if (!X || !c1.W) return;
+    var k = colors();
+    drawNull(k);
+    if (c2.W) drawCI(k);
+  }
+  function resizeAll() { c1.resize(); c2.resize(); draw(); }
+
+  function legends() {
+    function item(cls, text) { var s = document.createElement("span"), i = document.createElement("i"); i.className = "sw " + cls; s.appendChild(i); s.appendChild(document.createTextNode(text)); return s; }
+    var l1 = $("legend1");
+    l1.appendChild(item("tail", "хвіст нульового розподілу: його площа це p"));
+    l1.appendChild(item("obs", "значення статистики"));
+    l1.appendChild(item("line", "межі критичної області"));
+    l1.appendChild(item("oth", "N(0; 1) для порівняння (для t)"));
+  }
+
+  /* ---------- Старт ---------- */
+  buildControls(); legends();
+  state.sc = 0; meta = SCENARIOS[0]; syncControls(); newX();
+  if (window.ResizeObserver) {
+    var ro = new ResizeObserver(function () { resizeAll(); });
+    ro.observe($("c1")); ro.observe($("c2"));
+  } else window.addEventListener("resize", resizeAll);
+  if (window.matchMedia) {
+    var mq = window.matchMedia("(prefers-color-scheme: dark)");
+    if (mq.addEventListener) mq.addEventListener("change", draw);
+  }
+  resizeAll();
+  update();
+})();
+</script>
+</body>
+</html>

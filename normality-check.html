@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Перевірка нормальності вибірки</title>
+<meta name="description" content="Q-Q графік, критерій хі-квадрат Пірсона та критерій Шапіро–Вілка для перевірки нормальності вибірки; як потужність залежить від обсягу вибірки.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="common.css">
+<style>
+/* Розкладка: на телефоні один стовпчик (задача, графіки, результат, пояснення);
+   від 900px графіки зліва, показники й пояснення справа */
+.app {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "head" "choose" "charts" "readout" "explain";
+}
+.head { grid-area: head; }
+.backlink { display: inline-block; margin-bottom: 10px; font-size: 13px; }
+.choose { grid-area: choose; }
+.charts { grid-area: charts; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.side { display: contents; }
+.readout { grid-area: readout; }
+.explain { grid-area: explain; }
+
+.statement { margin: 10px 0 0; font-size: 15px; max-width: 72ch; text-wrap: pretty; }
+.hyp { margin: 8px 0 0; font-size: 15px; font-weight: 500; }
+.cfg { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-top: 14px; align-items: end; }
+.fld { display: grid; gap: 4px; min-width: 190px; flex: 1 1 190px; max-width: 340px; }
+.fld label, .fld .lab { font-size: 13.5px; }
+.fld .row { display: grid; grid-template-columns: minmax(0, 1fr) 76px; gap: 10px; align-items: center; }
+.fld input[type="range"] { width: 100%; margin: 0; accent-color: var(--pos); }
+.fld output {
+  font-family: var(--font-data); font-size: 13.5px; font-variant-numeric: tabular-nums; text-align: right;
+  color: var(--ink); background: var(--bg); border: 1px solid var(--grid-strong); border-radius: 4px; padding: 5px 7px;
+}
+.fld .seg { display: flex; flex-wrap: wrap; }
+.fld .seg button { flex: 1 1 auto; min-height: 40px; }
+.note { margin: 12px 0 0; font-size: 13.5px; color: var(--muted); max-width: 72ch; text-wrap: pretty; }
+
+.chart h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; text-wrap: balance; }
+.chart canvas {
+  display: block; width: 100%; background: var(--panel);
+  border: 1px solid var(--grid-strong); border-radius: 6px;
+}
+#c1 { aspect-ratio: 4 / 3; max-height: 56vh; }
+#c2 { aspect-ratio: 16 / 9; max-height: 44vh; }
+.legend { margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; }
+.legend .sw { display: inline-block; width: 14px; height: 12px; border-radius: 2px; vertical-align: -1px; margin-right: 6px; }
+.legend .sw.tail { width: 10px; height: 10px; border-radius: 50%; background: var(--pos); opacity: .85; }
+.legend .sw.line { width: 22px; height: 0; border-radius: 0; border-top: 2px dashed var(--neg); vertical-align: middle; }
+.legend .sw.cur { width: 22px; height: 0; border-radius: 0; border-top: 2.5px solid var(--pos); vertical-align: middle; }
+.legend .sw.oth { width: 22px; height: 0; border-radius: 0; border-top: 2px dashed var(--muted); vertical-align: middle; }
+.legend .sw.bar { background: var(--pos); opacity: .75; }
+.legend .sw.exp { width: 10px; height: 10px; border-radius: 50%; background: var(--ink); }
+.legend .sw.obs { width: 0; height: 14px; border-radius: 0; border-left: 2.5px solid var(--ink); vertical-align: middle; }
+.cmsg { margin: 8px 0 0; font-size: 13.5px; color: var(--muted); max-width: 72ch; text-wrap: pretty; }
+
+.readout dl { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; margin: 10px 0 0; }
+.readout dt { font-size: 12px; color: var(--muted); }
+.readout dd { margin: 0; font-family: var(--font-data); font-size: 18px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.readout .big { grid-column: 1 / -1; }
+.readout .big dd { font-size: clamp(30px, 8vw, 40px); line-height: 1.1; letter-spacing: -0.02em; color: var(--neg); }
+.readout .wide { grid-column: 1 / -1; }
+.readout .wide dd { font-size: 16px; }
+.readout hr { border: 0; border-top: 1px solid var(--grid-strong); margin: 16px 0 0; }
+.verdict { margin: 12px 0 0; font-size: 15px; font-weight: 500; text-wrap: pretty; }
+.xbtns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+
+.explain h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
+.explain p { margin: 8px 0 0; font-size: 14.5px; max-width: 68ch; text-wrap: pretty; }
+.explain p.key { margin-top: 0; }
+
+@media (min-width: 900px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    column-gap: 24px;
+    grid-template-areas: "head head" "choose choose" "charts side";
+  }
+  .side { grid-area: side; display: flex; flex-direction: column; gap: 16px; align-self: start; min-width: 0; }
+}
+.readout h3 { margin: 14px 0 0; font-size: 14px; font-weight: 700; }
+.readout h3:first-of-type { margin-top: 10px; }
+details.more { margin-top: 12px; }
+details.more summary { cursor: pointer; font-size: 14px; font-weight: 500; min-height: 32px; }
+.tbl { overflow-x: auto; margin-top: 8px; }
+.tbl table { border-collapse: collapse; font-family: var(--font-data); font-size: 12.5px; font-variant-numeric: tabular-nums; width: 100%; }
+.tbl th, .tbl td { padding: 4px 8px; text-align: right; border-bottom: 1px solid var(--grid-strong); white-space: nowrap; }
+.tbl th { font-family: var(--font-body); font-weight: 500; color: var(--muted); }
+.tbl td.warn { color: var(--neg); }
+@media (min-width: 900px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    column-gap: 24px;
+    grid-template-areas: "head head" "choose choose" "charts side";
+  }
+  .side { grid-area: side; display: flex; flex-direction: column; gap: 16px; align-self: start; min-width: 0; }
+}
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="head g6">
+    <a class="backlink" href="index.html">← Усі сторінки</a>
+    <p class="kicker">Перевірка гіпотез</p>
+    <div class="titlerow">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 19h20"/><path d="M3 19c2 0 3-12 6-12s4 12 6 12"/><path d="M9 19c2 0 3-12 6-12s4 12 6 12" stroke-dasharray="2 2.2"/><path d="M15.5 7v12"/></svg>
+      <h1>Перевірка нормальності вибірки</h1>
+    </div>
+    <p class="lead">Багато критеріїв припускають, що вибірка з нормального розподілу. Це перевіряють графічно (Q-Q графік) і критеріями: хі-квадрат Пірсона та Шапіро–Вілка. Спробуйте різні розподіли й обсяги вибірки та подивіться, коли критерії помічають відхилення від нормальності, а коли ні.</p>
+  </header>
+
+  <section class="choose panel" aria-label="Вибірка і параметри">
+    <p class="eyebrow">Розподіл, з якого взято вибірку</p>
+    <div class="chips" id="chips" role="group" aria-label="Розподіли"></div>
+    <p class="statement" id="statement"></p>
+    <p class="hyp" id="hyp"></p>
+    <div class="cfg">
+      <div class="fld">
+        <label for="nRange">Обсяг вибірки n</label>
+        <div class="row"><input type="range" id="nRange" min="5" max="1000" step="1" value="50"><output id="nOut" for="nRange">50</output></div>
+      </div>
+      <div class="fld">
+        <label for="kRange">Кількість інтервалів K для χ²</label>
+        <div class="row"><input type="range" id="kRange" min="4" max="20" step="1" value="8"><output id="kOut" for="kRange">8</output></div>
+      </div>
+      <div class="fld">
+        <span class="lab" id="modeLab">Інтервали для χ²</span>
+        <div class="seg" id="modeSeg" role="group" aria-labelledby="modeLab"></div>
+      </div>
+      <div class="fld">
+        <span class="lab" id="alphaLab">Рівень значущості α</span>
+        <div class="seg" id="alphaSeg" role="group" aria-labelledby="alphaLab"></div>
+      </div>
+      <div class="fld">
+        <span class="lab">Вибірка</span>
+        <div class="seg"><button type="button" id="newSample">Нова вибірка</button></div>
+      </div>
+    </div>
+    <p class="note" id="modeNote"></p>
+  </section>
+
+  <div class="charts">
+    <section class="chart" aria-labelledby="h1">
+      <h2 id="h1">Q-Q графік</h2>
+      <canvas id="c1" role="img" aria-label="Q-Q графік"></canvas>
+      <p class="legend" id="legend1"></p>
+      <p class="cmsg">Для нормальної вибірки точки лежать приблизно на прямій. Пряма проведена через перший і третій квартилі вибірки. Систематичне відхилення вказує на форму розподілу: S-подібна крива означає важкі або легкі хвости, дуга означає скошеність.</p>
+    </section>
+    <section class="chart" aria-labelledby="h2">
+      <h2 id="h2">Частоти в інтервалах: спостережені й очікувані</h2>
+      <canvas id="c2" role="img" aria-label="Спостережені й очікувані частоти"></canvas>
+      <p class="legend" id="legend2"></p>
+      <p class="cmsg" id="binMsg"></p>
+    </section>
+  </div>
+
+  <div class="side">
+    <section class="readout panel" aria-labelledby="rTitle">
+      <p class="eyebrow" id="rTitle">Результат</p>
+      <h3>Критерій Шапіро–Вілка</h3>
+      <dl>
+        <div class="big"><dt><span class="tex">p</span>-значення</dt><dd id="swP">—</dd></div>
+        <div><dt>Статистика <span class="tex">W</span></dt><dd id="swW">—</dd></div>
+        <div><dt>Рівень значущості α</dt><dd id="rAlpha">—</dd></div>
+      </dl>
+      <p class="verdict" id="swVerdict"></p>
+      <h3>Критерій χ² Пірсона</h3>
+      <dl>
+        <div class="big"><dt><span class="tex">p</span>-значення</dt><dd id="chP">—</dd></div>
+        <div><dt>Статистика χ²</dt><dd id="chX">—</dd></div>
+        <div><dt>Ступені свободи</dt><dd id="chDf">—</dd></div>
+      </dl>
+      <p class="verdict" id="chVerdict"></p>
+      <p class="cmsg" id="chWarn"></p>
+      <p class="cmsg" id="concl"></p>
+      <details class="more">
+        <summary>Детальні обчислення χ²</summary>
+        <div class="tbl" id="tbl"></div>
+      </details>
+      <hr>
+      <p class="eyebrow" style="margin-top:14px">Багато вибірок із цього розподілу</p>
+      <p class="cmsg" style="margin-top:6px" id="xIntro"></p>
+      <div class="xbtns" role="group" aria-label="Повторення вибірок">
+        <button type="button" class="btn primary" id="add10">+10</button>
+        <button type="button" class="btn" id="add100">+100</button>
+        <button type="button" class="btn" id="add1000">+1 000</button>
+        <button type="button" class="btn" id="xReset">Скинути</button>
+      </div>
+      <dl>
+        <div><dt>Вибірок</dt><dd id="xN">0</dd></div>
+        <div></div>
+        <div><dt>Шапіро–Вілк: частка відхилень H₀</dt><dd id="xSw">—</dd></div>
+        <div><dt>χ²: частка відхилень H₀</dt><dd id="xCh">—</dd></div>
+      </dl>
+      <p class="cmsg" id="xNote"></p>
+    </section>
+
+    <section class="explain panel" aria-labelledby="eTitle">
+      <h2 id="eTitle">Що тут відбувається</h2>
+      <p class="key"><strong>Постановка.</strong> Нульова гіпотеза <span class="tex">H₀</span>: вибірка <span class="tex" data-tex="X^n=(X_1,\dots,X_n)">Xⁿ = (X₁, …, Xₙ)</span> взята з нормального розподілу <span class="tex" data-tex="N(\mu,\sigma^2)">N(μ, σ²)</span> із невідомими μ і σ. Альтернатива <span class="tex">H₁</span>: розподіл не нормальний.</p>
+      <p><strong>Q-Q графік.</strong> Впорядковані значення <span class="tex" data-tex="x_{(1)}\le\dots\le x_{(n)}">x₍₁₎ ≤ … ≤ x₍ₙ₎</span> відкладають проти квантилів стандартного нормального розподілу <span class="tex" data-tex="z_i=\Phi^{-1}\!\left(\dfrac{i-3/8}{n+1/4}\right)">zᵢ = Φ⁻¹((i − 3/8)/(n + 1/4))</span>. Якщо вибірка нормальна, точки лежать приблизно на прямій <span class="tex" data-tex="x=\mu+\sigma z">x = μ + σz</span>.</p>
+      <p><strong>Критерій χ² Пірсона.</strong> Область значень розбивають на <span class="tex">K</span> інтервалів. Якщо <span class="tex" data-tex="n_i">nᵢ</span> число значень в інтервалі, а <span class="tex" data-tex="p_i">pᵢ</span> імовірність потрапити в нього за нормальним розподілом із параметрами <span class="tex" data-tex="\bar x">x̄</span> і <span class="tex" data-tex="\hat\sigma">σ̂</span>, то <span class="tex" data-tex="\chi^2=\sum_{i=1}^{K}\dfrac{(n_i-np_i)^2}{np_i}">χ² = Σ (nᵢ − npᵢ)²/(npᵢ)</span>. Нульовий розподіл χ² із <span class="tex" data-tex="K-3">K − 3</span> ступенями свободи: від <span class="tex" data-tex="K-1">K − 1</span> віднімають 2 за дві оцінені величини. Це наближення; точніше, коли параметри оцінено за початковими даними, справжній нульовий розподіл лежить між χ²(K − 3) і χ²(K − 1) (Chernoff, Lehmann, 1954), тому p за K − 3 трохи занижене. Орієнтир: очікувані <span class="tex" data-tex="np_i">npᵢ</span> мають бути не менші за 5 принаймні у 80 % інтервалів.</p>
+      <p><strong>Критерій Шапіро–Вілка.</strong> Статистика <span class="tex" data-tex="W=\dfrac{\left(\sum a_i x_{(i)}\right)^2}{\sum (x_i-\bar x)^2}">W = (Σ aᵢx₍ᵢ₎)²/Σ(xᵢ − x̄)²</span> порівнює впорядковану вибірку з тим, якою вона була б для нормального розподілу (коефіцієнти <span class="tex" data-tex="a_i">aᵢ</span> побудовано з сподівань порядкових статистик). Для нормальної вибірки <span class="tex">W</span> близька до 1, мале <span class="tex">W</span> свідчить проти нормальності. Тут <span class="tex">p</span>-значення обчислено за наближенням Ройстона (1992), чинним для <span class="tex">n</span> від 3 до 5000.</p>
+      <p><strong>Що означає «не відхиляємо».</strong> Якщо <span class="tex" data-tex="p>\alpha">p &gt; α</span>, дані не суперечать нормальності, але цього недостатньо, щоб її довести. Потужність залежить від обсягу вибірки: при малому <span class="tex">n</span> критерії рідко помічають навіть помітні відхилення, а при дуже великому відхиляють нормальність через відхилення, які на практиці нічого не змінюють. Тому поруч із критерієм дивляться на Q-Q графік.</p>
+      <p><strong>Навіщо перевіряти.</strong> Критерії Стьюдента й інші параметричні критерії виведено для нормальних даних. На малих вибірках із явно ненормальними даними вони можуть працювати погано, а на великих середнє наближено нормальне й без нормальності даних, тож вимоги до неї слабші.</p>
+      <p><strong>Порядок дій.</strong> Спочатку подивитися на Q-Q графік і форму розподілу, потім застосувати критерій (для вибірок середнього обсягу зазвичай Шапіро–Вілка, χ² Пірсона зручніший для великих вибірок і згрупованих даних). Якщо нормальність відхилено, розглядають перетворення даних (наприклад, логарифм) або непараметричні критерії.</p>
+    </section>
+  </div>
+</main>
+
+<div class="sr-only" id="sr" role="status" aria-live="polite"></div>
+
+<script src="common.js"></script>
+<script src="formulas.js"></script>
+<script src="distributions.js"></script>
+<script src="random.js"></script>
+<script src="normality.js"></script>
+<script>
+(function () {
+  "use strict";
+  var S = Stat, fmt = S.fmt, clamp = S.clamp;
+
+  /* ---------- Розподіли, з яких беруть вибірку ---------- */
+  function chi2draw(rng, nu) { var s = 0, i, z; for (i = 0; i < nu; i++) { z = rng.normal(); s += z * z; } return s; }
+  function tdraw(rng, nu) { return rng.normal() / Math.sqrt(chi2draw(rng, nu) / nu); }
+  var SOURCES = [
+    { id: "norm", name: "Нормальний", normal: true, gen: function (r) { return r.normal(); },
+      text: "Нормальний розподіл N(0; 1). H₀ істинна." },
+    { id: "t10", name: "Майже нормальний (t₁₀)", normal: false, gen: function (r) { return tdraw(r, 10); },
+      text: "Розподіл Стьюдента з 10 ступенями свободи: симетричний, дуже схожий на нормальний, але з трохи важчими хвостами. H₀ хибна." },
+    { id: "t3", name: "Важкі хвости (t₃)", normal: false, gen: function (r) { return tdraw(r, 3); },
+      text: "Розподіл Стьюдента з 3 ступенями свободи: симетричний, із важкими хвостами. H₀ хибна." },
+    { id: "exp", name: "Скошений (експоненційний)", normal: false, gen: function (r) { return r.exp(1); },
+      text: "Експоненційний розподіл із параметром 1: сильно скошений управо. H₀ хибна." },
+    { id: "bi", name: "Дві вершини", normal: false, gen: function (r) { return r.bimodal(1.5, 0.5); },
+      text: "Суміш N(−1,5; 0,5²) і N(1,5; 0,5²) порівну: розподіл із двома вершинами. H₀ хибна." },
+    { id: "uni", name: "Рівномірний", normal: false, gen: function (r) { return r.uniform(0, 1); },
+      text: "Рівномірний розподіл на [0; 1]: без хвостів. H₀ хибна." }
+  ];
+  var MODES = [
+    { id: "prob", name: "Рівноймовірні" },
+    { id: "width", name: "Рівної довжини" }
+  ];
+  var ALPHAS = [0.01, 0.05, 0.1];
+
+  function $(id) { return document.getElementById(id); }
+  function group(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " "); }
+  function fmtP(p) { return p < 0.0001 ? "< 0,0001" : fmt(p, 4); }
+  function setText(id, s) { var e = $(id); e.textContent = ""; Tex.text(e, s); }
+
+  var state = { src: 0, n: 50, K: 8, mode: "prob", alpha: 0.05, seed: 2026 };
+  var data = null, qq = null, sw = null, ch = null, X = null;
+
+  function source() { return SOURCES[state.src]; }
+  function sample(rng, n) { var v = [], i, g = source().gen; for (i = 0; i < n; i++) v.push(g(rng)); return v; }
+  function newData() { data = sample(Rand.create(Rand.seedFor(state.seed, 0)), state.n); }
+  function newX() { X = { N: 0, sw: 0, ch: 0, rng: Rand.create(Rand.seedFor(state.seed, 1)) }; }
+  function runX(count) {
+    var i, s, c;
+    for (i = 0; i < count; i++) {
+      var v = sample(X.rng, state.n);
+      s = Norm.shapiroWilk(v); c = Norm.chiSquare(v, state.K, state.mode);
+      if (s && s.p <= state.alpha) X.sw++;
+      if (c && c.p <= state.alpha) X.ch++;
+      X.N++;
+    }
+  }
+
+  /* ---------- Керування ---------- */
+  var sayTimer = null;
+  function say(text, delay) {
+    clearTimeout(sayTimer);
+    sayTimer = setTimeout(function () { $("sr").textContent = ""; $("sr").textContent = text; }, delay || 0);
+  }
+  var chipEls = [], modeEls = [], alphaEls = [];
+  function changed() { newData(); newX(); syncControls(); update(); }
+  function buildControls() {
+    SOURCES.forEach(function (s, i) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "chip"; b.textContent = s.name;
+      b.setAttribute("aria-pressed", "false");
+      b.addEventListener("click", function () { state.src = i; changed(); say(s.name + "."); });
+      $("chips").appendChild(b); chipEls.push(b);
+    });
+    MODES.forEach(function (m) {
+      var b = document.createElement("button");
+      b.type = "button"; b.textContent = m.name;
+      b.addEventListener("click", function () { state.mode = m.id; newX(); syncControls(); update(); say("Інтервали: " + m.name.toLowerCase() + "."); });
+      $("modeSeg").appendChild(b); modeEls.push(b);
+    });
+    ALPHAS.forEach(function (v) {
+      var b = document.createElement("button");
+      b.type = "button"; b.textContent = fmt(v, 2);
+      b.addEventListener("click", function () { state.alpha = v; newX(); syncControls(); update(); say("α = " + fmt(v, 2) + "."); });
+      $("alphaSeg").appendChild(b); alphaEls.push(b);
+    });
+  }
+  function syncControls() {
+    chipEls.forEach(function (b, i) { b.setAttribute("aria-pressed", String(i === state.src)); });
+    modeEls.forEach(function (b, i) { b.setAttribute("aria-pressed", String(MODES[i].id === state.mode)); });
+    alphaEls.forEach(function (b, i) { b.setAttribute("aria-pressed", String(ALPHAS[i] === state.alpha)); });
+    $("nRange").value = String(state.n); $("nOut").textContent = String(state.n);
+    $("kRange").value = String(state.K); $("kOut").textContent = String(state.K);
+    $("modeNote").textContent = state.mode === "prob"
+      ? "Рівноймовірні інтервали: межі підібрано так, щоб за нормальним розподілом із параметрами x̄ і σ̂ в кожен потрапляла частка 1/K значень. Очікувані частоти однакові: n/K."
+      : "Інтервали рівної довжини: K − 2 внутрішніх інтервали однакової довжини між x̄ − 3σ̂ і x̄ + 3σ̂ та два крайні, необмежені. Очікувані частоти в крайніх інтервалах малі.";
+  }
+  $("nRange").addEventListener("input", function (e) { state.n = Number(e.target.value); $("nOut").textContent = String(state.n); newData(); newX(); update(); });
+  $("kRange").addEventListener("input", function (e) { state.K = Number(e.target.value); $("kOut").textContent = String(state.K); newX(); update(); });
+  $("newSample").addEventListener("click", function () { state.seed++; newData(); update(); say("Нова вибірка."); });
+  function addX(count) { runX(count); update(); say("Вибірок: " + group(X.N) + ". Шапіро–Вілк відхилив H₀ у частці " + fmt(X.sw / X.N, 3) + ", χ² у частці " + fmt(X.ch / X.N, 3) + ".", 400); }
+  [["add10", 10], ["add100", 100], ["add1000", 1000]].forEach(function (p) {
+    $(p[0]).addEventListener("click", function () { addX(p[1]); });
+  });
+  $("xReset").addEventListener("click", function () { newX(); update(); say("Лічильник скинуто."); });
+
+  /* ---------- Тексти ---------- */
+  function update() {
+    var n = state.n, K = state.K, a = state.alpha, src = source();
+    qq = Norm.qq(data); sw = Norm.shapiroWilk(data); ch = Norm.chiSquare(data, K, state.mode);
+    setText("statement", src.text + " Вибірка: n = " + n + ".");
+    Tex.mix($("hyp"), [{ m: "H₀" }, ": вибірка з нормального розподілу. ", { m: "H₁" }, ": розподіл не нормальний."]);
+    $("rAlpha").textContent = fmt(a, 2);
+    $("swW").textContent = sw ? fmt(sw.W, 4) : "—";
+    $("swP").textContent = sw ? fmtP(sw.p) : "—";
+    $("chX").textContent = ch ? fmt(ch.chi2, 2) : "—";
+    $("chDf").textContent = ch ? String(ch.df) : "—";
+    $("chP").textContent = ch ? fmtP(ch.p) : "—";
+    var swRej = sw && sw.p <= a, chRej = ch && ch.p <= a;
+    setText("swVerdict", !sw ? "Критерій Шапіро–Вілка визначений для n від 3 до 5000."
+      : swRej ? "p ≤ α: відхиляємо H₀, нормальність не підтверджується." : "p > α: не відхиляємо H₀. Це не доказ нормальності.");
+    setText("chVerdict", !ch ? "Недостатньо даних."
+      : chRej ? "p ≤ α: відхиляємо H₀, нормальність не підтверджується." : "p > α: не відхиляємо H₀. Це не доказ нормальності.");
+    $("chWarn").textContent = ch && ch.small > 0.2 + 1e-9
+      ? "Очікувана частота менша за 5 у " + Math.round(ch.small * 100) + " % інтервалів (орієнтир: не більше 20 %), тому наближення χ² ненадійне. Зменшіть K або збільште n."
+      : "";
+    var concl = "";
+    if (sw && ch && swRej !== chRej) concl = "Критерії дали різні рішення: вони по-різному чутливі до типу відхилення.";
+    else if (!src.normal && !swRej && !chRej) concl = "Розподіл не нормальний, але критерії цього не помітили: вибірка замала для такої різниці. Збільшіть n.";
+    else if (src.normal && (swRej || chRej)) concl = "Розподіл нормальний, а H₀ відхилено: це помилка I роду, її ймовірність дорівнює α (приблизно). Натисніть «Нова вибірка».";
+    $("concl").textContent = concl;
+    /* таблиця */
+    var t = $("tbl"); t.textContent = "";
+    if (ch) {
+      var tb = document.createElement("table"), html = "<thead><tr><th>№</th><th>Інтервал</th><th>nᵢ</th><th>npᵢ</th><th>(nᵢ − npᵢ)²/(npᵢ)</th></tr></thead><tbody>", j;
+      for (j = 0; j < K; j++) {
+        var lo = j === 0 ? "−∞" : fmt(ch.edges[j - 1], 2), hi = j === K - 1 ? "∞" : fmt(ch.edges[j], 2);
+        var e = ch.expected[j], cls = e < 5 - 1e-9 ? ' class="warn"' : "";
+        html += "<tr><td>" + (j + 1) + "</td><td>[" + lo + "; " + hi + ")</td><td>" + ch.observed[j] + "</td><td" + cls + ">" + fmt(e, 2) + "</td><td>" + fmt((ch.observed[j] - e) * (ch.observed[j] - e) / e, 3) + "</td></tr>";
+      }
+      tb.innerHTML = html + "</tbody>"; t.appendChild(tb);
+    }
+    $("binMsg").textContent = ch ? "Стовпчики це спостережені частоти nᵢ, точки це очікувані npᵢ за нормальним розподілом із x̄ = " + fmt(mean(data), 2) + " і σ̂ = " + fmt(sd(data), 2) + ". Пунктир позначає 5." : "";
+    /* повторення вибірок */
+    $("xIntro").textContent = "Береться багато незалежних вибірок обсягу n з вибраного розподілу, для кожної рахують обидва критерії з поточними K, типом інтервалів і α.";
+    $("xN").textContent = group(X.N);
+    $("xSw").textContent = X.N > 0 ? fmt(X.sw / X.N, 3) : "—";
+    $("xCh").textContent = X.N > 0 ? fmt(X.ch / X.N, 3) : "—";
+    $("xNote").textContent = src.normal
+      ? "Розподіл нормальний, тому частка відхилень має бути близькою до α = " + fmt(a, 2) + ". Для χ² вона може бути трохи вищою через оцінку параметрів за початковими даними."
+      : "Розподіл не нормальний, тому частка відхилень це потужність критерію: ймовірність помітити відхилення при такому n. Змініть n й порівняйте.";
+    $("c1").setAttribute("aria-label", "Q-Q графік, n = " + n);
+    $("c2").setAttribute("aria-label", "Спостережені й очікувані частоти в " + K + " інтервалах");
+    draw();
+    say("p-значення Шапіро–Вілка " + (sw ? fmtP(sw.p) : "не визначене") + ", χ² " + (ch ? fmtP(ch.p) : "не визначене") + ".", 500);
+  }
+  function mean(v) { var s = 0, i; for (i = 0; i < v.length; i++) s += v[i]; return s / v.length; }
+  function sd(v) { var m = mean(v), s = 0, i; for (i = 0; i < v.length; i++) s += (v[i] - m) * (v[i] - m); return Math.sqrt(s / v.length); }
+
+  /* ---------- Малювання ---------- */
+  function Chart(el) { this.el = el; this.ctx = el.getContext("2d"); this.W = 0; this.H = 0; }
+  Chart.prototype.resize = function () {
+    var rect = this.el.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    this.W = rect.width; this.H = rect.height;
+    this.el.width = Math.max(1, Math.round(this.W * dpr));
+    this.el.height = Math.max(1, Math.round(this.H * dpr));
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  };
+  var c1 = new Chart($("c1")), c2 = new Chart($("c2"));
+  function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  function colors() {
+    return {
+      panel: cssVar("--panel"), grid: cssVar("--grid"), strong: cssVar("--grid-strong"),
+      muted: cssVar("--muted"), ink: cssVar("--ink"), pos: cssVar("--pos"), neg: cssVar("--neg"),
+      data: cssVar("--font-data"), body: cssVar("--font-body")
+    };
+  }
+
+  function drawQQ(k) {
+    var ctx = c1.ctx, W = c1.W, H = c1.H, M = { l: 50, r: 14, t: 22, b: 38 };
+    var pw = W - M.l - M.r, ph = H - M.t - M.b, n = qq.x.length, i;
+    var zmin = qq.z[0], zmax = qq.z[n - 1], pad = 0.15;
+    zmin -= pad; zmax += pad;
+    var lo = Math.min(qq.x[0], qq.intercept + qq.slope * zmin), hi = Math.max(qq.x[n - 1], qq.intercept + qq.slope * zmax);
+    var yp = (hi - lo) * 0.06 || 1; lo -= yp; hi += yp;
+    function px(z) { return M.l + (z - zmin) / (zmax - zmin) * pw; }
+    function py(v) { return M.t + (1 - (v - lo) / (hi - lo)) * ph; }
+    ctx.clearRect(0, 0, W, H); ctx.fillStyle = k.panel; ctx.fillRect(0, 0, W, H);
+    var ty = S.ticksFor(lo, hi, clamp(ph / 42, 3, 7)), tx = S.ticksFor(zmin, zmax, clamp(pw / 60, 4, 9));
+    ctx.lineWidth = 1; ctx.strokeStyle = k.grid; ctx.beginPath();
+    ty.major.forEach(function (v) { var y = Math.round(py(v)) + 0.5; ctx.moveTo(M.l, y); ctx.lineTo(M.l + pw, y); });
+    tx.major.forEach(function (v) { var x = Math.round(px(v)) + 0.5; ctx.moveTo(x, M.t); ctx.lineTo(x, M.t + ph); });
+    ctx.stroke();
+    ctx.strokeStyle = k.ink; ctx.lineWidth = 1.2; ctx.beginPath();
+    ctx.moveTo(M.l + 0.5, M.t); ctx.lineTo(M.l + 0.5, M.t + ph + 0.5); ctx.lineTo(M.l + pw, M.t + ph + 0.5); ctx.stroke();
+    ctx.fillStyle = k.muted; ctx.font = "11px " + k.data; ctx.textBaseline = "top"; ctx.textAlign = "center";
+    tx.major.forEach(function (v) { if (v >= zmin && v <= zmax) ctx.fillText(fmt(v, tx.decimals), px(v), M.t + ph + 6); });
+    ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    ty.major.forEach(function (v) { if (v >= lo && v <= hi) ctx.fillText(fmt(v, ty.decimals), M.l - 6, py(v)); });
+    ctx.fillStyle = k.ink; ctx.font = "500 12px " + k.body; ctx.textAlign = "left"; ctx.textBaseline = "top";
+    ctx.fillText("значення вибірки", 4, 2);
+    ctx.textAlign = "right"; ctx.textBaseline = "bottom"; ctx.fillText("квантилі N(0; 1)", M.l + pw, H - 3);
+    /* опорна пряма через квартилі */
+    ctx.save(); ctx.beginPath(); ctx.rect(M.l, M.t, pw, ph); ctx.clip();
+    ctx.setLineDash([6, 4]); ctx.strokeStyle = k.neg; ctx.lineWidth = 1.8; ctx.beginPath();
+    ctx.moveTo(px(zmin), py(qq.intercept + qq.slope * zmin)); ctx.lineTo(px(zmax), py(qq.intercept + qq.slope * zmax)); ctx.stroke();
+    ctx.setLineDash([]);
+    /* точки */
+    var r = n > 300 ? 2 : n > 100 ? 2.6 : 3.4;
+    ctx.fillStyle = k.pos; ctx.globalAlpha = n > 300 ? 0.7 : 0.85;
+    for (i = 0; i < n; i++) { ctx.beginPath(); ctx.arc(px(qq.z[i]), py(qq.x[i]), r, 0, 2 * Math.PI); ctx.fill(); }
+    ctx.globalAlpha = 1; ctx.restore();
+  }
+
+  function drawBins(k) {
+    var ctx = c2.ctx, W = c2.W, H = c2.H, M = { l: 44, r: 14, t: 22, b: 30 };
+    ctx.clearRect(0, 0, W, H); ctx.fillStyle = k.panel; ctx.fillRect(0, 0, W, H);
+    if (!ch) return;
+    var pw = W - M.l - M.r, ph = H - M.t - M.b, K = ch.observed.length, j, mx = 5;
+    for (j = 0; j < K; j++) mx = Math.max(mx, ch.observed[j], ch.expected[j]);
+    mx *= 1.12;
+    function py(v) { return M.t + (1 - v / mx) * ph; }
+    var slot = pw / K, ty = S.ticksFor(0, mx, clamp(ph / 40, 3, 7));
+    ctx.lineWidth = 1; ctx.strokeStyle = k.grid; ctx.beginPath();
+    ty.major.forEach(function (v) { var y = Math.round(py(v)) + 0.5; ctx.moveTo(M.l, y); ctx.lineTo(M.l + pw, y); });
+    ctx.stroke();
+    ctx.fillStyle = k.pos; ctx.globalAlpha = 0.75;
+    for (j = 0; j < K; j++) {
+      var bw = Math.max(2, slot * 0.7), x0 = M.l + slot * j + (slot - bw) / 2;
+      ctx.fillRect(x0, py(ch.observed[j]), bw, py(0) - py(ch.observed[j]));
+    }
+    ctx.globalAlpha = 1;
+    /* поріг 5 */
+    ctx.setLineDash([5, 4]); ctx.strokeStyle = k.muted; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(M.l, py(5)); ctx.lineTo(M.l + pw, py(5)); ctx.stroke(); ctx.setLineDash([]);
+    /* очікувані */
+    ctx.fillStyle = k.ink; ctx.strokeStyle = k.panel; ctx.lineWidth = 2;
+    for (j = 0; j < K; j++) { ctx.beginPath(); ctx.arc(M.l + slot * (j + 0.5), py(ch.expected[j]), 4.5, 0, 2 * Math.PI); ctx.fill(); ctx.stroke(); }
+    ctx.strokeStyle = k.ink; ctx.lineWidth = 1.2; ctx.beginPath();
+    ctx.moveTo(M.l + 0.5, M.t); ctx.lineTo(M.l + 0.5, M.t + ph + 0.5); ctx.lineTo(M.l + pw, M.t + ph + 0.5); ctx.stroke();
+    ctx.fillStyle = k.muted; ctx.font = "11px " + k.data; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    ty.major.forEach(function (v) { ctx.fillText(fmt(v, ty.decimals), M.l - 6, py(v)); });
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    var step = Math.ceil(K / Math.max(1, Math.floor(pw / 26)));
+    for (j = 0; j < K; j += step) ctx.fillText(String(j + 1), M.l + slot * (j + 0.5), M.t + ph + 6);
+    ctx.fillStyle = k.ink; ctx.font = "500 12px " + k.body; ctx.textAlign = "left"; ctx.textBaseline = "top";
+    ctx.fillText("частота", 4, 2);
+    ctx.textAlign = "right"; ctx.textBaseline = "bottom"; ctx.fillText("номер інтервалу", M.l + pw, H - 3);
+  }
+
+  function draw() {
+    if (!data || !qq) return;
+    var k = colors();
+    if (c1.W) drawQQ(k);
+    if (c2.W) drawBins(k);
+  }
+  function resizeAll() { c1.resize(); c2.resize(); draw(); }
+
+  function legends() {
+    function item(cls, text) { var s = document.createElement("span"), i = document.createElement("i"); i.className = "sw " + cls; s.appendChild(i); s.appendChild(document.createTextNode(text)); return s; }
+    var l1 = $("legend1"), l2 = $("legend2");
+    l1.appendChild(item("tail", "значення вибірки проти квантилів"));
+    l1.appendChild(item("line", "пряма через квартилі"));
+    l2.appendChild(item("bar", "спостережена nᵢ"));
+    l2.appendChild(item("exp", "очікувана npᵢ"));
+    l2.appendChild(item("oth", "рівень 5"));
+  }
+
+  /* ---------- Старт ---------- */
+  buildControls(); legends();
+  newData(); newX(); syncControls();
+  if (window.ResizeObserver) {
+    var ro = new ResizeObserver(function () { resizeAll(); });
+    ro.observe($("c1")); ro.observe($("c2"));
+  } else window.addEventListener("resize", resizeAll);
+  if (window.matchMedia) {
+    var mq = window.matchMedia("(prefers-color-scheme: dark)");
+    if (mq.addEventListener) mq.addEventListener("change", draw);
+  }
+  resizeAll();
+  update();
+})();
+</script>
+</body>
+</html>

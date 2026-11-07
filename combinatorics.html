@@ -1,0 +1,901 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Комбінаторика: розміщення, перестановки, сполучення</title>
+<meta name="description" content="Скількома способами можна вибрати й упорядкувати елементи: розміщення, перестановки, сполучення, з повтореннями й без. Класичні задачі, повний перелік варіантів, ряд трикутника Паскаля, лотерея, дні народження.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="common.css">
+<style>
+.app {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "head" "choose" "charts" "readout" "explain";
+}
+.head { grid-area: head; }
+.backlink { display: inline-block; margin-bottom: 10px; font-size: 13px; }
+.choose { grid-area: choose; }
+.charts { grid-area: charts; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.side { display: contents; }
+.app.nocharts .charts { display: none; }
+.readout { grid-area: readout; }
+.explain { grid-area: explain; }
+
+.statement { margin: 10px 0 0; font-size: 15px; max-width: 72ch; text-wrap: pretty; }
+.cfg { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-top: 14px; align-items: end; }
+.fld { display: grid; gap: 4px; min-width: 190px; flex: 1 1 190px; max-width: 340px; }
+.fld label, .fld .lab { font-size: 13.5px; }
+.fld .row { display: grid; grid-template-columns: minmax(0, 1fr) 76px; gap: 10px; align-items: center; }
+.fld input[type="range"] { width: 100%; margin: 0; accent-color: var(--pos); }
+.fld input[type="range"]:disabled { opacity: .45; }
+.fld output {
+  font-family: var(--font-data); font-size: 13.5px; font-variant-numeric: tabular-nums; text-align: right;
+  color: var(--ink); background: var(--bg); border: 1px solid var(--grid-strong); border-radius: 4px; padding: 5px 7px;
+}
+.fld .seg { display: flex; flex-wrap: wrap; }
+.fld .seg button { flex: 1 1 auto; min-height: 40px; }
+.fld .seg button:disabled { cursor: default; }
+.fld .seg button:disabled[aria-pressed="false"] { opacity: .5; }
+.fld input[type="text"] {
+  font-family: var(--font-data); font-size: 16px; letter-spacing: .08em; color: var(--ink); background: var(--bg);
+  border: 1px solid var(--grid-strong); border-radius: 6px; padding: 8px 10px; min-height: 40px; width: 100%; box-sizing: border-box;
+}
+.note { margin: 12px 0 0; font-size: 13.5px; color: var(--muted); max-width: 72ch; text-wrap: pretty; }
+.cmsg { margin: 8px 0 0; font-size: 13.5px; color: var(--muted); max-width: 72ch; text-wrap: pretty; }
+
+.chart h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; text-wrap: balance; }
+.chart canvas {
+  display: block; width: 100%; background: var(--panel);
+  border: 1px solid var(--grid-strong); border-radius: 6px;
+}
+#c1 { aspect-ratio: 16 / 7; max-height: 40vh; min-height: 150px; }
+.vars { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.vars li {
+  font-family: var(--font-data); font-size: 13px; padding: 4px 9px; border-radius: 4px; background: var(--soft);
+  border: 1px solid var(--grid-strong); font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+
+.vars button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+.vars li.sel { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.vz-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0 0; align-items: flex-end; }
+.vz-slot { display: grid; gap: 4px; justify-items: center; }
+.vz-slot .cnt { font-family: var(--font-data); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.vz-cell { width: 46px; height: 46px; border: 2px dashed var(--grid-strong); border-radius: 6px; display: grid; place-items: center; font: 500 18px var(--font-data); color: var(--ink); background: var(--panel); }
+.vz-cell.filled { border-style: solid; border-color: var(--pos); background: var(--soft); }
+.vz-pool { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.vz-pool button, .vz-grid button {
+  min-width: 40px; min-height: 40px; padding: 0 8px; font: 500 15px var(--font-data); color: var(--ink); background: var(--panel);
+  border: 1px solid var(--grid-strong); border-radius: 6px; cursor: pointer; font-variant-numeric: tabular-nums;
+}
+.vz-pool button:disabled { opacity: .35; cursor: default; }
+.vz-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 6px; margin-top: 12px; max-width: 560px; }
+.vz-grid button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.vz-grid button.drawn { outline: 3px solid var(--neg); outline-offset: 1px; }
+.vz-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.vz-tiles { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.vz-tiles span { font-family: var(--font-data); font-size: 14px; padding: 4px 9px; border-radius: 4px; background: var(--soft); border: 1px solid var(--grid-strong); }
+.vz-tiles span.key { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.vz-tiles span.dup { background: var(--neg); color: var(--bg); border-color: var(--neg); }
+.vz-tiles .c0 { border-color: var(--h1); color: var(--h1); } .vz-tiles .c1 { border-color: var(--h2); color: var(--h2); }
+.vz-tiles .c2 { border-color: var(--h3); color: var(--h3); } .vz-tiles .c3 { border-color: var(--h4); color: var(--h4); }
+.vz-lab { margin: 12px 0 0; font-size: 13px; color: var(--muted); }
+.vz-bars { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 4px 6px; margin-top: 10px; }
+.vz-grp { display: grid; justify-items: center; gap: 4px; }
+.vz-grp .st { min-width: 20px; min-height: 30px; padding: 4px 8px; border: 1px solid var(--grid-strong); border-radius: 6px; background: var(--panel); color: var(--neg); font-size: 18px; letter-spacing: 2px; text-align: center; }
+.vz-grp .nm { font: 500 13px var(--font-data); color: var(--muted); }
+.vz-bar { font: 500 28px var(--font-data); color: var(--ink); padding-bottom: 22px; }
+svg.vz-table { display: block; width: 100%; max-width: 320px; margin: 10px auto 0; }
+svg.vz-table circle.tb { fill: var(--soft); stroke: var(--grid-strong); stroke-width: 2; }
+svg.vz-table circle.pe { fill: var(--panel); stroke: var(--pos); stroke-width: 2; }
+svg.vz-table circle.pe.a { fill: var(--neg); stroke: var(--neg); }
+svg.vz-table text { fill: var(--ink); font: 500 14px var(--font-data); text-anchor: middle; dominant-baseline: central; }
+svg.vz-table circle.pe.a + text { fill: var(--bg); }
+
+.readout dl { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; margin: 10px 0 0; }
+.readout dt { font-size: 12px; color: var(--muted); }
+.readout dd { margin: 0; font-family: var(--font-data); font-size: 18px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.readout .big { grid-column: 1 / -1; }
+.readout .big dd { font-size: clamp(28px, 7.5vw, 38px); line-height: 1.1; letter-spacing: -0.02em; color: var(--neg); }
+.readout .wide { grid-column: 1 / -1; }
+.readout .wide dd { font-size: 16px; font-family: var(--font-body); }
+.readout hr { border: 0; border-top: 1px solid var(--grid-strong); margin: 16px 0 0; }
+.formula { margin: 12px 0 0; font-size: 16px; overflow-x: auto; max-width: 100%; }
+.verdict { margin: 12px 0 0; font-size: 15px; font-weight: 500; text-wrap: pretty; }
+table.ctab { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13.5px; }
+.ctab th, .ctab td { text-align: left; padding: 6px 6px; border-bottom: 1px solid var(--grid); vertical-align: baseline; }
+.ctab td.v { font-family: var(--font-data); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ctab tr.cur th, .ctab tr.cur td { font-weight: 700; background: var(--soft); }
+
+.explain h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
+.explain p { margin: 8px 0 0; font-size: 14.5px; max-width: 68ch; text-wrap: pretty; }
+.explain p.key { margin-top: 0; }
+
+@media (min-width: 900px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    column-gap: 24px;
+    grid-template-areas: "head head" "choose choose" "charts side";
+  }
+  .app.nocharts { grid-template-areas: "head head" "choose choose" "side side"; }
+  .side { grid-area: side; display: flex; flex-direction: column; gap: 16px; align-self: start; min-width: 0; }
+}
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="head g3">
+    <a class="backlink" href="index.html">← Усі сторінки</a>
+    <p class="kicker">Комбінаторика</p>
+    <div class="titlerow">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h4M4 12h4M4 18h4"/><path d="M12 6c5 0 4 12 9 12M12 18c5 0 4-12 9-12"/></svg>
+      <h1>Розміщення, перестановки, сполучення</h1>
+    </div>
+    <p class="lead">Скількома способами можна вибрати з n різних елементів k штук? Відповідь залежить від двох питань: чи важливий порядок і чи можна брати той самий елемент повторно. Класичні задачі, повний перелік варіантів і формули, які їх рахують.</p>
+  </header>
+
+  <section class="choose panel" aria-label="Задача і параметри">
+    <p class="eyebrow">Задачі</p>
+    <div class="chips" id="chips" role="group" aria-label="Задачі"></div>
+    <p class="statement" id="statement"></p>
+    <div class="cfg">
+      <div class="fld" id="nFld">
+        <label for="nRange" id="nLab">Усього елементів n</label>
+        <div class="row"><input type="range" id="nRange" min="1" max="20" step="1" value="10"><output id="nOut" for="nRange">10</output></div>
+      </div>
+      <div class="fld" id="kFld">
+        <label for="kRange" id="kLab">Скільки вибираємо k</label>
+        <div class="row"><input type="range" id="kRange" min="1" max="10" step="1" value="3"><output id="kOut" for="kRange">3</output></div>
+      </div>
+      <div class="fld" id="wordFld" hidden>
+        <label for="wordInp">Слово</label>
+        <input type="text" id="wordInp" maxlength="12" value="МАТЕМАТИКА" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="fld" id="orderFld">
+        <span class="lab" id="orderLab">Порядок</span>
+        <div class="seg" id="orderSeg" role="group" aria-labelledby="orderLab"></div>
+      </div>
+      <div class="fld" id="repFld">
+        <span class="lab" id="repLab">Повторення</span>
+        <div class="seg" id="repSeg" role="group" aria-labelledby="repLab"></div>
+      </div>
+    </div>
+    <p class="note" id="schemeNote"></p>
+  </section>
+
+  <div class="charts">
+    <section class="chart" id="vizSec" aria-labelledby="hViz">
+      <h2 id="hViz">Як це рахується</h2>
+      <div id="viz"></div>
+      <p class="cmsg" id="vizMsg"></p>
+    </section>
+    <section class="chart" aria-labelledby="h1">
+      <h2 id="h1">Варіанти</h2>
+      <ul class="vars" id="vars" aria-label="Перелік варіантів"></ul>
+      <p class="cmsg" id="varsCap"></p>
+    </section>
+    <section class="chart" id="rowSec" aria-labelledby="h2">
+      <h2 id="h2">Ряд трикутника Паскаля</h2>
+      <canvas id="c1" role="img" aria-label="Біномні коефіцієнти"></canvas>
+      <p class="cmsg" id="rowMsg"></p>
+    </section>
+  </div>
+
+  <div class="side">
+    <section class="readout panel" aria-labelledby="rTitle">
+      <p class="eyebrow" id="rTitle">Результат</p>
+      <dl>
+        <div class="big"><dt>Кількість способів</dt><dd id="rCount">—</dd></div>
+        <div class="wide" id="rSciBox"><dt>У науковому записі</dt><dd id="rSci">—</dd></div>
+        <div class="wide"><dt>Схема</dt><dd id="rScheme">—</dd></div>
+      </dl>
+      <p class="formula" id="fGen"></p>
+      <p class="formula" id="fSub"></p>
+      <div id="probBox" hidden>
+        <hr>
+        <p class="eyebrow" style="margin-top:14px">Ймовірність</p>
+        <p class="cmsg" style="margin-top:6px" id="probText"></p>
+        <p class="formula" id="probF"></p>
+        <table class="ctab" id="probTab"></table>
+      </div>
+      <hr>
+      <p class="eyebrow" style="margin-top:14px" id="cmpTitle">Усі схеми для цих n і k</p>
+      <table class="ctab" id="cmpTab"></table>
+      <p class="cmsg" id="cmpNote"></p>
+    </section>
+
+    <section class="explain panel" aria-labelledby="eTitle">
+      <h2 id="eTitle">Що тут відбувається</h2>
+      <p class="key"><strong>Правило добутку.</strong> Якщо перший вибір можна зробити <span class="tex">m</span> способами, а другий за будь-якого першого <span class="tex">r</span> способами, то пару можна вибрати <span class="tex" data-tex="m\cdot r">m·r</span> способами. Усі формули нижче це правило добутку, застосоване кілька разів.</p>
+      <p><strong>Два питання.</strong> Щоб обрати схему, треба відповісти: чи важливий порядок вибраних елементів (призові місця так, склад комісії ні) і чи може елемент траплятися повторно (цифра в коді так, учасник забігу ні).</p>
+      <p><strong>Розміщення без повторень.</strong> Перший елемент обираємо <span class="tex">n</span> способами, другий <span class="tex" data-tex="n-1">n − 1</span>, і так <span class="tex">k</span> разів: <span class="tex" data-tex="A_n^k=n(n-1)\cdots(n-k+1)=\dfrac{n!}{(n-k)!}">Aₙᵏ = n(n − 1)…(n − k + 1) = n!/(n − k)!</span>. <strong>Перестановки</strong> це випадок <span class="tex" data-tex="k=n">k = n</span>: <span class="tex" data-tex="P_n=n!">Pₙ = n!</span>.</p>
+      <p><strong>Розміщення з повтореннями.</strong> Кожне з <span class="tex">k</span> місць заповнюємо <span class="tex">n</span> способами незалежно від інших: <span class="tex" data-tex="n^k">nᵏ</span>.</p>
+      <p><strong>Сполучення без повторень.</strong> Якщо порядок неважливий, кожен набір з <span class="tex">k</span> елементів у розміщеннях трапляється <span class="tex" data-tex="k!">k!</span> разів (усіма способами його впорядкувати). Тому <span class="tex" data-tex="C_n^k=\dfrac{A_n^k}{k!}=\dfrac{n!}{k!\,(n-k)!}">Cₙᵏ = Aₙᵏ/k! = n!/(k!(n − k)!)</span>. Звідси <span class="tex" data-tex="A_n^k=C_n^k\cdot k!">Aₙᵏ = Cₙᵏ·k!</span>, це видно в таблиці всіх схем.</p>
+      <p><strong>Сполучення з повтореннями.</strong> Вибір <span class="tex">k</span> елементів із <span class="tex">n</span> видів, коли порядок неважливий, зводиться до розстановки <span class="tex">k</span> предметів і <span class="tex" data-tex="n-1">n − 1</span> перегородок: <span class="tex" data-tex="\tilde C_n^k=C_{n+k-1}^k">C̃ₙᵏ = Cₙ₊ₖ₋₁ᵏ</span>.</p>
+      <p><strong>Перестановки з повторами.</strong> Слово з <span class="tex">n</span> букв, де буква <span class="tex">i</span> трапляється <span class="tex" data-tex="m_i">mᵢ</span> разів, можна переставити <span class="tex" data-tex="\dfrac{n!}{m_1!\,m_2!\cdots m_r!}">n!/(m₁! m₂! … mᵣ!)</span> різними способами: однакові літери між собою не відрізняються.</p>
+      <p><strong>Круговий стіл.</strong> Якщо обертання столу не змінює розсадки, першу особу можна зафіксувати, а решту <span class="tex" data-tex="n-1">n − 1</span> розсадити довільно: <span class="tex" data-tex="(n-1)!">(n − 1)!</span> способів.</p>
+      <p><strong>Властивості сполучень.</strong> <span class="tex" data-tex="C_n^k=C_n^{n-k}">Cₙᵏ = Cₙⁿ⁻ᵏ</span> (обрати, кого взяти, те саме, що обрати, кого лишити), <span class="tex" data-tex="C_n^k=C_{n-1}^{k-1}+C_{n-1}^k">Cₙᵏ = Cₙ₋₁ᵏ⁻¹ + Cₙ₋₁ᵏ</span> (правило трикутника Паскаля) і <span class="tex" data-tex="\sum_{j=0}^{n}C_n^j=2^n">Σ Cₙʲ = 2ⁿ</span> (скільки всього підмножин у множини з <span class="tex">n</span> елементів). Для сполучень графік показує ряд трикутника Паскаля: він симетричний, а найбільші значення посередині.</p>
+      <p><strong>Ймовірність.</strong> За класичним означенням <span class="tex" data-tex="P(A)=\dfrac{m}{N}">P(A) = m/N</span>, де <span class="tex">N</span> кількість усіх рівноможливих наслідків, <span class="tex">m</span> кількість сприятливих для події <span class="tex">A</span>. Обидві кількості рахують комбінаторикою, як у лотереї й задачі про дні народження.</p>
+    </section>
+  </div>
+</main>
+
+<div class="sr-only" id="sr" role="status" aria-live="polite"></div>
+
+<script src="common.js"></script>
+<script src="formulas.js"></script>
+<script src="random.js"></script>
+<script src="combinatorics.js"></script>
+<script>
+(function () {
+  "use strict";
+  var S = Stat, fmt = S.fmt, clamp = S.clamp;
+
+  /* ---------- Задачі ----------
+     mode: "sel" (вибір k з n; kind: схема за умовою), "circ" (круговий стіл), "word" (анаграми).
+     nr: межі повзунка n, kr: межі k; kn: k дорівнює n (перестановки); lab: підписи елементів;
+     nolist, nochart: не показувати перелік чи ряд Паскаля; prob: додатковий блок ймовірності. */
+  /* Українське відмінювання числівників: pl(n, "бігун", "бігуни", "бігунів") для називного відмінка;
+     gen(n, "номера", "номерів") для родового після прийменника «з». */
+  function pl(n, one, few, many) {
+    var a = n % 10, b = n % 100;
+    if (a === 1 && b !== 11) return one;
+    if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return few;
+    return many;
+  }
+  function gen(n, one, many) { return n % 10 === 1 && n % 100 !== 11 ? one : many; }
+
+  var SCENARIOS = [
+    { id: "podium", name: "Призові місця", mode: "sel", kind: "A", n: 10, k: 3, nr: [3, 20], kr: [1, 8], lab: "let", nl: "Кількість учасників n", kl: "Скільки призових місць k",
+      text: function (n, k) { return "У забігу беруть участь " + n + " " + pl(n, "бігун", "бігуни", "бігунів") + ". Скількома способами можна визначити, " + (k === 1 ? "хто переміг?" : "хто посів перші " + k + " " + pl(k, "місце", "місця", "місць") + "?"); } },
+    { id: "committee", name: "Комісія", mode: "sel", kind: "C", n: 10, k: 3, nr: [3, 20], kr: [1, 8], lab: "let", nl: "Кількість співробітників n", kl: "Розмір комісії k",
+      text: function (n, k) { return "З " + n + " " + gen(n, "співробітника", "співробітників") + " треба обрати комісію з " + k + " " + gen(k, "особи", "осіб") + ". Скількома способами це можна зробити? Посад у комісії немає, тож порядок неважливий."; } },
+    { id: "lottery", name: "Лотерея", mode: "sel", kind: "C", n: 49, k: 6, nr: [10, 60], kr: [1, 10], lab: "num1", nl: "Кількість номерів n", kl: "Скільки номерів вибирають k", prob: "lottery",
+      text: function (n, k) { return "У лотереї з " + n + " " + gen(n, "номера", "номерів") + " вибирають " + k + ". Скільки існує різних комбінацій? З якою ймовірністю можна вгадати всі " + k + "?"; } },
+    { id: "lock", name: "Кодовий замок", mode: "sel", kind: "Arep", n: 10, k: 4, nr: [2, 10], kr: [1, 8], lab: "num0", nl: "Скільки цифр на диску n", kl: "Кількість дисків k",
+      text: function (n, k) { return "Замок має " + k + " " + pl(k, "диск", "диски", "дисків") + ", на кожному є " + n + " " + pl(n, "цифра", "цифри", "цифр") + (n === 10 ? " (від 0 до 9)" : "") + ". Скільки існує різних кодів?"; } },
+    { id: "cakes", name: "Тістечка", mode: "sel", kind: "Crep", n: 3, k: 5, nr: [2, 8], kr: [1, 10], lab: "let", nl: "Кількість сортів n", kl: "Скільки тістечок купуємо k",
+      text: function (n, k) { return "У кав'ярні " + n + " " + pl(n, "сорт", "сорти", "сортів") + " тістечок, кожного багато. Скількома способами можна купити " + k + " " + pl(k, "тістечко", "тістечка", "тістечок") + "? Порядок покупки неважливий, один сорт можна брати кілька разів."; } },
+    { id: "handshake", name: "Рукостискання", mode: "sel", kind: "C", n: 12, k: 2, kfix: 2, nr: [2, 40], kr: [1, 6], lab: "num1", nl: "Кількість людей n", kl: "Людей у рукостисканні k",
+      text: function (n) { return "На зустрічі " + n + " " + pl(n, "людина", "людини", "людей") + ", і кожен потиснув руку кожному іншому. Скільки було рукостискань? Кожне рукостискання це пара людей, у якій порядок неважливий."; } },
+    { id: "row", name: "Розсадка в ряд", mode: "sel", kind: "A", n: 6, k: 6, kn: true, nr: [2, 12], kr: [1, 12], lab: "let", nl: "Кількість людей n", kl: "Скільки місць k",
+      text: function (n) { return n + " " + pl(n, "людина сідає", "людини сідають", "людей сідають") + " на " + n + " " + pl(n, "місце", "місця", "місць") + " у ряд. Скількома способами це можна зробити? Це перестановки: Pₙ = n!."; } },
+    { id: "round", name: "Круглий стіл", mode: "circ", n: 6, nr: [2, 12], lab: "let", nl: "Кількість людей n",
+      text: function (n) { return n + " " + pl(n, "людина сідає", "людини сідають", "людей сідають") + " за круглий стіл. Розсадки, що збігаються після повороту столу, вважаємо однаковими. Скільки існує різних розсадок?"; } },
+    { id: "word", name: "Анаграми слова", mode: "word",
+      text: "Скільки різних слів (навіть безглуздих) можна скласти, переставляючи літери слова? Змініть слово в полі нижче." },
+    { id: "birthday", name: "Дні народження", mode: "sel", kind: "A", n: 365, k: 23, nr: [10, 365], kr: [2, 60], lab: "num1", nolist: true, prob: "birthday", nfix: true, nl: "Днів у році n", kl: "Людей у групі k",
+      text: function (n, k) { return "У групі " + k + " " + pl(k, "людина", "людини", "людей") + ". Яка ймовірність, що принаймні у двох збігаються дні народження? У році " + n + " " + pl(n, "день", "дні", "днів") + ", усі дні рівноймовірні. Спочатку рахуємо, скількома способами всі " + k + " днів народження можуть бути різними."; } },
+    { id: "password", name: "Пароль (IT)", mode: "sel", kind: "Arep", n: 62, k: 8, nr: [10, 95], kr: [1, 12], lab: "num1", nolist: true, nochart: true, prob: "brute", nl: "Розмір алфавіту n", kl: "Довжина пароля k",
+      text: function (n, k) { return "Пароль складається з " + k + " " + gen(k, "символу", "символів") + ", алфавіт має " + n + " " + pl(n, "символ", "символи", "символів") + (n === 62 ? " (великі й малі латинські літери та цифри)" : "") + ". Скільки існує паролів? Скільки часу піде на перебір усіх, якщо перевіряти мільярд паролів за секунду?"; } }
+  ];
+  var SCHEME_NAME = { A: "Розміщення без повторень", Arep: "Розміщення з повтореннями", C: "Сполучення без повторень", Crep: "Сполучення з повтореннями" };
+  var SCHEME_SHORT = { A: "Розміщення", Arep: "З повтореннями, порядок важливий", C: "Сполучення", Crep: "З повтореннями, порядок неважливий" };
+  var LIST_LIMIT = 48;
+
+  function $(id) { return document.getElementById(id); }
+  var SUP = { "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴", "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹", "-": "⁻" };
+  function sup(v) { return String(v).replace(/[0-9\-]/g, function (c) { return SUP[c]; }); }
+  function sciText(m, e) { return fmt(m, 2) + "·10" + sup(e); }
+  /** Велике ціле: з розрядами, а від 16 цифр у науковому записі. */
+  function fmtBig(b) {
+    if (b.toString().length <= 15) return Comb.group(b);
+    var s = Comb.sci(b); return "≈ " + sciText(s.m, s.e);
+  }
+  function fmtProb(p) {
+    if (p === 0) return "0";
+    if (p >= 0.001) return fmt(p, 4);
+    var e = Math.floor(Math.log(p) / Math.LN10), m = p / Math.pow(10, e);
+    if (m >= 9.995) { m = 1; e += 1; }
+    return sciText(m, e);
+  }
+  function texNum(b) {
+    if (b.toString().length <= 15) return "=" + Comb.group(b).replace(/ /g, "\\,");
+    var s = Comb.sci(b);
+    return "\\approx " + fmt(s.m, 2).replace(",", "{,}") + "\\cdot10^{" + s.e + "}";
+  }
+  function plainEq(b) { return (b.toString().length <= 15 ? " = " : " ") + fmtBig(b); }
+  function duration(sec) {
+    if (sec < 1) return "менше секунди";
+    if (sec < 60) return fmt(sec, 0) + " с";
+    if (sec < 3600) return fmt(sec / 60, 1) + " хв";
+    if (sec < 86400) return fmt(sec / 3600, 1) + " год";
+    if (sec < 86400 * 365) return fmt(sec / 86400, 1) + " доби";
+    return fmt(sec / (86400 * 365.25), 1) + " року";
+  }
+
+  var cur = null, lastSelKey = "", chartMode = "pascal", rng = Rand.create(2026);
+  var state = { sel: 0, sc: 0, n: 10, k: 3, order: true, rep: false, word: "МАТЕМАТИКА" };
+  var meta = SCENARIOS[0];
+
+  function textOf() { return typeof meta.text === "function" ? meta.text(state.n, state.k) : meta.text; }
+  function kindOf() { return state.order ? (state.rep ? "Arep" : "A") : (state.rep ? "Crep" : "C"); }
+  function label(i) {
+    if (meta.lab === "num1") return String(i + 1);
+    if (meta.lab === "num0") return String(i);
+    return i < 26 ? String.fromCharCode(65 + i) : String(i + 1);
+  }
+  function kMax() { return meta.kfix ? meta.kfix : meta.kn ? state.n : (state.rep ? meta.kr[1] : Math.min(meta.kr[1], state.n)); }
+
+  /* ---------- Слово: літери та їхні кратності ---------- */
+  function wordCounts() {
+    var seen = {}, letters = [], counts = [], i, ch;
+    for (i = 0; i < state.word.length; i++) {
+      ch = state.word.charAt(i);
+      if (seen[ch] === undefined) { seen[ch] = letters.length; letters.push(ch); counts.push(0); }
+      counts[seen[ch]]++;
+    }
+    return { letters: letters, counts: counts, len: state.word.length };
+  }
+
+  /* ---------- Керування ---------- */
+  var sayTimer = null;
+  function say(text, delay) {
+    clearTimeout(sayTimer);
+    sayTimer = setTimeout(function () { $("sr").textContent = ""; $("sr").textContent = text; }, delay || 0);
+  }
+  var chipEls = [], orderEls = [], repEls = [];
+  function buildControls() {
+    SCENARIOS.forEach(function (s, i) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "chip"; b.textContent = s.name; b.setAttribute("aria-pressed", "false");
+      b.addEventListener("click", function () { pick(i); say(s.name + "."); });
+      $("chips").appendChild(b); chipEls.push(b);
+    });
+    [["Порядок важливий", true], ["Порядок неважливий", false]].forEach(function (p) {
+      var b = document.createElement("button");
+      b.type = "button"; b.textContent = p[0];
+      b.disabled = true;
+      $("orderSeg").appendChild(b); orderEls.push(b);
+    });
+    [["Без повторень", false], ["З повтореннями", true]].forEach(function (p) {
+      var b = document.createElement("button");
+      b.type = "button"; b.textContent = p[0];
+      b.disabled = true;
+      $("repSeg").appendChild(b); repEls.push(b);
+    });
+  }
+  function pick(i) {
+    meta = SCENARIOS[i]; state.sc = i;
+    if (meta.mode === "sel") {
+      state.n = meta.n; state.k = meta.k; state.order = meta.kind === "A" || meta.kind === "Arep"; state.rep = meta.kind === "Arep" || meta.kind === "Crep";
+    } else if (meta.mode === "circ") state.n = meta.n;
+    syncControls(); update();
+  }
+  function syncControls() {
+    var sel = meta.mode === "sel";
+    chipEls.forEach(function (b, i) { b.setAttribute("aria-pressed", String(i === state.sc)); });
+    orderEls.forEach(function (b, i) { b.setAttribute("aria-pressed", String((i === 0) === state.order)); });
+    repEls.forEach(function (b, i) { b.setAttribute("aria-pressed", String((i === 1) === state.rep)); });
+    $("nFld").hidden = meta.mode === "word" || !!meta.nfix; $("kFld").hidden = !sel; $("wordFld").hidden = meta.mode !== "word";
+    $("orderFld").hidden = !sel; $("repFld").hidden = !sel;
+    if (meta.mode !== "word") {
+      $("nLab").textContent = meta.nl;
+      var nr = $("nRange"); nr.min = String(meta.nr[0]); nr.max = String(meta.nr[1]); state.n = clamp(state.n, meta.nr[0], meta.nr[1]); nr.value = String(state.n);
+      $("nOut").textContent = String(state.n);
+    }
+    if (sel) {
+      $("kLab").textContent = meta.kl;
+      if (meta.kn) state.k = state.n;
+      if (meta.kfix) state.k = meta.kfix;
+      var km = kMax(), kr = $("kRange");
+      state.k = meta.kfix ? meta.kfix : clamp(state.k, meta.kr[0], Math.max(meta.kr[0], km));
+      kr.min = String(meta.kfix ? meta.kfix : meta.kr[0]); kr.max = String(Math.max(meta.kr[0], km)); kr.value = String(state.k); kr.disabled = !!(meta.kn || meta.kfix);
+      $("kOut").textContent = String(state.k);
+    }
+  }
+  $("nRange").addEventListener("input", function (e) { state.n = Number(e.target.value); syncControls(); update(); });
+  $("kRange").addEventListener("input", function (e) { state.k = Number(e.target.value); $("kOut").textContent = String(state.k); update(); });
+  $("wordInp").addEventListener("input", function (e) {
+    var v = e.target.value.toUpperCase().split("").filter(function (c) { return /[A-ZА-ЯІЇЄҐ]/.test(c); }).join("");
+    if (v !== e.target.value) e.target.value = v;
+    state.word = v || "А"; update();
+  });
+
+  /* ---------- Обчислення та тексти ---------- */
+  function factors(n, k) {
+    var a = [], i;
+    if (k <= 0) return ["1"];
+    if (k <= 5) { for (i = 0; i < k; i++) a.push(String(n - i)); return a; }
+    return [String(n), String(n - 1), String(n - 2), "…", String(n - k + 1)];
+  }
+  function upTo(k) {
+    if (k <= 1) return ["1"];
+    if (k <= 5) { var a = [], i; for (i = 1; i <= k; i++) a.push(String(i)); return a; }
+    return ["1", "2", "3", "…", String(k)];
+  }
+  function join(arr, tex) { return arr.map(function (x) { return x === "…" ? (tex ? "\\ldots" : "…") : x; }).join(tex ? "\\cdot " : "·"); }
+
+  function setTex(id, plain, tex) { Tex.set($(id), plain, tex); }
+  /** Загальна формула й підстановка для вибору k з n за схемою kind. */
+  function showFormula(kind, n, k, total) {
+    var g, gp, s, sp;
+    if (kind === "A") {
+      g = "A_{n}^{k}=\\dfrac{n!}{(n-k)!}"; gp = "Aₙᵏ = n!/(n − k)!";
+      s = "A_{" + n + "}^{" + k + "}=" + join(factors(n, k), true) + texNum(total);
+      sp = "A(" + n + ", " + k + ") = " + join(factors(n, k), false) + plainEq(total);
+    } else if (kind === "Arep") {
+      g = "n^{k}"; gp = "nᵏ";
+      s = n + "^{" + k + "}" + texNum(total); sp = n + sup(k) + plainEq(total);
+    } else if (kind === "C") {
+      g = "C_{n}^{k}=\\dfrac{n!}{k!\\,(n-k)!}"; gp = "Cₙᵏ = n!/(k!(n − k)!)";
+      s = "C_{" + n + "}^{" + k + "}=\\dfrac{" + join(factors(n, k), true) + "}{" + join(upTo(k), true) + "}" + texNum(total);
+      sp = "C(" + n + ", " + k + ") = (" + join(factors(n, k), false) + ")/(" + join(upTo(k), false) + ")" + plainEq(total);
+    } else {
+      g = "\\tilde C_{n}^{k}=C_{n+k-1}^{k}"; gp = "C̃ₙᵏ = Cₙ₊ₖ₋₁ᵏ";
+      s = "\\tilde C_{" + n + "}^{" + k + "}=C_{" + (n + k - 1) + "}^{" + k + "}" + texNum(total);
+      sp = "C̃(" + n + ", " + k + ") = C(" + (n + k - 1) + ", " + k + ")" + plainEq(total);
+    }
+    setTex("fGen", gp, g); setTex("fSub", sp, s);
+  }
+
+  function table(id, rows, curIdx) {
+    var t = $(id); t.textContent = "";
+    rows.forEach(function (r, i) {
+      var tr = document.createElement("tr"), th = document.createElement("th"), td = document.createElement("td");
+      th.scope = "row"; th.textContent = r[0]; td.className = "v"; td.textContent = r[1];
+      if (i === curIdx) tr.className = "cur";
+      tr.appendChild(th); tr.appendChild(td); t.appendChild(tr);
+    });
+  }
+
+  function itemText(idx, ordered) {
+    var parts = idx.map(label), single = parts.every(function (p) { return p.length === 1; });
+    return ordered ? parts.join(single ? "" : "·") : "{" + parts.join(", ") + "}";
+  }
+  function showList(items, total, ordered, noList, selectable) {
+    var ul = $("vars"); ul.textContent = "";
+    $("vars").parentNode.hidden = !!noList;
+    if (noList) return;
+    items.forEach(function (it, i) {
+      var li = document.createElement("li");
+      if (selectable) {
+        var b = document.createElement("button");
+        b.type = "button"; b.textContent = it; b.setAttribute("aria-pressed", String(i === state.sel));
+        b.addEventListener("click", function () { state.sel = i; markSel(); renderViz(); });
+        li.appendChild(b);
+        if (i === state.sel) li.className = "sel";
+      } else li.textContent = it;
+      ul.appendChild(li);
+    });
+    var big = total > BigInt(items.length);
+    $("varsCap").textContent = big
+      ? "Показано перші " + items.length + " з " + fmtBig(total) + " у порядку зростання номерів."
+      : (total === BigInt(0) ? "Таких варіантів немає." : "Усі " + items.length + " варіантів.");
+  }
+
+  function markSel() {
+    var lis = $("vars").children, i;
+    for (i = 0; i < lis.length; i++) {
+      lis[i].className = i === state.sel ? "sel" : "";
+      if (lis[i].firstChild && lis[i].firstChild.setAttribute) lis[i].firstChild.setAttribute("aria-pressed", String(i === state.sel));
+    }
+  }
+
+  function update() {
+    var total, kind, n = state.n, k = state.k, listItems = [], cmpRows = [], cmpCur = -1, note = "", i, cmpTitle = "Усі схеми для цих n і k";
+    $("probBox").hidden = true;
+    $("rowSec").hidden = true;
+    $("schemeNote").textContent = meta.mode === "sel" ? "Схему задає умова задачі, тому порядок і повторення змінювати не можна." : "";
+    if (meta.mode === "sel") {
+      kind = kindOf(); total = Comb.count(kind, n, k);
+      showFormula(kind, n, k, total);
+      $("rScheme").textContent = meta.kn && kind === "A" ? "Перестановки (розміщення з n по n)" : SCHEME_NAME[kind];
+      var raw = Comb.list(kind, n, k, LIST_LIMIT);
+      var selKey = [meta.id, kind, n, k].join("|");
+      if (selKey !== lastSelKey) { lastSelKey = selKey; state.sel = 0; }
+      raw.forEach(function (a) { listItems.push(itemText(a, state.order)); });
+      cur = { kind: kind, n: n, k: k, raw: raw, total: total };
+      showList(listItems, total, state.order, meta.nolist, !state.order);
+      ["A", "Arep", "C", "Crep"].forEach(function (kd, j) {
+        cmpRows.push([SCHEME_SHORT[kd] + (kd === "A" ? " Aₙᵏ" : kd === "C" ? " Cₙᵏ" : kd === "Arep" ? ": nᵏ" : ": Cₙ₊ₖ₋₁ᵏ"), fmtBig(Comb.count(kd, n, k))]);
+        if (kd === kind) cmpCur = j;
+      });
+      if (k <= n) note = Comb.perm(n, k).toString().length > 15 ? "Aₙᵏ = Cₙᵏ · k!: розміщень у k! разів більше, ніж сполучень (кожен набір можна впорядкувати k! способами)." : "Aₙᵏ = Cₙᵏ · k!: " + fmtBig(Comb.comb(n, k)) + " · " + fmtBig(Comb.fact(k)) + " = " + fmtBig(Comb.perm(n, k)) + ".";
+      else note = "Без повторень вибрати k > n елементів неможливо, тому Aₙᵏ і Cₙᵏ дорівнюють 0.";
+      /* ряд трикутника Паскаля */
+      var N = kind === "Crep" ? n + k - 1 : n;
+      chartMode = "pascal";
+      if (meta.prob === "birthday" && kind === meta.kind) {
+        $("rowSec").hidden = false; chartMode = "bday"; rowN = n; rowK = k;
+        $("h2").textContent = "Ймовірність збігу залежно від числа людей";
+        $("rowMsg").textContent = "Крива це 1 − A(" + n + ", j)/" + n + "ʲ. Штрихова лінія це ймовірність ½, точка це поточне k = " + k + ".";
+        $("c1").setAttribute("aria-label", "Ймовірність збігу днів народження залежно від числа людей; для " + k + " людей " + fmtProb(1 - Comb.birthdayDistinct(n, k)));
+      } else if (!meta.nochart && N <= 120 && (kind === "C" || kind === "Crep")) {
+        $("rowSec").hidden = false; rowN = N; rowK = k;
+        $("h2").textContent = "Ряд " + N + " трикутника Паскаля: C(" + N + ", j)";
+        $("rowMsg").textContent = "Висота стовпчика це C(" + N + ", j) відносно найбільшого. Виділено j = " + (rowK <= N ? rowK : "—") + ". Ряд симетричний: C(n, j) = C(n, n − j).";
+        $("c1").setAttribute("aria-label", "Ряд " + N + " трикутника Паскаля; виділено j = " + rowK + ", значення " + fmtBig(Comb.comb(N, rowK)));
+      }
+      showProb(kind, n, k);
+    } else if (meta.mode === "circ") {
+      total = Comb.fact(n - 1); kind = "circ"; cur = { kind: "circ", n: n, k: n, raw: [], total: total };
+      $("rScheme").textContent = "Перестановки по колу";
+      setTex("fGen", "P = (n − 1)!", "P_{\\circlearrowleft}=(n-1)!");
+      setTex("fSub", "(" + n + " − 1)! = " + (n - 1) + "!" + plainEq(total), "(" + n + "-1)!=" + (n - 1) + "!" + texNum(total));
+      Comb.list("A", n - 1, n - 1, LIST_LIMIT).forEach(function (a) { listItems.push(itemText([0].concat(a.map(function (x) { return x + 1; })), true)); });
+      showList(listItems, total, true, false);
+      $("varsCap").textContent += " Перша особа (A) зафіксована.";
+      cmpTitle = "Ряд і коло";
+      cmpRows = [["Розсадка в ряд: n!", fmtBig(Comb.fact(n))], ["За круглим столом: (n − 1)!", fmtBig(total)]];
+      cmpCur = 1; note = "Кожна розсадка за столом відповідає n розсадкам у ряд (різні місця початку відліку), тому " + fmtBig(Comb.fact(n)) + " / " + n + " = " + fmtBig(total) + ".";
+    } else {
+      var wc = wordCounts(); total = Comb.multinomial(wc.counts); kind = "word"; cur = { kind: "word", n: wc.len, k: wc.len, raw: [], total: total, wc: wc };
+      $("rScheme").textContent = "Перестановки з повторами";
+      var tex = "\\dfrac{" + wc.len + "!}{" + wc.counts.filter(function (c) { return c > 1; }).map(function (c) { return c + "!"; }).join("\\,") + "}";
+      var den = wc.counts.filter(function (c) { return c > 1; });
+      if (!den.length) tex = wc.len + "!";
+      var plain = den.length ? wc.len + "!/(" + den.map(function (c) { return c + "!"; }).join("·") + ")" : wc.len + "!";
+      setTex("fGen", "n!/(m₁! m₂! … mᵣ!)", "\\dfrac{n!}{m_1!\\,m_2!\\cdots m_r!}");
+      setTex("fSub", plain + plainEq(total), tex + texNum(total));
+      Comb.listMulti(wc.counts, LIST_LIMIT).forEach(function (a) { listItems.push(a.map(function (j) { return wc.letters[j]; }).join("")); });
+      showList(listItems, total, true, false);
+      cmpTitle = "Літери слова";
+      cmpRows = wc.letters.map(function (l, j) { return ["Літера «" + l + "»", "× " + wc.counts[j]]; });
+      cmpRows.push(["Усі n! перестановок, якщо літери різні", fmtBig(Comb.fact(wc.len))]);
+      cmpCur = -1; note = "Кожне слово ми порахували " + fmtBig(Comb.fact(wc.len) / total) + " разів у n!, бо однакові літери можна міняти місцями між собою.";
+      $("statement").textContent = textOf() + " Слово «" + state.word + "» має " + wc.len + " літер.";
+    }
+    if (meta.mode !== "word") $("statement").textContent = textOf();
+    $("rCount").textContent = fmtBig(total).replace("≈ ", "");
+    var digits = total.toString().length;
+    $("rSciBox").hidden = digits <= 15;
+    if (digits > 15) { var sc = Comb.sci(total); $("rSci").textContent = sciText(sc.m, sc.e) + " (" + digits + " цифр)"; }
+    $("cmpTitle").textContent = cmpTitle;
+    table("cmpTab", cmpRows, cmpCur);
+    $("cmpNote").textContent = note;
+    renderViz();
+    $("rowSec").parentNode.parentNode.classList.toggle("nocharts", $("rowSec").hidden && !!meta.nolist && $("vizSec").hidden);
+    drawRow();
+    say("Результат: " + fmtBig(total) + " способів.", 500);
+  }
+
+  function showProb(kind, n, k) {
+    if (!meta.prob || kind !== meta.kind) return;
+    var p, rows = [], i;
+    $("probBox").hidden = false;
+    $("probF").hidden = false;
+    if (meta.prob === "lottery") {
+      var tot = Comb.comb(n, k);
+      $("probText").textContent = "Усіх рівноможливих комбінацій N, а сприятливих для «вгадано рівно m номерів» стільки, скількома способами можна вибрати m з k виграшних і k − m з решти номерів. Усі значення P(m) наведено в блоці «Лотерейний квиток».";
+      Tex.set($("probF"), "P(m) = C(" + k + ", m)·C(" + (n - k) + ", " + k + " − m)/C(" + n + ", " + k + ")",
+        "P(m)=\\dfrac{C_{" + k + "}^{m}\\,C_{" + (n - k) + "}^{" + k + "-m}}{C_{" + n + "}^{" + k + "}}");
+      rows.push(["Вгадано всі " + k, fmtProb(Comb.lotteryExact(n, k, k))], ["Вгадано " + (k - 1), fmtProb(Comb.lotteryExact(n, k, k - 1))]);
+      table("probTab", rows, 0);
+    } else if (meta.prob === "birthday") {
+      p = Comb.birthdayDistinct(n, k);
+      $("probText").textContent = "Усі дні різні: A(" + n + ", " + k + ") способів із " + n + sup(k) + " рівноможливих. Ймовірність збігу це 1 мінус ймовірність того, що всі дні різні. Вже для k = 23 вона перевищує 1/2.";
+      Tex.set($("probF"), "P(збіг) = 1 − A(" + n + ", " + k + ")/" + n + sup(k), "P(\\text{збіг})=1-\\dfrac{A_{" + n + "}^{" + k + "}}{" + n + "^{" + k + "}}");
+      table("probTab", [["Усі дні різні", fmtProb(p)], ["Є хоча б один збіг", fmtProb(1 - p)]], 1);
+    } else {
+      $("probF").hidden = true;
+      var sec = Number(Comb.ratio(Comb.count(kind, n, k), BigInt(1000000000)));
+      $("probText").textContent = "Якщо перевіряти 10⁹ паролів за секунду, повний перебір займе приблизно " + duration(sec) + ". Кожен додатковий символ збільшує це число в " + n + " разів.";
+      table("probTab", [["Усього паролів", fmtBig(Comb.count(kind, n, k))], ["Повний перебір", duration(sec)]], 1);
+    }
+  }
+
+  /* ---------- Малювання: ряд трикутника Паскаля ---------- */
+  var rowN = 10, rowK = 3;
+  function Chart(el) { this.el = el; this.ctx = el.getContext("2d"); this.W = 0; this.H = 0; }
+  Chart.prototype.resize = function () {
+    var rect = this.el.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    this.W = rect.width; this.H = rect.height;
+    this.el.width = Math.max(1, Math.round(this.W * dpr));
+    this.el.height = Math.max(1, Math.round(this.H * dpr));
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  };
+  var c1 = new Chart($("c1"));
+  function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  function drawRow() {
+    if ($("rowSec").hidden || !c1.W) return;
+    if (chartMode === "bday") { drawBday(); return; }
+    var ctx = c1.ctx, W = c1.W, H = c1.H, M = { l: 12, r: 12, t: 30, b: 30 }, pw = W - M.l - M.r, ph = H - M.t - M.b;
+    var N = rowN, j, slot = pw / (N + 1), bw = Math.max(1, slot * 0.78);
+    var panel = cssVar("--panel"), ink = cssVar("--ink"), muted = cssVar("--muted"), pos = cssVar("--pos"), neg = cssVar("--neg"), data = cssVar("--font-data"), body = cssVar("--font-body");
+    var maxC = Comb.comb(N, Math.floor(N / 2));
+    ctx.clearRect(0, 0, W, H); ctx.fillStyle = panel; ctx.fillRect(0, 0, W, H);
+    for (j = 0; j <= N; j++) {
+      var h = Math.max(1, Comb.ratio(Comb.comb(N, j), maxC) * ph), x = M.l + slot * j + (slot - bw) / 2;
+      ctx.fillStyle = j === rowK ? neg : pos; ctx.globalAlpha = j === rowK ? 1 : 0.7;
+      ctx.fillRect(x, M.t + ph - h, bw, h);
+    }
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = ink; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(M.l, M.t + ph + 0.5); ctx.lineTo(M.l + pw, M.t + ph + 0.5); ctx.stroke();
+    ctx.fillStyle = muted; ctx.font = "11px " + data; ctx.textAlign = "center"; ctx.textBaseline = "top";
+    var step = Math.max(1, Math.ceil(26 / slot));
+    for (j = 0; j <= N; j += step) ctx.fillText(String(j), M.l + slot * (j + 0.5), M.t + ph + 6);
+    if (rowK % step !== 0 && rowK <= N) { ctx.fillStyle = neg; ctx.fillText(String(rowK), M.l + slot * (rowK + 0.5), M.t + ph + 6); }
+    if (rowK <= N) {
+      var cx = M.l + slot * (rowK + 0.5), txt = "C(" + N + ", " + rowK + ") = " + fmtBig(Comb.comb(N, rowK)).replace("≈ ", "≈ ");
+      ctx.font = "500 12px " + body; ctx.fillStyle = ink; ctx.textBaseline = "top";
+      ctx.textAlign = cx > W - 110 ? "right" : (cx < 110 ? "left" : "center");
+      ctx.lineWidth = 3; ctx.strokeStyle = panel; ctx.lineJoin = "round";
+      var tx = ctx.textAlign === "right" ? Math.min(cx + 6, W - 4) : (ctx.textAlign === "left" ? Math.max(cx - 6, 4) : cx);
+      ctx.strokeText(txt, tx, 6); ctx.fillText(txt, tx, 6);
+    }
+    ctx.fillStyle = muted; ctx.font = "500 11px " + body; ctx.textAlign = "right"; ctx.textBaseline = "bottom"; ctx.fillText("j", W - 4, H - 3);
+  }
+  function resizeAll() { c1.resize(); drawRow(); }
+
+
+  /* ---------- Візуалізації ---------- */
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+  function btn(text, fn, cls) { var b = el("button", "btn" + (cls ? " " + cls : ""), text); b.type = "button"; b.addEventListener("click", fn); return b; }
+  function btnRow(list) { var d = el("div", "vz-btns"); list.forEach(function (b) { d.appendChild(b); }); return d; }
+  function tilesOf(texts, cls) { var d = el("div", "vz-tiles"); texts.forEach(function (t, i) { var sp = el("span", cls ? cls(i) : "", t); d.appendChild(sp); }); return d; }
+
+  var vizState = { slotKey: "", placed: [], lotKey: "", picks: [], drawn: [], tally: [], total: 0, bdKey: "", bdTotal: 0, bdHit: 0, bdLast: [], rot: 0, wordKey: "", wordPerm: [] };
+  var vizTitle = { slots: "Правило добутку: клітинка за клітинкою", group: "Від розміщень до сполучень", bars: "Зірочки й перегородки", lottery: "Лотерейний квиток і тиражі",
+    birthday: "Випадкові групи", round: "Круглий стіл: поворот не міняє розсадки", word: "Однакові літери", none: "" };
+
+  function renderViz() {
+    var host = $("viz"), type = "none";
+    host.textContent = ""; $("vizMsg").textContent = "";
+    if (cur.kind === "circ") type = "round";
+    else if (cur.kind === "word") type = "word";
+    else if (meta.prob === "birthday" && cur.kind === meta.kind) type = "birthday";
+    else if (meta.prob === "brute") type = "none";
+    else if (cur.kind === "A" || cur.kind === "Arep") type = "slots";
+    else if (cur.kind === "C") type = meta.prob === "lottery" ? "lottery" : "group";
+    else if (cur.kind === "Crep") type = "bars";
+    $("vizSec").hidden = type === "none";
+    $("hViz").textContent = vizTitle[type];
+    if (type === "slots") vizSlots(host);
+    else if (type === "group") vizGroup(host);
+    else if (type === "bars") vizBars(host);
+    else if (type === "lottery") vizLottery(host);
+    else if (type === "birthday") vizBirthday(host);
+    else if (type === "round") vizRound(host);
+    else if (type === "word") vizWord(host);
+  }
+
+  /* 1. Клітинки: добуток кількостей способів на кожному кроці */
+  function vizSlots(host) {
+    var vs = vizState, n = cur.n, k = cur.k, rep = cur.kind === "Arep", key = [meta.id, cur.kind, n, k].join("|"), i;
+    if (vs.slotKey !== key) { vs.slotKey = key; vs.placed = []; }
+    if (k > 12) { host.appendChild(el("p", "cmsg", "Для малюнка клітинок забагато, зменште k до 12 або менше.")); return; }
+    var done = vs.placed.length, counts = [], row = el("div", "vz-row");
+    row.setAttribute("role", "group"); row.setAttribute("aria-label", "Клітинки розміщення");
+    for (i = 0; i < k; i++) {
+      var c = rep ? n : n - i, slot = el("div", "vz-slot");
+      counts.push(c);
+      slot.appendChild(el("span", "cnt", String(c)));
+      slot.appendChild(el("span", "vz-cell" + (i < done ? " filled" : ""), i < done ? label(vs.placed[i]) : ""));
+      row.appendChild(slot);
+    }
+    host.appendChild(row);
+    var prefix = BigInt(1);
+    for (i = 0; i < done; i++) prefix *= BigInt(counts[i]);
+    var line = el("p", "cmsg");
+    line.textContent = "Число над клітинкою це кількість способів її заповнити" + (rep ? " (елементи можна повторювати)" : " (використані елементи вже не беремо)") + ". " +
+      (done === 0 ? "Кроки множимо: " + counts.join(" · ") + " = " + fmtBig(cur.total) + "."
+        : "Зроблено кроків: " + done + " з " + k + ". Різних початків такої довжини " + counts.slice(0, done).join(" · ") + " = " + fmtBig(prefix) + (done === k ? ", це й є всі розміщення." : "."));
+    host.appendChild(line);
+    if (n <= 30) {
+      var pool = el("div", "vz-pool"); pool.setAttribute("role", "group"); pool.setAttribute("aria-label", "Елементи для вибору");
+      for (i = 0; i < n; i++) (function (j) {
+        var b = el("button", "", label(j)); b.type = "button";
+        b.disabled = done >= k || (!rep && vs.placed.indexOf(j) >= 0);
+        b.addEventListener("click", function () { vs.placed.push(j); renderViz(); say("Клітинка " + vs.placed.length + ": " + label(j) + "."); });
+        pool.appendChild(b);
+      })(i);
+      host.appendChild(pool);
+    }
+    function avail() { var a = [], j; for (j = 0; j < n; j++) if (rep || vs.placed.indexOf(j) < 0) a.push(j); return a; }
+    host.appendChild(btnRow([
+      btn("Крок", function () { if (vs.placed.length < k) { vs.placed.push(avail()[0]); renderViz(); } }, "primary"),
+      btn("Заповнити випадково", function () { while (vs.placed.length < k) { var a = avail(); vs.placed.push(a[rng.int(a.length)]); } renderViz(); }),
+      btn("Скинути", function () { vs.placed = []; renderViz(); })
+    ]));
+    var lastBtn = host.querySelector(".vz-btns .primary"); if (lastBtn) lastBtn.disabled = done >= k;
+    if (done === k) $("vizMsg").textContent = "Розміщення: " + itemText(vs.placed, true) + ". Усього таких " + fmtBig(cur.total) + ", бо порядок важливий.";
+  }
+
+  /* 2. Сполучення: один набір дає k! розміщень */
+  function vizGroup(host) {
+    var k = cur.k, set = cur.raw[state.sel];
+    if (!set || k < 1) { host.appendChild(el("p", "cmsg", "Немає наборів для показу.")); return; }
+    var perms = Comb.list("A", k, k, 24), kf = Comb.fact(k);
+    host.appendChild(el("p", "cmsg", "Натисніть на набір у переліку нижче. Набір " + itemText(set, false) + " у розміщеннях трапляється у вигляді різних впорядкувань, а як сполучення це один вибір."));
+    host.appendChild(tilesOf(perms.map(function (pm) { return itemText(pm.map(function (j) { return set[j]; }), true); }), function () { return "key"; }));
+    host.appendChild(el("p", "cmsg", "Впорядкувань: k! = " + k + "! = " + fmtBig(kf) + (kf > BigInt(24) ? " (показано перші 24)" : "") + ". Усіх розміщень A(" + cur.n + ", " + k + ") = " + fmtBig(Comb.perm(cur.n, k)) + ", тож сполучень " + fmtBig(Comb.perm(cur.n, k)) + " / " + fmtBig(kf) + " = " + fmtBig(cur.total) + "."));
+  }
+
+  /* 3. Зірочки й перегородки */
+  function vizBars(host) {
+    var n = cur.n, k = cur.k, set = cur.raw[state.sel], i, counts = [];
+    if (!set) return;
+    if (n > 12 || k > 24) { host.appendChild(el("p", "cmsg", "Для малюнка забагато елементів: зменште n до 12 або менше і k до 24 або менше.")); return; }
+    for (i = 0; i < n; i++) counts.push(0);
+    set.forEach(function (j) { counts[j]++; });
+    host.appendChild(el("p", "cmsg", "Натисніть на набір у переліку нижче. У наборі " + itemText(set, false) + " кожен сорт це група зірочок, між групами " + (n - 1) + " " + pl(n - 1, "перегородка", "перегородки", "перегородок") + "."));
+    var row = el("div", "vz-bars");
+    counts.forEach(function (c, j) {
+      if (j > 0) row.appendChild(el("span", "vz-bar", "|"));
+      var g = el("div", "vz-grp");
+      g.appendChild(el("span", "st", c ? new Array(c + 1).join("★") : " "));
+      g.appendChild(el("span", "nm", label(j) + (c ? "" : " (немає)")));
+      row.appendChild(g);
+    });
+    host.appendChild(row);
+    host.appendChild(el("p", "cmsg", "Усього " + (n + k - 1) + " місць: " + k + " зірочок і " + (n - 1) + " перегородок. Набір повністю задає, на яких місцях стоять перегородки, тому наборів стільки, скількома способами їх розставити: C(" + (n + k - 1) + ", " + (n - 1) + ") = C(" + (n + k - 1) + ", " + k + ") = " + fmtBig(cur.total) + "."));
+  }
+
+  /* 4. Лотерея */
+  function lotteryReset(n, k) { var vs = vizState; vs.picks = []; vs.drawn = []; vs.tally = []; vs.total = 0; var i; for (i = 0; i <= k; i++) vs.tally.push(0); }
+  function lotteryDraw(n, k, times) {
+    var vs = vizState, t, i, idx = [], hit, mark = [], j, r, tmp;
+    for (i = 0; i < n; i++) idx.push(i);
+    for (i = 0; i < n; i++) mark.push(0);
+    vs.picks.forEach(function (p) { mark[p] = 1; });
+    for (t = 0; t < times; t++) {
+      for (i = 0; i < k; i++) { j = i + rng.int(n - i); tmp = idx[i]; idx[i] = idx[j]; idx[j] = tmp; }
+      hit = 0; for (i = 0; i < k; i++) hit += mark[idx[i]];
+      vs.tally[hit]++; vs.total++;
+    }
+    vs.drawn = idx.slice(0, k);
+    return hit;
+  }
+  function vizLottery(host) {
+    var vs = vizState, n = cur.n, k = cur.k, key = [n, k].join("|"), i;
+    if (vs.lotKey !== key) { vs.lotKey = key; lotteryReset(n, k); }
+    if (n > 60) { host.appendChild(el("p", "cmsg", "Для квитка забагато номерів.")); return; }
+    host.appendChild(el("p", "cmsg", "Виберіть на квитку " + k + " " + gen(k, "номер", "номерів") + " (обрано " + vs.picks.length + "), потім проведіть тираж: комп'ютер випадково вибере " + k + " номерів із " + n + "."));
+    var grid = el("div", "vz-grid"); grid.setAttribute("role", "group"); grid.setAttribute("aria-label", "Квиток");
+    for (i = 0; i < n; i++) (function (j) {
+      var b = el("button", vs.drawn.indexOf(j) >= 0 ? "drawn" : "", String(j + 1)); b.type = "button";
+      b.setAttribute("aria-pressed", String(vs.picks.indexOf(j) >= 0));
+      b.addEventListener("click", function () {
+        var at = vs.picks.indexOf(j);
+        if (at >= 0) vs.picks.splice(at, 1); else if (vs.picks.length < k) vs.picks.push(j);
+        vs.drawn = []; vs.tally = vs.tally.map(function () { return 0; }); vs.total = 0; renderViz();
+      });
+      grid.appendChild(b);
+    })(i);
+    host.appendChild(grid);
+    function need() { if (vs.picks.length < k) { $("vizMsg").textContent = "Спочатку виберіть усі " + k + " номерів."; return true; } return false; }
+    host.appendChild(btnRow([
+      btn("Випадковий квиток", function () { var a = [], j; for (j = 0; j < n; j++) a.push(j); vs.picks = []; while (vs.picks.length < k) vs.picks.push(a.splice(rng.int(a.length), 1)[0]); vs.drawn = []; vs.tally = vs.tally.map(function () { return 0; }); vs.total = 0; renderViz(); }),
+      btn("Тираж", function () { if (need()) return; var h = lotteryDraw(n, k, 1); renderViz(); $("vizMsg").textContent = "Остання роздача: збіглося " + h + " з " + k + "."; say("Збіглося " + h + "."); }, "primary"),
+      btn("+1 000", function () { if (need()) return; lotteryDraw(n, k, 1000); renderViz(); }),
+      btn("+100 000", function () { if (need()) return; lotteryDraw(n, k, 100000); renderViz(); }),
+      btn("Скинути", function () { lotteryReset(n, k); renderViz(); })
+    ]));
+    var tb = el("table", "ctab"), tr, m;
+    tr = el("tr"); ["Збіглося", "Теорія", "Тиражі"].forEach(function (h, j) { var th = el("th", "", h); if (j) th.style.textAlign = "right"; tr.appendChild(th); }); tb.appendChild(tr);
+    for (m = k; m >= 0; m--) {
+      tr = el("tr");
+      tr.appendChild(el("td", "", String(m)));
+      var t1 = el("td", "v", fmtProb(Comb.lotteryExact(n, k, m))), t2 = el("td", "v", vs.total ? fmtProb(vs.tally[m] / vs.total) + " (" + vs.tally[m] + ")" : "—");
+      tr.appendChild(t1); tr.appendChild(t2); tb.appendChild(tr);
+    }
+    host.appendChild(tb);
+    host.appendChild(el("p", "cmsg", "Тиражів проведено: " + Comb.group(BigInt(vs.total)) + ". Рідкісні збіги за кілька тисяч тиражів майже не трапляються, це й показує малу ймовірність."));
+  }
+
+  /* 5. Дні народження */
+  function vizBirthday(host) {
+    var vs = vizState, n = cur.n, k = cur.k, key = [n, k].join("|"), i;
+    if (vs.bdKey !== key) { vs.bdKey = key; vs.bdTotal = 0; vs.bdHit = 0; vs.bdLast = []; }
+    function group(times) {
+      var t, seen, d, dup, last = [];
+      for (t = 0; t < times; t++) {
+        seen = {}; dup = false; last = [];
+        for (i = 0; i < k; i++) { d = rng.int(n); if (seen[d]) dup = true; seen[d] = 1; last.push(d); }
+        vs.bdTotal++; if (dup) vs.bdHit++;
+      }
+      vs.bdLast = last;
+    }
+    host.appendChild(el("p", "cmsg", "Кожен день народження випадково вибирають із " + n + " днів. Виділено дні, що вже траплялися в групі."));
+    if (vs.bdLast.length) {
+      var seen = {}, cls = [];
+      vs.bdLast.forEach(function (d) { cls.push(seen[d] ? "dup" : ""); seen[d] = 1; });
+      host.appendChild(tilesOf(vs.bdLast.map(function (d) { return String(d + 1); }), function (j) { return cls[j]; }));
+    }
+    host.appendChild(btnRow([
+      btn("Випадкова група", function () { group(1); renderViz(); }, "primary"),
+      btn("+1 000 груп", function () { group(1000); renderViz(); }),
+      btn("Скинути", function () { vs.bdTotal = 0; vs.bdHit = 0; vs.bdLast = []; renderViz(); })
+    ]));
+    var p = 1 - Comb.birthdayDistinct(n, k);
+    host.appendChild(el("p", "cmsg", "Груп: " + Comb.group(BigInt(vs.bdTotal)) + (vs.bdTotal ? ", зі збігом: " + vs.bdHit + ", частка " + fmt(vs.bdHit / vs.bdTotal, 3) : "") + ". Теорія: " + fmt(p, 3) + "."));
+  }
+
+  /* 6. Круглий стіл: поворот столу не змінює сусідів */
+  function vizRound(host) {
+    var vs = vizState, n = cur.n, i, NS = "http://www.w3.org/2000/svg";
+    if (n > 12) return;
+    if (vs.rot >= n) vs.rot = 0;
+    var svg = document.createElementNS(NS, "svg"), R = 100, r = 18;
+    svg.setAttribute("viewBox", "-140 -140 280 280"); svg.setAttribute("class", "vz-table"); svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "Круглий стіл із " + n + " людьми, повернутий на " + vs.rot + " місць");
+    var tb = document.createElementNS(NS, "circle"); tb.setAttribute("class", "tb"); tb.setAttribute("r", String(R - 28)); svg.appendChild(tb);
+    for (i = 0; i < n; i++) {
+      var ang = -Math.PI / 2 + 2 * Math.PI * i / n, who = ((i - vs.rot) % n + n) % n;
+      var c = document.createElementNS(NS, "circle"), t = document.createElementNS(NS, "text");
+      c.setAttribute("class", "pe" + (who === 0 ? " a" : "")); c.setAttribute("r", String(r)); c.setAttribute("cx", String(R * Math.cos(ang))); c.setAttribute("cy", String(R * Math.sin(ang)));
+      t.setAttribute("x", String(R * Math.cos(ang))); t.setAttribute("y", String(R * Math.sin(ang))); t.textContent = label(who);
+      svg.appendChild(c); svg.appendChild(t);
+    }
+    host.appendChild(svg);
+    host.appendChild(btnRow([btn("Повернути стіл на одне місце", function () { vs.rot = (vs.rot + 1) % n; renderViz(); say("Стіл повернуто, сусіди ті самі."); }, "primary"), btn("Скинути", function () { vs.rot = 0; renderViz(); })]));
+    host.appendChild(el("p", "cmsg", "Після повороту всі сусіди ті самі: " + label(0) + " сидить між " + label(n - 1) + " і " + label(1 % n) + ". Тому кожна розсадка за столом відповідає " + n + " розсадкам у ряд. Із " + fmtBig(Comb.fact(n)) + " розсадок у ряд виходить " + fmtBig(Comb.fact(n)) + " / " + n + " = " + fmtBig(cur.total) + " розсадок за столом."));
+  }
+
+  /* 7. Слово: однакові літери, переставлені між собою, слова не змінюють */
+  function vizWord(host) {
+    var vs = vizState, wc = cur.wc, w = state.word, i, key = w;
+    if (vs.wordKey !== key) { vs.wordKey = key; vs.wordPerm = []; for (i = 0; i < w.length; i++) vs.wordPerm.push(i); }
+    var idxIn = {}, labs = [], gi = {}, g = 0;
+    wc.letters.forEach(function (l, j) { gi[l] = j; });
+    /* підрядкові індекси: номер входження літери, переставлений за wordPerm усередині літери */
+    var occ = {}, pos = {};
+    for (i = 0; i < w.length; i++) { var ch = w.charAt(i); (pos[ch] = pos[ch] || []).push(i); }
+    var sub = []; Object.keys(pos).forEach(function (ch) {
+      var ps = pos[ch], assigned = ps.map(function (q) { return vs.wordPerm[q]; });
+      var order = assigned.slice().sort(function (a, b) { return a - b; });
+      ps.forEach(function (q, x) { sub[q] = order.indexOf(assigned[x]) + 1; });
+    });
+    var SUBD = "₀₁₂₃₄₅₆₇₈₉";
+    function subs(nm) { return String(nm).split("").map(function (d) { return SUBD.charAt(Number(d)); }).join(""); }
+    host.appendChild(el("p", "vz-lab", "Слово"));
+    host.appendChild(tilesOf(w.split(""), function () { return "key"; }));
+    host.appendChild(el("p", "vz-lab", "Те саме слово, літери якого розрізняємо"));
+    host.appendChild(tilesOf(w.split("").map(function (ch, q) { return wc.counts[gi[ch]] > 1 ? ch + subs(sub[q]) : ch; }), function (q) { var c = wc.counts[gi[w.charAt(q)]]; return c > 1 ? "c" + (gi[w.charAt(q)] % 4) : ""; }));
+    host.appendChild(btnRow([btn("Переставити однакові літери між собою", function () {
+      Object.keys(pos).forEach(function (ch) { var ps = pos[ch], vals = ps.map(function (q) { return vs.wordPerm[q]; }), j, t, r; for (j = vals.length - 1; j > 0; j--) { r = rng.int(j + 1); t = vals[j]; vals[j] = vals[r]; vals[r] = t; } ps.forEach(function (q, x) { vs.wordPerm[q] = vals[x]; }); });
+      renderViz(); say("Однакові літери переставлено, слово не змінилося.");
+    }, "primary"), btn("Скинути", function () { vs.wordKey = ""; renderViz(); })]));
+    var den = BigInt(1); wc.counts.forEach(function (c) { den *= Comb.fact(c); });
+    host.appendChild(el("p", "cmsg", den === BigInt(1)
+      ? "Усі літери різні, тому різних слів стільки ж, скільки перестановок: " + w.length + "! = " + fmtBig(cur.total) + "."
+      : "Якщо літери розрізняти, слів було б " + w.length + "! = " + fmtBig(Comb.fact(w.length)) + ". Але переставлення однакових літер слова не міняє: кожне слово ми порахували " + wc.counts.filter(function (c) { return c > 1; }).map(function (c) { return c + "!"; }).join(" · ") + " = " + fmtBig(den) + " разів. Тому ділимо: " + fmtBig(Comb.fact(w.length)) + " / " + fmtBig(den) + " = " + fmtBig(cur.total) + "."));
+  }
+
+  /* Крива ймовірності збігу днів народження */
+  function drawBday() {
+    var ctx = c1.ctx, W = c1.W, H = c1.H, M = { l: 40, r: 12, t: 14, b: 32 }, pw = W - M.l - M.r, ph = H - M.t - M.b, n = rowN, kmax = Math.max(60, rowK + 5), j;
+    var panel = cssVar("--panel"), ink = cssVar("--ink"), muted = cssVar("--muted"), pos = cssVar("--pos"), neg = cssVar("--neg"), data = cssVar("--font-data"), grid = cssVar("--grid");
+    function px(v) { return M.l + v / kmax * pw; }
+    function py(p) { return M.t + (1 - p) * ph; }
+    ctx.clearRect(0, 0, W, H); ctx.fillStyle = panel; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = grid; ctx.lineWidth = 1; ctx.beginPath();
+    [0, 0.25, 0.5, 0.75, 1].forEach(function (v) { var y = Math.round(py(v)) + 0.5; ctx.moveTo(M.l, y); ctx.lineTo(M.l + pw, y); });
+    ctx.stroke();
+    ctx.setLineDash([6, 4]); ctx.strokeStyle = muted; ctx.beginPath(); ctx.moveTo(M.l, py(0.5)); ctx.lineTo(M.l + pw, py(0.5)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = pos; ctx.lineWidth = 2.4; ctx.beginPath();
+    for (j = 0; j <= kmax; j++) { var y = py(1 - Comb.birthdayDistinct(n, j)); if (j === 0) ctx.moveTo(px(j), y); else ctx.lineTo(px(j), y); }
+    ctx.stroke();
+    ctx.strokeStyle = ink; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(M.l + 0.5, M.t); ctx.lineTo(M.l + 0.5, M.t + ph + 0.5); ctx.lineTo(M.l + pw, M.t + ph + 0.5); ctx.stroke();
+    ctx.fillStyle = muted; ctx.font = "11px " + data; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    [0, 0.5, 1].forEach(function (v) { ctx.fillText(fmt(v, v === 0.5 ? 1 : 0), M.l - 6, py(v)); });
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    for (j = 0; j <= kmax; j += 10) ctx.fillText(String(j), px(j), M.t + ph + 6);
+    var pk = 1 - Comb.birthdayDistinct(n, rowK);
+    ctx.fillStyle = neg; ctx.beginPath(); ctx.arc(px(rowK), py(pk), 5.5, 0, 2 * Math.PI); ctx.fill();
+    ctx.fillStyle = ink; ctx.font = "500 12px " + cssVar("--font-body"); ctx.textAlign = px(rowK) > W - 120 ? "right" : "left"; ctx.textBaseline = "bottom";
+    ctx.fillText("k = " + rowK + ": " + fmt(pk, 3), px(rowK) + (px(rowK) > W - 120 ? -8 : 8), py(pk) - 6);
+  }
+
+  /* ---------- Старт ---------- */
+  buildControls();
+  pick(0);
+  if (window.ResizeObserver) {
+    var ro = new ResizeObserver(function () { resizeAll(); });
+    ro.observe($("c1"));
+  } else window.addEventListener("resize", resizeAll);
+  if (window.matchMedia) {
+    var mq = window.matchMedia("(prefers-color-scheme: dark)");
+    if (mq.addEventListener) mq.addEventListener("change", drawRow);
+  }
+  resizeAll();
+})();
+</script>
+</body>
+</html>

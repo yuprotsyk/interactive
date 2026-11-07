@@ -102,6 +102,7 @@ a { color: var(--pos); }
 .chip .cr { font-family: var(--font-data); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 .chip[aria-pressed="true"] .cr { color: var(--bg); opacity: .8; }
+.chip[data-src]::after { content: attr(data-src); font-size: 11px; opacity: .65; margin-left: 2px; }
 
 button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible, a:focus-visible, canvas:focus-visible {
   outline: 2px solid var(--pos);

@@ -108,3 +108,20 @@ test("t-критерій збігається з розрахунками (ва�
   assert.ok(Hyp.pValueNull(2, "t", 5, "two") > Hyp.pValueNull(2, "z", 5, "two"));
   near(Hyp.pValueNull(2, "t", 100000, "two"), Hyp.pValueNull(2, "z", 5, "two"), 1e-4, "n → ∞");
 });
+
+test("два середні: t Велча, t Стьюдента й z звірені зі scipy (статистика, ν, p, критичні значення)", () => {
+  assert.ok(fx.two.length >= 18);
+  for (const c of fx.two) {
+    const id = `${c.method}, n=${c.n1}/${c.n2}`;
+    const r = Hyp.twoMeans(c.n1, c.n2, c.m1, c.m2, c.s1, c.s2, c.method);
+    near(r.stat, c.stat, 1e-9, id + " статистика");
+    near(r.se, c.se, 1e-9, id + " стандартна похибка");
+    if (c.df === null) assert.equal(r.df, Infinity); else near(r.df, c.df, 1e-9, id + " ν");
+    for (const t of ["two", "right", "left"]) near(Hyp.pValueDf(r.stat, r.df, t), c.p[t], 1e-9, `${id} p ${t}`);
+    for (const a of [0.01, 0.05, 0.1]) {
+      near(Hyp.criticalDf(a, r.df, "two").hi, c.crit2[String(a)], 1e-7, `${id} критичне α=${a}`);
+      const b = Hyp.diffBound(r.diff, r.se, r.df, a, "two");
+      near(b.hi - b.lo, 2 * c.crit2[String(a)] * c.se, 1e-6, `${id} довжина інтервалу`);
+    }
+  }
+});

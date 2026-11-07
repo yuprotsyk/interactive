@@ -78,8 +78,38 @@ def mean_block():
                     res.append({"kind": kind, "n": n, "tail": tail, "stat": stat, "p": p})
     return res
 
+
+def two_block():
+    """Два середні: статистика, ν, p, межі проти scipy.stats.ttest_ind_from_stats (Велч і Стьюдент) і ручного z."""
+    from scipy.stats import ttest_ind_from_stats
+    res = []
+    for (n1, n2, m1, m2, s1, s2) in [(108, 196, 22.0, 24.57, 9.0, 10.2), (10, 40, 5.0, 6.1, 4.0, 1.5), (40, 10, 5.0, 6.1, 4.0, 1.5),
+                                       (5, 7, 1.2, 0.4, 0.9, 1.3), (30, 30, 10, 11, 2, 2), (200, 15, 0.5, 0.0, 1.1, 0.9)]:
+        for method in ["welch", "pooled", "z"]:
+            row = {"n1": n1, "n2": n2, "m1": m1, "m2": m2, "s1": s1, "s2": s2, "method": method}
+            if method == "z":
+                se = (s1 ** 2 / n1 + s2 ** 2 / n2) ** .5
+                stat = (m1 - m2) / se; df = None
+                row.update(stat=stat, df=None, se=se, p={"two": float(2 * norm.sf(abs(stat))), "right": float(norm.sf(stat)), "left": float(norm.cdf(stat))})
+                crit = {a: float(norm.ppf(1 - a / 2)) for a in [0.01, 0.05, 0.1]}
+            else:
+                eq = method == "pooled"
+                r = ttest_ind_from_stats(m1, s1, n1, m2, s2, n2, equal_var=eq)
+                r2 = ttest_ind_from_stats(m1, s1, n1, m2, s2, n2, equal_var=eq, alternative="greater")
+                r3 = ttest_ind_from_stats(m1, s1, n1, m2, s2, n2, equal_var=eq, alternative="less")
+                a, b = s1 ** 2 / n1, s2 ** 2 / n2
+                # ν за формулою з підручників (у цій версії scipy ttest_ind_from_stats не повертає df); p із scipy це перевіряє
+                df = float(n1 + n2 - 2) if eq else float((a + b) ** 2 / (a * a / (n1 - 1) + b * b / (n2 - 1)))
+                assert abs(2 * tdist.sf(abs(r.statistic), df) - r.pvalue) < 1e-12
+                row.update(stat=float(r.statistic), df=df, se=(m1 - m2) / float(r.statistic),
+                           p={"two": float(r.pvalue), "right": float(r2.pvalue), "left": float(r3.pvalue)})
+                crit = {a: float(tdist.ppf(1 - a / 2, df)) for a in [0.01, 0.05, 0.1]}
+            row["crit2"] = crit
+            res.append(row)
+    return res
+
 out = {"scipy": __import__("scipy").__version__, "cases": cases,
-       "binom": binom_block(), "mean": mean_block(),
+       "binom": binom_block(), "mean": mean_block(), "two": two_block(),
        "pvalues": [{"z": z, "tail": t, "p": pval(z, t)} for z in [-3, -1.96, -0.5, 0, 0.7, 1.645, 2.5] for t in ["two", "right", "left"]]}
 json.dump(out, open("tests/fixtures/hypotheses.json", "w"), indent=1)
 print("ok", len(cases))

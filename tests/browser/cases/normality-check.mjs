@@ -3,6 +3,7 @@ import assert from "node:assert";
 
 const PAGE = new URL("../../../normality-check.html", import.meta.url).href;
 function ok(c, m) { assert.ok(c, m); }
+const near = (a, b, tol, m) => assert.ok(Math.abs(a - b) <= tol, `${m}: ${a} проти ${b}`);
 const num = (t) => parseFloat(t.replace(/\s/g, "").replace("−", "-").replace(",", ".").replace("<", ""));
 
 export default async function (h) {
@@ -61,6 +62,18 @@ export default async function (h) {
   await setRange("nRange", 500); await page.click("#add100");
   const high = num(await txt("xSw"));
   ok(high > low + 0.15, `потужність зростає з n: ${low} → ${high}`);
+
+  // набори даних: фіксовані, n береться з даних; p Шапіро–Вілка збігається зі scipy
+  await chip("Препарат і плацебо: різниці");
+  ok((await txt("nOut")).trim() === "24" && await page.locator("#nRange").isDisabled(), "реальна вибірка: n = 24, повзунок n вимкнено");
+  ok(await page.locator("#xBox").isHidden(), "експеримент для фіксованої вибірки прихований");
+  near(num(await txt("swP")), 0.892, 0.02, "ADHD: p Шапіро–Вілка");
+  await chip("Вага до й після: різниці");
+  near(num(await txt("swP")), 0.0079, 0.002, "вага: p Шапіро–Вілка");
+  await chip("Price, 2002");
+  ok(num(await txt("swP")) <= 1e-4, "ціни: нормальність відхилено");
+  await chip("Нормальний");
+  ok(await page.locator("#xBox").isVisible() && !(await page.locator("#nRange").isDisabled()), "після повернення до розподілу експеримент і n доступні");
 
   // нова вибірка змінює результат
   const before = await txt("swW");

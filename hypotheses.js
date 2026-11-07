@@ -79,25 +79,97 @@
        two:   x̄ ± c₁₋α/₂·scale/√n;  right: [x̄ − c₁₋α·scale/√n; ∞);  left: (−∞; x̄ + c₁₋α·scale/√n],
      де c це квантиль нульового розподілу. Для t потрібно n ≥ 2. */
   function nullDist(kind, n) { return kind === "t" ? { d: D.student, P: { nu: n - 1 } } : { d: D.normal, P: STD }; }
+  /* Те саме для довільного (зокрема дробового) числа ступенів свободи ν. */
+  function nullDistNu(kind, nu) { return kind === "t" ? { d: D.student, P: { nu: nu } } : { d: D.normal, P: STD }; }
 
-  function pValueNull(stat, kind, n, tail) {
-    var nd = nullDist(kind, n), F = function (x) { return nd.d.cdf(x, nd.P); };
+  function pValueNd(nd, stat, tail) {
+    var F = function (x) { return nd.d.cdf(x, nd.P); };
     if (tail === "right") return F(-stat);
     if (tail === "left") return F(stat);
     return Math.min(1, 2 * F(-Math.abs(stat)));
   }
-
-  function criticalNull(alpha, kind, n, tail) {
-    var nd = nullDist(kind, n), q = function (p) { return D.quantile(nd.d, nd.P, p); };
+  function criticalNd(nd, alpha, tail) {
+    var q = function (p) { return D.quantile(nd.d, nd.P, p); };
     if (tail === "right") return { lo: -Infinity, hi: q(1 - alpha) };
     if (tail === "left") return { lo: -q(1 - alpha), hi: Infinity };
     var c = q(1 - alpha / 2);
     return { lo: -c, hi: c };
   }
+  function pValueNull(stat, kind, n, tail) { return pValueNd(nullDist(kind, n), stat, tail); }
+  function criticalNull(alpha, kind, n, tail) { return criticalNd(nullDist(kind, n), alpha, tail); }
+  function pValueDf(stat, kind, nu, tail) { return pValueNd(nullDistNu(kind, nu), stat, tail); }
+  function criticalDf(alpha, kind, nu, tail) { return criticalNd(nullDistNu(kind, nu), alpha, tail); }
 
   function meanBound(xbar, scale, n, alpha, kind, tail) {
     var c = criticalNull(alpha, kind, n, tail), se = scale / Math.sqrt(n);
     return { lo: tail === "left" ? -Infinity : xbar - c.hi * se, hi: tail === "right" ? Infinity : xbar - c.lo * se };
+  }
+
+  /* ---------- Порівняння середніх двох незалежних вибірок ----------
+     X₁ ~ N(μ₁, σ₁²) обсягу n₁, X₂ ~ N(μ₂, σ₂²) обсягу n₂; H₀: μ₁ = μ₂; H₁: μ₁ ≠ μ₂, μ₁ > μ₂ або μ₁ < μ₂.
+     Різниця d = x̄₁ − x̄₂, її стандартна похибка se = √(a₁ + a₂), де aᵢ = σᵢ²/nᵢ (σ відомі) або sᵢ²/nᵢ.
+     z-критерій (σ₁, σ₂ відомі): Z = d/se ~ N(0; 1).
+     t-критерій Велча (σ₁, σ₂ невідомі, не обов'язково рівні): T = d/se, нульовий розподіл наближено Стьюдента
+     з числом ступенів свободи за формулою Уелча–Саттертвейта
+         ν = (s₁²/n₁ + s₂²/n₂)² / ( s₁⁴/(n₁²(n₁ − 1)) + s₂⁴/(n₂²(n₂ − 1)) ).
+     t-критерій зі спільною дисперсією (припущення σ₁ = σ₂): sₚ² = ((n₁ − 1)s₁² + (n₂ − 1)s₂²)/(n₁ + n₂ − 2),
+     T = d/(sₚ√(1/n₁ + 1/n₂)), ν = n₁ + n₂ − 2 (точний розподіл Стьюдента, якщо σ₁ = σ₂).
+     Довірча межа для μ₁ − μ₂ двоїста до критерію: d − c·se ... d + c·se (як для одного середнього). */
+  function twoMeans(kind, m1, s1, n1, m2, s2, n2, pooled) {
+    var d = m1 - m2, a1 = s1 * s1 / n1, a2 = s2 * s2 / n2, se, nu;
+    if (kind === "t" && pooled) {
+      var sp2 = ((n1 - 1) * s1 * s1 + (n2 - 1) * s2 * s2) / (n1 + n2 - 2);
+      se = Math.sqrt(sp2 * (1 / n1 + 1 / n2)); nu = n1 + n2 - 2;
+    } else {
+      se = Math.sqrt(a1 + a2);
+      nu = kind === "t" ? (a1 + a2) * (a1 + a2) / (a1 * a1 / (n1 - 1) + a2 * a2 / (n2 - 1)) : Infinity;
+    }
+    return { diff: d, se: se, stat: d / se, nu: nu };
+  }
+  function diffBound(diff, se, nu, alpha, kind, tail) {
+    var c = criticalDf(alpha, kind, nu, tail);
+    return { lo: tail === "left" ? -Infinity : diff - c.hi * se, hi: tail === "right" ? Infinity : diff - c.lo * se };
+  }
+
+  /* ---------- Порівняння середніх двох незалежних нормальних вибірок (H₀: μ₁ = μ₂) ----------
+     Вибірки X₁ ~ N(μ₁, σ₁²) обсягу n₁ і X₂ ~ N(μ₂, σ₂²) обсягу n₂; різниця d = x̄₁ − x̄₂.
+     "z" (σ₁, σ₂ відомі; на вході σ):  Z = d / √(σ₁²/n₁ + σ₂²/n₂),  нульовий розподіл N(0; 1).
+     "welch" (σ невідомі; критерій Стьюдента для різних дисперсій, Welch 1947):
+         T = d / √(s₁²/n₁ + s₂²/n₂),  нульовий розподіл наближено Стьюдента з ν степенями свободи,
+         ν = (s₁²/n₁ + s₂²/n₂)² / ( (s₁²/n₁)²/(n₁−1) + (s₂²/n₂)²/(n₂−1) )   (Welch–Satterthwaite).
+         Точного нульового розподілу немає (проблема Беренса–Фішера).
+     "pooled" (σ невідомі, але припускають σ₁ = σ₂; Student 1908):
+         T = d / ( s_p·√(1/n₁ + 1/n₂) ),  s_p² = ((n₁−1)s₁² + (n₂−1)s₂²)/(n₁+n₂−2),  ν = n₁ + n₂ − 2 (розподіл точний).
+     p-значення, критичні межі й довірчий інтервал для μ₁ − μ₂ такі самі, як для одного середнього, але з ν. ν = ∞ означає N(0; 1). */
+  function twoMeans(n1, n2, m1, m2, s1, s2, method) {
+    var d = m1 - m2, a = s1 * s1 / n1, b = s2 * s2 / n2, se, df;
+    if (method === "pooled") {
+      var sp2 = ((n1 - 1) * s1 * s1 + (n2 - 1) * s2 * s2) / (n1 + n2 - 2);
+      se = Math.sqrt(sp2 * (1 / n1 + 1 / n2)); df = n1 + n2 - 2;
+    } else {
+      se = Math.sqrt(a + b);
+      df = method === "z" ? Infinity : (a + b) * (a + b) / (a * a / (n1 - 1) + b * b / (n2 - 1));
+    }
+    return { diff: d, se: se, stat: d / se, df: df };
+  }
+  function nullDf(df) { return df === Infinity ? { d: D.normal, P: STD } : { d: D.student, P: { nu: df } }; }
+  function pValueDf(stat, df, tail) {
+    var nd = nullDf(df), F = function (x) { return nd.d.cdf(x, nd.P); };
+    if (tail === "right") return F(-stat);
+    if (tail === "left") return F(stat);
+    return Math.min(1, 2 * F(-Math.abs(stat)));
+  }
+  function criticalDf(alpha, df, tail) {
+    var nd = nullDf(df), q = function (p) { return D.quantile(nd.d, nd.P, p); };
+    if (tail === "right") return { lo: -Infinity, hi: q(1 - alpha) };
+    if (tail === "left") return { lo: -q(1 - alpha), hi: Infinity };
+    var c = q(1 - alpha / 2);
+    return { lo: -c, hi: c };
+  }
+  /** Довірчий інтервал (межа) для μ₁ − μ₂, двоїстий до критерію. */
+  function diffBound(diff, se, df, alpha, tail) {
+    var c = criticalDf(alpha, df, tail);
+    return { lo: tail === "left" ? -Infinity : diff - c.hi * se, hi: tail === "right" ? Infinity : diff - c.lo * se };
   }
 
   /* ---------- Біноміальний критерій для частки (H₀: p = ½) ----------
@@ -145,6 +217,8 @@
   var api = { zStat: zStat, critical: critical, criticalMean: criticalMean, reject: reject,
               pValue: pValue, power: power, inAlternative: inAlternative,
               pValueNull: pValueNull, criticalNull: criticalNull, meanBound: meanBound,
+              twoMeans: twoMeans, pValueDf: pValueDf, criticalDf: criticalDf, diffBound: diffBound,
+              pValueDf: pValueDf, criticalDf: criticalDf, twoMeans: twoMeans, diffBound: diffBound,
               binomPmf: binomPmf, binomPValue: binomPValue, binomExtreme: binomExtreme, binomCritical: binomCritical };
   root.Hyp = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;

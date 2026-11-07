@@ -118,6 +118,8 @@ details.more summary { cursor: pointer; font-size: 14px; font-weight: 500; min-h
   <section class="choose panel" aria-label="Вибірка і параметри">
     <p class="eyebrow">Розподіл, з якого взято вибірку</p>
     <div class="chips" id="chips" role="group" aria-label="Розподіли"></div>
+    <p class="eyebrow" style="margin-top:12px">Набори даних (фіксована вибірка)</p>
+    <div class="chips" id="chipsReal" role="group" aria-label="Набори даних"></div>
     <p class="statement" id="statement"></p>
     <p class="hyp" id="hyp"></p>
     <div class="cfg">
@@ -183,6 +185,7 @@ details.more summary { cursor: pointer; font-size: 14px; font-weight: 500; min-h
         <summary>Детальні обчислення χ²</summary>
         <div class="tbl" id="tbl"></div>
       </details>
+      <div id="xBox">
       <hr>
       <p class="eyebrow" style="margin-top:14px">Багато вибірок із цього розподілу</p>
       <p class="cmsg" style="margin-top:6px" id="xIntro"></p>
@@ -199,6 +202,7 @@ details.more summary { cursor: pointer; font-size: 14px; font-weight: 500; min-h
         <div><dt>χ²: частка відхилень H₀</dt><dd id="xCh">—</dd></div>
       </dl>
       <p class="cmsg" id="xNote"></p>
+      </div>
     </section>
 
     <section class="explain panel" aria-labelledby="eTitle">
@@ -243,6 +247,20 @@ details.more summary { cursor: pointer; font-size: 14px; font-weight: 500; min-h
     { id: "uni", name: "Рівномірний", normal: false, gen: function (r) { return r.uniform(0, 1); },
       text: "Рівномірний розподіл на [0; 1]: без хвостів. H₀ хибна." }
   ];
+  /* Набори даних (фіксовані вибірки). */
+  var REAL = [
+    { id: "adhd", src: "ADHD", name: "Препарат і плацебо: різниці", normal: null, data: [5,22,-2,3,4,-2,6,18,11,-11,7,15,10,6,-1,5,-3,7,-3,5,1,8,12,-4],
+      text: "Різниці Dᵢ = «після препарату» − «після плацебо» для 24 дітей із СДВГ. Такі різниці аналізують одновибірковим t-критерієм." },
+    { id: "weight", src: "weight", name: "Вага до й після: різниці", normal: null, data: [1.7,0.7,-0.1,-0.7,-3.5,14.9,3.5,17.1,-7.6,1.6,11.7,6.1,1.1,-4.0,20.9,-9.1,2.1,-1.4,1.4,-0.3,-3.7,-0.8,2.4,12.6,1.9,3.9,0.1,15.4,-0.7],
+      text: "Різниці Dᵢ = «після» − «до» ваги для 29 осіб." },
+    { id: "price", src: "seattle", name: "Price, 2002", normal: null, data: [142.0,232.0,132.5,200.0,362.0,244.95,335.0,324.5,222.0,225.0,175.0,50.0,215.0,260.0,307.0,210.95,1370.0,215.5,179.8,217.0,197.5,146.5,116.7,449.9,266.0,265.0,256.0,684.5,257.0,570.0,149.4,155.0,244.9,66.407,166.0,296.0,148.5,270.0,252.95,507.0,705.0,1850.0,290.0,164.95,375.0,335.0,987.5,330.0,149.95,190.0],
+      text: "50 значень Price за 2002 рік. Вибірка скошена в бік великих значень." },
+    { id: "lnprice", src: "seattle", name: "ln(Price), 2002", normal: null, data: [4.9558,5.4467,4.8866,5.2983,5.8916,5.5011,5.8141,5.7823,5.4027,5.4161,5.1648,3.912,5.3706,5.5607,5.7268,5.3516,7.2226,5.373,5.1918,5.3799,5.2857,4.987,4.7596,6.109,5.5835,5.5797,5.5452,6.5287,5.5491,6.3456,5.0066,5.0434,5.5008,4.1958,5.112,5.6904,5.0006,5.5984,5.5332,6.2285,6.5582,7.5229,5.6699,5.1056,5.9269,5.8141,6.8952,5.7991,5.0103,5.247],
+      text: "Натуральний логарифм тих самих 50 значень Price за 2002 рік. Скошеність помітно менша, але формально нормальність усе ж відхиляється." },
+    { id: "repair", src: "verizon", name: "Час ремонту, CLEC", normal: null, data: [26.62,8.6,0.0,21.15,8.33,20.28,96.32,17.97,3.42,0.07,24.38,19.88,14.33,5.45,5.4,2.68,0.0,24.2,22.13,18.57,20.0,14.13,5.8],
+      text: "Час ремонту в годинах для 23 клієнтів конкурентів оператора (CLEC). Сильно скошена вибірка з кількома великими значеннями." }
+  ];
+  SOURCES = SOURCES.concat(REAL);
   var MODES = [
     { id: "prob", name: "Рівноймовірні" },
     { id: "width", name: "Рівної довжини" }
@@ -259,7 +277,10 @@ details.more summary { cursor: pointer; font-size: 14px; font-weight: 500; min-h
 
   function source() { return SOURCES[state.src]; }
   function sample(rng, n) { var v = [], i, g = source().gen; for (i = 0; i < n; i++) v.push(g(rng)); return v; }
-  function newData() { data = sample(Rand.create(Rand.seedFor(state.seed, 0)), state.n); }
+  function newData() {
+    if (source().data) { data = source().data.slice(); state.n = data.length; }
+    else data = sample(Rand.create(Rand.seedFor(state.seed, 0)), state.n);
+  }
   function newX() { X = { N: 0, sw: 0, ch: 0, rng: Rand.create(Rand.seedFor(state.seed, 1)) }; }
   function runX(count) {
     var i, s, c;
@@ -285,8 +306,9 @@ details.more summary { cursor: pointer; font-size: 14px; font-weight: 500; min-h
       var b = document.createElement("button");
       b.type = "button"; b.className = "chip"; b.textContent = s.name;
       b.setAttribute("aria-pressed", "false");
+      if (s.src) b.setAttribute("data-src", " · " + s.src);
       b.addEventListener("click", function () { state.src = i; changed(); say(s.name + "."); });
-      $("chips").appendChild(b); chipEls.push(b);
+      $(s.data ? "chipsReal" : "chips").appendChild(b); chipEls.push(b);
     });
     MODES.forEach(function (m) {
       var b = document.createElement("button");
@@ -305,7 +327,9 @@ details.more summary { cursor: pointer; font-size: 14px; font-weight: 500; min-h
     chipEls.forEach(function (b, i) { b.setAttribute("aria-pressed", String(i === state.src)); });
     modeEls.forEach(function (b, i) { b.setAttribute("aria-pressed", String(MODES[i].id === state.mode)); });
     alphaEls.forEach(function (b, i) { b.setAttribute("aria-pressed", String(ALPHAS[i] === state.alpha)); });
+    var fixed = !!source().data;
     $("nRange").value = String(state.n); $("nOut").textContent = String(state.n);
+    $("nRange").disabled = fixed; $("newSample").disabled = fixed; $("xBox").style.display = fixed ? "none" : "";
     $("kRange").value = String(state.K); $("kOut").textContent = String(state.K);
     $("modeNote").textContent = state.mode === "prob"
       ? "Рівноймовірні інтервали: межі підібрано так, щоб за нормальним розподілом із параметрами x̄ і σ̂ в кожен потрапляла частка 1/K значень. Очікувані частоти однакові: n/K."
@@ -324,7 +348,7 @@ details.more summary { cursor: pointer; font-size: 14px; font-weight: 500; min-h
   function update() {
     var n = state.n, K = state.K, a = state.alpha, src = source();
     qq = Norm.qq(data); sw = Norm.shapiroWilk(data); ch = Norm.chiSquare(data, K, state.mode);
-    setText("statement", src.text + " Вибірка: n = " + n + ".");
+    setText("statement", src.text + (src.data ? "" : " Вибірка: n = " + n + "."));
     Tex.mix($("hyp"), [{ m: "H₀" }, ": вибірка з нормального розподілу. ", { m: "H₁" }, ": розподіл не нормальний."]);
     $("rAlpha").textContent = fmt(a, 2);
     $("swW").textContent = sw ? fmt(sw.W, 4) : "—";
@@ -342,8 +366,8 @@ details.more summary { cursor: pointer; font-size: 14px; font-weight: 500; min-h
       : "";
     var concl = "";
     if (sw && ch && swRej !== chRej) concl = "Критерії дали різні рішення: вони по-різному чутливі до типу відхилення.";
-    else if (!src.normal && !swRej && !chRej) concl = "Розподіл не нормальний, але критерії цього не помітили: вибірка замала для такої різниці. Збільшіть n.";
-    else if (src.normal && (swRej || chRej)) concl = "Розподіл нормальний, а H₀ відхилено: це помилка I роду, її ймовірність дорівнює α (приблизно). Натисніть «Нова вибірка».";
+    else if (src.normal === false && !swRej && !chRej) concl = "Розподіл не нормальний, але критерії цього не помітили: вибірка замала для такої різниці. Збільшіть n.";
+    else if (src.normal === true && (swRej || chRej)) concl = "Розподіл нормальний, а H₀ відхилено: це помилка I роду, її ймовірність дорівнює α (приблизно). Натисніть «Нова вибірка».";
     $("concl").textContent = concl;
     /* таблиця */
     var t = $("tbl"); t.textContent = "";
@@ -362,7 +386,7 @@ details.more summary { cursor: pointer; font-size: 14px; font-weight: 500; min-h
     $("xN").textContent = group(X.N);
     $("xSw").textContent = X.N > 0 ? fmt(X.sw / X.N, 3) : "—";
     $("xCh").textContent = X.N > 0 ? fmt(X.ch / X.N, 3) : "—";
-    $("xNote").textContent = src.normal
+    $("xNote").textContent = src.normal === true
       ? "Розподіл нормальний, тому частка відхилень має бути близькою до α = " + fmt(a, 2) + ". Для χ² вона може бути трохи вищою через оцінку параметрів за початковими даними."
       : "Розподіл не нормальний, тому частка відхилень це потужність критерію: ймовірність помітити відхилення при такому n. Змініть n й порівняйте.";
     $("c1").setAttribute("aria-label", "Q-Q графік, n = " + n);

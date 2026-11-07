@@ -103,6 +103,10 @@
     <div class="chips" id="chipsData" role="group" aria-label="Набори даних"></div>
     <p class="statement" id="statement"></p>
     <p class="hyp" id="hyp"></p>
+    <div id="dvBox" hidden>
+      <div id="dv"></div>
+      <p class="note"><button type="button" class="btn" id="resetData">Повернути значення з даних</button> Повзунки можна зсунути, але це вже не набір даних.</p>
+    </div>
     <div class="cfg">
       <div class="fld">
         <label for="nRange">Обсяг вибірки n</label>
@@ -200,6 +204,9 @@
 <script src="distributions.js"></script>
 <script src="random.js"></script>
 <script src="hypotheses.js"></script>
+<script src="summary.js"></script>
+<script src="datasets.js"></script>
+<script src="dataview.js"></script>
 <script>
 (function () {
   "use strict";
@@ -212,11 +219,11 @@
       xr: [2500, 3700, 5], sr: [100, 1000, 10],
       text: "Середня вага новонароджених у сім'ях за межею бідності 2800 г. Щоб її збільшити, розробили програму ведення вагітності й випробували на жінках із таких сімей. Чи ефективна програма?",
       h0: "програма не впливає" },
-    { id: "paired", src: "ADHD", ds: true, name: "Препарат і плацебо: різниці", n: 24, xbar: 4.96, mu0: 0, scale: 7.54, kind: "t", alt: "two", unit: "", dec: 2,
+    { id: "paired", dv: { id: "adhd", after: "D60", before: "D0", file: "adhd.csv" }, src: "ADHD", ds: true, name: "Препарат і плацебо: різниці", n: 24, xbar: 4.96, mu0: 0, scale: 7.54, kind: "t", alt: "two", unit: "", dec: 2,
       xr: [-4, 12, 0.01], sr: [2, 20, 0.01],
       text: "24 дитини, які мають синдром дефіциту уваги й гіперактивності (СДВГ), проходили тест на здатність стримувати імпульсивні реакції після тижня плацебо й після тижня препарату. Тут x̄ це середня різниця Dᵢ = «після препарату» − «після плацебо», s це стандартне відхилення різниць, а μ₀ = 0. Чи змінює препарат показник?",
       h0: "препарат не змінює показник" },
-    { id: "weight2", src: "weight", ds: true, name: "Вага до й після: різниці", n: 29, xbar: 3.01, mu0: 0, scale: 7.31, kind: "t", alt: "two", unit: "", dec: 2,
+    { id: "weight2", dv: { id: "weight", after: "After", before: "Before", file: "weight.csv" }, src: "weight", ds: true, name: "Вага до й після: різниці", n: 29, xbar: 3.01, mu0: 0, scale: 7.31, kind: "t", alt: "two", unit: "", dec: 2,
       xr: [-2, 8, 0.01], sr: [2, 15, 0.01],
       text: "29 осіб зважили до й після. Тут x̄ це середня різниця Dᵢ = «після» − «до», s це стандартне відхилення різниць, μ₀ = 0. Різниці не проходять перевірку на нормальність (критерій Шапіро–Вілка, p ≈ 0,008), тож результат слід перевіряти, див. сторінку про нормальність.",
       h0: "середня вага не змінилася" },
@@ -233,6 +240,14 @@
       text: "Дуже мала вибірка. Перемкніть критерій на z і порівняйте p: розподіл Стьюдента має важчі хвости.",
       h0: "середнє дорівнює μ₀" }
   ];
+  /* Для наборів із парних вимірів n, x̄ і s беремо з різниць Dᵢ = після − до (заокруглено до кроку повзунка). */
+  function roundTo(v, dec) { var f = Math.pow(10, dec); return Math.round(v * f) / f; }
+  function diffs(sc) { var d = Data[sc.dv.id]; return d[sc.dv.after].map(function (x, i) { return x - d[sc.dv.before][i]; }); }
+  SCENARIOS.forEach(function (sc) {
+    if (!sc.dv) return;
+    var d = diffs(sc);
+    sc.n = d.length; sc.xbar = roundTo(Summ.mean(d), sc.dec); sc.scale = roundTo(Summ.sd(d, 1), sc.dec);
+  });
   var ALTS = [
     { id: "left", name: "μ < μ₀", sign: "<" },
     { id: "right", name: "μ > μ₀", sign: ">" },
@@ -325,7 +340,18 @@
     var e = $(id);
     e.min = String(r[0]); e.max = String(r[1]); e.step = String(r[2]); e.value = String(v);
   }
+  var dvFor = null;
+  function showData() {
+    $("dvBox").hidden = !meta.dv;
+    if (meta.dv && dvFor !== meta.id) {
+      var d = Data[meta.dv.id];
+      DataView.render($("dv"), { cols: [{ name: meta.dv.before, values: d[meta.dv.before] }, { name: meta.dv.after, values: d[meta.dv.after] },
+        { name: meta.dv.after + " − " + meta.dv.before, values: diffs(meta).map(function (v) { return roundTo(v, 4); }) }], file: meta.dv.file, dec: meta.dec });
+    }
+    dvFor = meta.dv ? meta.id : null;
+  }
   function syncControls() {
+    showData();
     chipEls.forEach(function (b, i) { b.setAttribute("aria-pressed", String(i === state.sc)); });
     altEls.forEach(function (b, i) { b.setAttribute("aria-pressed", String(ALTS[i].id === state.alt)); });
     kindEls.forEach(function (b, i) { b.setAttribute("aria-pressed", String(KINDS[i].id === state.kind)); });
@@ -340,6 +366,10 @@
   $("nRange").addEventListener("input", function (e) { state.n = Number(e.target.value); $("nOut").textContent = String(state.n); newX(); update(); });
   $("xRange").addEventListener("input", function (e) { state.xbar = Number(e.target.value); update(); });
   $("sRange").addEventListener("input", function (e) { state.scale = Number(e.target.value); newX(); update(); });
+  $("resetData").addEventListener("click", function () {
+    state.n = meta.n; state.xbar = meta.xbar; state.scale = meta.scale; state.mu0 = meta.mu0;
+    syncControls(); newX(); update(); say("Значення повернено до даних.");
+  });
   function addX(count) { runX(count); update(); say(announceX(), 400); }
   [["add1", 1], ["add10", 10], ["add100", 100], ["add1000", 1000]].forEach(function (p) {
     $(p[0]).addEventListener("click", function () { addX(p[1]); });

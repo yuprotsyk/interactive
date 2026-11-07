@@ -49,6 +49,7 @@
   border: 1px solid var(--grid-strong); border-radius: 6px;
 }
 #c0 { aspect-ratio: 16 / 6; max-height: 34vh; min-height: 140px; }
+#c3 { aspect-ratio: 16 / 5; max-height: 34vh; min-height: 150px; }
 #c1 { aspect-ratio: 16 / 9; max-height: 52vh; }
 #c2 { aspect-ratio: 16 / 5; max-height: 30vh; min-height: 120px; }
 .legend { margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; }
@@ -114,6 +115,10 @@
     <div class="chips" id="chipsData" role="group" aria-label="Набори даних"></div>
     <p class="statement" id="statement"></p>
     <p class="hyp" id="hyp"></p>
+    <div id="dvBox" hidden>
+      <div id="dv"></div>
+      <p class="note"><button type="button" class="btn" id="resetData">Повернути значення з даних</button> Повзунки можна зсунути, але це вже не набір даних.</p>
+    </div>
     <div class="cfg">
       <div class="fld">
         <label for="n1Range">Обсяг вибірки 1, n₁</label>
@@ -162,6 +167,11 @@
       <canvas id="c0" role="img" aria-label="Нормальні щільності з параметрами вибірок"></canvas>
       <p class="legend" id="legend0"></p>
       <p class="cmsg">Криві це нормальні щільності з параметрами x̄ і s кожної вибірки, штрихи позначають середні. Перекриття кривих не скасовує значущості різниці середніх: стандартна похибка різниці менша за s.</p>
+    </section>
+    <section class="chart" id="boxSec" aria-labelledby="hb" hidden>
+      <h2 id="hb">Ящик з вусами (за даними)</h2>
+      <canvas id="c3" role="img" aria-label="Ящик з вусами для двох груп"></canvas>
+      <p class="cmsg">Ящик від першого до третього квартиля з медіаною, вуса до найдальшого значення в межах 1,5 міжквартильних розмахів, точки це викиди. Графік показує дані набору, а не положення повзунків.</p>
     </section>
     <section class="chart" aria-labelledby="h1">
       <h2 id="h1">Нульовий розподіл статистики</h2>
@@ -229,6 +239,9 @@
 <script src="distributions.js"></script>
 <script src="random.js"></script>
 <script src="hypotheses.js"></script>
+<script src="summary.js"></script>
+<script src="datasets.js"></script>
+<script src="dataview.js"></script>
 <script>
 (function () {
   "use strict";
@@ -241,15 +254,15 @@
       xr: [15, 35, 0.01], sr: [3, 20, 0.01], g1: "2014", g2: "1974",
       text: "Тижневе число робочих годин у людей, які працюють неповний день: вибірка 1 з 2014 року, вибірка 2 з 1974 року. Чи змінилося середнє? Різниця 2,57 год, а s підібрано так, щоб p і 95 % інтервал збігалися з відомим результатом (p = 0,027, інтервал [0,29; 4,85]). Самі x̄ умовні.",
       h0: "середнє не змінилося" },
-    { id: "verizon", src: "verizon", ds: true, name: "Ремонт: клієнти CLEC і ILEC", n1: 23, n2: 1664, m1: 16.51, m2: 8.41, s1: 19.5, s2: 14.69, kind: "t", alt: "right", unit: "год", dec: 2,
+    { id: "verizon", dv: { id: "verizon", a: "CLEC", b: "ILEC", la: "CLEC (вибірка 1)", lb: "ILEC (вибірка 2)", file: "verizon.csv" }, src: "verizon", ds: true, name: "Ремонт: клієнти CLEC і ILEC", n1: 23, n2: 1664, m1: 16.51, m2: 8.41, s1: 19.5, s2: 14.69, kind: "t", alt: "right", unit: "год", dec: 2,
       nr: [2, 2000], xr: [0, 40, 0.01], sr: [5, 40, 0.01], g1: "CLEC", g2: "ILEC",
       text: "Час ремонту в годинах: 23 клієнти конкурентів оператора, CLEC (вибірка 1), і 1664 клієнти самого оператора, ILEC (вибірка 2). Чи довше в середньому ремонтують клієнтам конкурентів? Вибірка з більшою дисперсією тут набагато менша: t з об'єднаною дисперсією дає p = 0,0045, а Велч p = 0,030. Розподіли сильно скошені (критерій Шапіро–Вілка відхиляє нормальність в обох групах), тож висновок слід трактувати обережно.",
       h0: "середній час ремонту однаковий" },
-    { id: "water", src: "water", ds: true, name: "Смертність: північ і південь", n1: 35, n2: 26, m1: 1633.6, m2: 1376.8, s1: 136.9, s2: 140.3, kind: "t", alt: "two", unit: "", dec: 1,
+    { id: "water", dv: { id: "water", a: "North", b: "South", la: "North (вибірка 1)", lb: "South (вибірка 2)", file: "water-mortality.csv" }, src: "water", ds: true, name: "Смертність: північ і південь", n1: 35, n2: 26, m1: 1633.6, m2: 1376.8, s1: 136.9, s2: 140.3, kind: "t", alt: "two", unit: "", dec: 1,
       nr: [2, 300], xr: [1200, 1800, 0.1], sr: [50, 250, 0.1], g1: "північ", g2: "південь",
       text: "Середня річна смертність чоловіків на 100 000 жителів у великих містах Англії та Уельсу: 35 міст півночі (вибірка 1) і 26 міст півдня (вибірка 2). Чи відрізняється середня смертність?",
       h0: "середня смертність однакова" },
-    { id: "notes", src: "banknotes", ds: true, name: "Банкноти: справжні й підроблені", n1: 100, n2: 100, m1: 8.31, m2: 10.53, s1: 0.64, s2: 1.13, kind: "t", alt: "two", unit: "мм", dec: 2,
+    { id: "notes", dv: { id: "banknotes", a: "real1", b: "real0", la: "real = 1 (вибірка 1)", lb: "real = 0 (вибірка 2)", file: "banknotes-x4.csv" }, src: "banknotes", ds: true, name: "Банкноти: справжні й підроблені", n1: 100, n2: 100, m1: 8.31, m2: 10.53, s1: 0.64, s2: 1.13, kind: "t", alt: "two", unit: "мм", dec: 2,
       nr: [2, 300], xr: [6, 12, 0.01], sr: [0.2, 2, 0.01], g1: "справжні", g2: "підроблені",
       text: "Ширина нижнього поля (мм) на 100 справжніх (вибірка 1) і 100 підроблених (вибірка 2) швейцарських банкнотах. Обсяги однакові, а дисперсії різні. Чи відрізняється середнє?",
       h0: "середні однакові" },
@@ -270,6 +283,15 @@
       text: "Дві малі вибірки. Перемкніть критерій на z і порівняйте p: розподіл Стьюдента має важчі хвости.",
       h0: "середні однакові" }
   ];
+  /* Для наборів даних n, x̄, s беремо з самих даних (заокруглено до кроку повзунка). */
+  function roundTo(v, dec) { var f = Math.pow(10, dec); return Math.round(v * f) / f; }
+  SCENARIOS.forEach(function (sc) {
+    if (!sc.dv) return;
+    var a = Data[sc.dv.id][sc.dv.a], b = Data[sc.dv.id][sc.dv.b];
+    sc.n1 = a.length; sc.n2 = b.length;
+    sc.m1 = roundTo(Summ.mean(a), sc.dec); sc.m2 = roundTo(Summ.mean(b), sc.dec);
+    sc.s1 = roundTo(Summ.sd(a, 1), sc.dec); sc.s2 = roundTo(Summ.sd(b, 1), sc.dec);
+  });
   var ALTS = [
     { id: "left", name: "μ₁ < μ₂", sign: "<" },
     { id: "right", name: "μ₁ > μ₂", sign: ">" },
@@ -368,7 +390,17 @@
     });
   }
   function setRange(id, r, v) { var e = $(id); e.min = String(r[0]); e.max = String(r[1]); e.step = String(r[2]); e.value = String(v); }
+  var dvFor = null;
+  function showData() {
+    $("dvBox").hidden = !meta.dv; $("boxSec").hidden = !meta.dv;
+    if (meta.dv && dvFor !== meta.id) {
+      var d = Data[meta.dv.id];
+      DataView.render($("dv"), { cols: [{ name: meta.dv.la, values: d[meta.dv.a] }, { name: meta.dv.lb, values: d[meta.dv.b] }], file: meta.dv.file, dec: meta.dec });
+    }
+    dvFor = meta.dv ? meta.id : null;
+  }
   function syncControls() {
+    showData();
     chipEls.forEach(function (b, i) { b.setAttribute("aria-pressed", String(i === state.sc)); });
     altEls.forEach(function (b, i) { b.setAttribute("aria-pressed", String(ALTS[i].id === state.alt)); });
     kindEls.forEach(function (b, i) { b.setAttribute("aria-pressed", String(KINDS[i].id === state.kind)); });
@@ -397,6 +429,10 @@
   bindRange("n1Range", "n1", "n1Out", true, null); bindRange("n2Range", "n2", "n2Out", true, null);
   bindRange("m1Range", "m1", "m1Out", false, function () { return meta.dec; }); bindRange("m2Range", "m2", "m2Out", false, function () { return meta.dec; });
   bindRange("s1Range", "s1", "s1Out", true, function () { return meta.dec; }); bindRange("s2Range", "s2", "s2Out", true, function () { return meta.dec; });
+  $("resetData").addEventListener("click", function () {
+    state.n1 = meta.n1; state.n2 = meta.n2; state.m1 = meta.m1; state.m2 = meta.m2; state.s1 = meta.s1; state.s2 = meta.s2;
+    syncControls(); newX(); update(); say("Значення повернено до даних.");
+  });
   function addX(count) { runX(count); update(); say("Експериментів: " + group(X.N) + ". Відхилили H₀ у " + group(X.K) + " випадках, частка " + fmt(X.N ? X.K / X.N : 0, 3) + ".", 400); }
   [["add1", 1], ["add10", 10], ["add100", 100], ["add1000", 1000]].forEach(function (p) {
     $(p[0]).addEventListener("click", function () { addX(p[1]); });
@@ -484,7 +520,7 @@
     this.el.height = Math.max(1, Math.round(this.H * dpr));
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   };
-  var c0 = new Chart($("c0")), c1 = new Chart($("c1")), c2 = new Chart($("c2"));
+  var c3 = new Chart($("c3")), c0 = new Chart($("c0")), c1 = new Chart($("c1")), c2 = new Chart($("c2"));
   function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
   function colors() {
     return {
@@ -609,16 +645,46 @@
   }
 
   var last = null;
+  function drawBox(k) {
+    var ctx = c3.ctx, W = c3.W, H = c3.H, M = { l: 14, r: 14, t: 10, b: 30 }, d = Data[meta.dv.id];
+    var gs = [{ v: d[meta.dv.a], col: k.pos }, { v: d[meta.dv.b], col: k.neg }].map(function (g) { g.b = Summ.box(g.v); return g; });
+    var lo = Math.min(gs[0].b.min, gs[1].b.min), hi = Math.max(gs[0].b.max, gs[1].b.max), pad = (hi - lo) * 0.04 || 1;
+    lo -= pad; hi += pad;
+    var pw = W - M.l - M.r, ph = H - M.t - M.b, row = ph / 2;
+    function px(v) { return M.l + (v - lo) / (hi - lo) * pw; }
+    ctx.clearRect(0, 0, W, H); ctx.fillStyle = k.panel; ctx.fillRect(0, 0, W, H);
+    var tx = S.ticksFor(lo, hi, clamp(pw / 70, 3, 9));
+    ctx.strokeStyle = k.grid; ctx.lineWidth = 1; ctx.beginPath();
+    tx.major.forEach(function (v) { var x = Math.round(px(v)) + 0.5; ctx.moveTo(x, M.t); ctx.lineTo(x, M.t + ph); });
+    ctx.stroke();
+    ctx.strokeStyle = k.ink; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(M.l, M.t + ph + 0.5); ctx.lineTo(M.l + pw, M.t + ph + 0.5); ctx.stroke();
+    ctx.fillStyle = k.muted; ctx.font = "11px " + k.data; ctx.textAlign = "center"; ctx.textBaseline = "top";
+    tx.major.forEach(function (v) { if (v >= lo && v <= hi) ctx.fillText(fmt(v, tx.decimals), px(v), M.t + ph + 6); });
+    gs.forEach(function (g, i) {
+      var b = g.b, yc = M.t + row * (i + 0.5), bh = Math.min(26, row * 0.5);
+      ctx.strokeStyle = g.col; ctx.fillStyle = g.col; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(px(b.wlo), yc); ctx.lineTo(px(b.q1), yc); ctx.moveTo(px(b.q3), yc); ctx.lineTo(px(b.whi), yc);
+      ctx.moveTo(px(b.wlo), yc - bh / 3); ctx.lineTo(px(b.wlo), yc + bh / 3); ctx.moveTo(px(b.whi), yc - bh / 3); ctx.lineTo(px(b.whi), yc + bh / 3); ctx.stroke();
+      ctx.globalAlpha = 0.2; ctx.fillRect(px(b.q1), yc - bh / 2, Math.max(1, px(b.q3) - px(b.q1)), bh); ctx.globalAlpha = 1;
+      ctx.strokeRect(px(b.q1), yc - bh / 2, Math.max(1, px(b.q3) - px(b.q1)), bh);
+      ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(px(b.med), yc - bh / 2); ctx.lineTo(px(b.med), yc + bh / 2); ctx.stroke();
+      ctx.globalAlpha = 0.6; b.outliers.forEach(function (o) { ctx.beginPath(); ctx.arc(px(o), yc, 2.6, 0, 2 * Math.PI); ctx.fill(); }); ctx.globalAlpha = 1;
+      ctx.fillStyle = k.ink; ctx.font = "500 12px " + k.body; ctx.textAlign = "left"; ctx.textBaseline = "bottom";
+      ctx.fillText(i === 0 ? meta.dv.la : meta.dv.lb, M.l + 2, yc - bh / 2 - 2);
+    });
+  }
+
   function draw(r, b) {
     if (r) last = { r: r, b: b };
     if (!last || !X) return;
     var k = colors();
     if (c0.W) drawGroups(k);
+    if (c3.W && meta.dv) drawBox(k);
     if (c1.W) drawNull(k, last.r);
     if (c2.W) drawCI(k, last.r, last.b);
   }
   function redraw() { draw(); }
-  function resizeAll() { c0.resize(); c1.resize(); c2.resize(); draw(); }
+  function resizeAll() { c3.resize(); c0.resize(); c1.resize(); c2.resize(); draw(); }
 
   function legends() {
     function item(cls, text) { var s = document.createElement("span"), i = document.createElement("i"); i.className = "sw " + cls; s.appendChild(i); s.appendChild(document.createTextNode(text)); return s; }
@@ -635,7 +701,7 @@
   state.sc = 0; meta = SCENARIOS[0]; syncControls(); newX();
   if (window.ResizeObserver) {
     var ro = new ResizeObserver(function () { resizeAll(); });
-    ro.observe($("c0")); ro.observe($("c1")); ro.observe($("c2"));
+    ro.observe($("c0")); ro.observe($("c1")); ro.observe($("c2")); ro.observe($("c3"));
   } else window.addEventListener("resize", resizeAll);
   if (window.matchMedia) {
     var mq = window.matchMedia("(prefers-color-scheme: dark)");

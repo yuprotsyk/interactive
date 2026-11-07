@@ -51,6 +51,22 @@ export default async function (h) {
   await chip("Ремонт: клієнти CLEC і ILEC");
   near(num(await txt("rP")), 0.030, 1.5e-3, "Verizon: p Велча");
   ok(/p = 0,00[45]/.test(await txt("rCmp")), "Verizon: об'єднаний t дає значно менше p: " + await txt("rCmp"));
+  // блок «Дані»: підсумок збігається з повзунками, значення видно, CSV завантажується, ящик з вусами намальовано
+  ok(await page.locator("#dvBox").isVisible(), "для набору даних видно блок «Дані»");
+  await page.click("details.dv summary");
+  ok((await page.locator("details.dv tbody tr").count()) >= 1664, "у таблиці всі значення набору (1664 рядки й підсумок)");
+  const sumRow = (await page.locator("details.dv table").first().locator("tbody tr").first().innerText()).replace(/\s+/g, " ");
+  ok(/23/.test(sumRow) && /16,51/.test(sumRow) && /19,50/.test(sumRow), "підсумок CLEC: n, x̄, s: " + sumRow);
+  const dl = page.waitForEvent("download");
+  await page.click("details.dv button:text-is('Завантажити CSV')");
+  const file = await dl;
+  ok(file.suggestedFilename() === "verizon.csv", "ім'я файлу CSV");
+  ok(await page.locator("#boxSec").isVisible(), "ящик з вусами видно");
+  ok(await page.evaluate(() => { const c = document.getElementById("c3"); const d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i] !== d[0] || d[i + 1] !== d[1] || d[i + 2] !== d[2]) n++; return n > 500; }), "ящик з вусами не порожній");
+  await page.evaluate(() => { const e = document.getElementById("m1Range"); e.value = 12; e.dispatchEvent(new Event("input", { bubbles: true })); });
+  await page.click("#resetData");
+  near(num(await txt("m1Out")), 16.51, 1e-9, "повернення x̄₁ до даних");
+  await chip("Ремонт: клієнти CLEC і ILEC");
   await chip("Банкноти: справжні й підроблені");
   ok(/< 0,0001/.test(await txt("rP")), "банкноти: p < 0,0001");
 

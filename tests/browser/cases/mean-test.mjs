@@ -45,6 +45,9 @@ export default async function (h) {
   // парні вибірки: p = 0,0038
   await chip("Препарат і плацебо: різниці");
   near(num(await txt("rP")), 0.0038, 5e-5, "парні: p");
+  ok(await page.locator("#dvBox").isVisible(), "для набору даних видно блок «Дані»");
+  await page.click("details.dv summary");
+  ok((await page.locator("details.dv tbody tr").count()) >= 24, "у таблиці значення D0, D60 і різниці");
   await chip("Вага до й після: різниці");
   near(num(await txt("rP")), 0.035, 1e-3, "вага до й після: p");
 

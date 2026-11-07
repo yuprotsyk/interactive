@@ -72,6 +72,7 @@ export default async function (h) {
   near(num(await txt("swP")), 0.0079, 0.002, "вага: p Шапіро–Вілка");
   await chip("Price, 2002");
   ok(num(await txt("swP")) <= 1e-4, "ціни: нормальність відхилено");
+  ok(await page.locator("#dv").isVisible(), "для набору даних видно блок «Дані»");
   await chip("Нормальний");
   ok(await page.locator("#xBox").isVisible() && !(await page.locator("#nRange").isDisabled()), "після повернення до розподілу експеримент і n доступні");
 

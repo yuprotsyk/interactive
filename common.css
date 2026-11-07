@@ -140,3 +140,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus
   fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
 }
 .head .lead { margin-top: 10px; }
+
+/* Блок «Дані» (dataview.js) */
+.dv-body { margin-top: 8px; }
+.dv-wrap { overflow-x: auto; margin-top: 8px; }
+.dv-scroll { max-height: 260px; overflow-y: auto; border: 1px solid var(--grid-strong); border-radius: 8px; }
+.dv-tbl { border-collapse: collapse; font-family: var(--font-data); font-size: 12.5px; font-variant-numeric: tabular-nums; width: 100%; }
+.dv-tbl th, .dv-tbl td { padding: 4px 10px; text-align: right; border-bottom: 1px solid var(--grid-strong); white-space: nowrap; }
+.dv-tbl th { font-family: var(--font-body); font-weight: 500; color: var(--muted); position: sticky; top: 0; background: var(--panel); }
+.dv-tbl .l { text-align: left; }
+.dv-act { margin: 10px 0 0; }

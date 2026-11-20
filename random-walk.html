@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Випадкове блукання: траєкторії, розорення гравця, закон арксинуса</title>
+<meta name="description" content="Випадкове блукання на цілих числах: траєкторії й розподіл положення, розорення гравця (чесна й нечесна гра), закон арксинуса для часу «в плюсі». Симуляції порівнюються з точною теорією.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="common.css">
+<style>
+.app {
+  max-width: 1100px; margin: 0 auto; display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "head" "choose" "charts" "readout" "explain";
+}
+.head { grid-area: head; }
+.backlink { display: inline-block; margin-bottom: 10px; font-size: 13px; }
+.choose { grid-area: choose; }
+.charts { grid-area: charts; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.side { display: contents; }
+.readout { grid-area: readout; }
+.explain { grid-area: explain; }
+
+.statement { margin: 10px 0 0; font-size: 15px; max-width: 72ch; text-wrap: pretty; }
+.cfg { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-top: 14px; align-items: end; }
+.fld { display: grid; gap: 4px; min-width: 190px; flex: 1 1 190px; max-width: 340px; }
+.fld label { font-size: 13.5px; }
+.fld .row { display: grid; grid-template-columns: minmax(0, 1fr) 76px; gap: 10px; align-items: center; }
+.fld input[type="range"] { width: 100%; margin: 0; accent-color: var(--pos); }
+.fld output {
+  font-family: var(--font-data); font-size: 13.5px; font-variant-numeric: tabular-nums; text-align: right;
+  color: var(--ink); background: var(--bg); border: 1px solid var(--grid-strong); border-radius: 4px; padding: 5px 7px;
+}
+.btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.note, .cmsg { margin: 10px 0 0; font-size: 13.5px; color: var(--muted); max-width: 72ch; text-wrap: pretty; }
+
+.chart h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; text-wrap: balance; }
+.chart canvas { display: block; width: 100%; background: var(--panel); border: 1px solid var(--grid-strong); border-radius: 6px; aspect-ratio: 16 / 9; max-height: 46vh; min-height: 190px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 8px 0 0; font-size: 12.5px; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 18px; height: 3px; margin-right: 6px; vertical-align: middle; background: var(--sw, var(--pos)); }
+
+.readout dl { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; margin: 10px 0 0; }
+.readout dt { font-size: 12px; color: var(--muted); }
+.readout dd { margin: 0; font-family: var(--font-data); font-size: 17px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.readout .wide { grid-column: 1 / -1; }
+.readout hr { border: 0; border-top: 1px solid var(--grid-strong); margin: 16px 0 0; }
+.formula { margin: 12px 0 0; font-size: 15.5px; overflow-x: auto; max-width: 100%; }
+
+.explain h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
+.explain p { margin: 8px 0 0; font-size: 14.5px; max-width: 68ch; text-wrap: pretty; }
+.explain p.key { margin-top: 0; }
+.explain details { margin-top: 12px; }
+.explain summary { cursor: pointer; font-size: 14.5px; font-weight: 700; min-height: 32px; }
+.explain details[open] > summary { margin-bottom: 2px; }
+
+@media (min-width: 900px) {
+  .app { grid-template-columns: minmax(0, 1fr) 340px; column-gap: 24px; grid-template-areas: "head head" "choose choose" "charts side"; }
+  .side { grid-area: side; display: flex; flex-direction: column; gap: 16px; align-self: start; min-width: 0; }
+}
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="head g4">
+    <a class="backlink" href="index.html">← Усі сторінки</a>
+    <p class="kicker">Випадкові процеси</p>
+    <div class="titlerow">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 16l4-6 4 4 4-8 3 5 3-3"/></svg>
+      <h1>Випадкове блукання</h1>
+    </div>
+    <p class="lead">На кожному кроці траєкторія йде на 1 вгору або на 1 вниз. Напрям визначає монетка. Сторінка показує три результати: розкид положень, розорення гравця й час вище нуля.</p>
+  </header>
+
+  <section class="choose panel" aria-label="Тема й параметри">
+    <p class="eyebrow">Теми</p>
+    <div class="chips" id="chips" role="group" aria-label="Теми"></div>
+    <p class="statement" id="statement"></p>
+    <div class="cfg">
+      <div class="fld" id="nFld"><label for="nRange" id="nLab">Кроків n</label><div class="row"><input type="range" id="nRange" min="10" max="1000" step="10" value="100"><output id="nOut" for="nRange">100</output></div></div>
+      <div class="fld" id="aFld"><label for="aRange">Капітал гравця a</label><div class="row"><input type="range" id="aRange" min="1" max="50" step="1" value="10"><output id="aOut" for="aRange">10</output></div></div>
+      <div class="fld" id="bFld"><label for="bRange">Капітал суперника b</label><div class="row"><input type="range" id="bRange" min="1" max="50" step="1" value="10"><output id="bOut" for="bRange">10</output></div></div>
+      <div class="fld" id="pFld"><label for="pRange" id="pLab">Імовірність кроку вгору p</label><div class="row"><input type="range" id="pRange" min="0.3" max="0.7" step="0.01" value="0.5"><output id="pOut" for="pRange">0,50</output></div></div>
+      <div class="fld" id="cFld"><label for="cRange">Кількість траєкторій</label><div class="row"><input type="range" id="cRange" min="1" max="1000" step="1" value="200"><output id="cOut" for="cRange">200</output></div></div>
+    </div>
+    <div class="btns" id="btns"></div>
+    <p class="note" id="note"></p>
+  </section>
+
+  <div class="charts">
+    <section class="chart" aria-labelledby="h1">
+      <h2 id="h1">Траєкторії</h2>
+      <canvas id="c1" role="img" aria-label="Траєкторії"></canvas>
+      <div class="legend" id="leg1"></div>
+    </section>
+    <section class="chart" id="sec2" aria-labelledby="h2">
+      <h2 id="h2">Розподіл</h2>
+      <canvas id="c2" role="img" aria-label="Гістограма"></canvas>
+      <div class="legend" id="leg2"></div>
+    </section>
+  </div>
+
+  <div class="side">
+    <section class="readout panel" aria-labelledby="rTitle">
+      <p class="eyebrow" id="rTitle">Показники</p>
+      <dl id="dl"></dl>
+      <p class="formula" id="fm1"></p>
+      <p class="formula" id="fm2"></p>
+      <p class="cmsg" id="rNote"></p>
+    </section>
+
+    <section class="explain panel" aria-labelledby="eTitle">
+      <h2 id="eTitle">Що тут відбувається</h2>
+      <p class="key"><strong>Модель.</strong> <span class="tex" data-tex="S_0=0">S₀ = 0</span>. <span class="tex" data-tex="S_n=X_1+\cdots+X_n">Sₙ = X₁ + … + Xₙ</span>. Кроки <span class="tex" data-tex="X_i">Xᵢ</span> незалежні. <span class="tex" data-tex="P(X_i=1)=p">P(Xᵢ = 1) = p</span>, <span class="tex" data-tex="P(X_i=-1)=q=1-p">P(Xᵢ = −1) = q = 1 − p</span>. Для чесної монети <span class="tex" data-tex="p=\tfrac12">p = ½</span>.</p>
+      <details>
+        <summary>Докладніше: формули й пояснення</summary>
+      <p data-modes="paths"><strong>Положення.</strong> Нехай <span class="tex">K</span> це кількість кроків вгору. Тоді <span class="tex" data-tex="S_n=2K-n">Sₙ = 2K − n</span>, де <span class="tex" data-tex="K\sim\mathrm{Bin}(n,p)">K ~ Bin(n, p)</span>. <span class="tex" data-tex="E(S_n)=n(p-q)">E(Sₙ) = n(p − q)</span>. <span class="tex" data-tex="D(S_n)=4npq">D(Sₙ) = 4npq</span>. Для <span class="tex" data-tex="p=\tfrac12">p = ½</span> стандартне відхилення дорівнює <span class="tex" data-tex="\sqrt n">√n</span>: 10 при <span class="tex" data-tex="n=100">n = 100</span>, 100 при <span class="tex" data-tex="n=10\,000">n = 10 000</span>.</p>
+      <p data-modes="paths"><strong>Повернення в нуль.</strong> Для <span class="tex" data-tex="p=\tfrac12">p = ½</span> ймовірність бути в нулі в момент <span class="tex" data-tex="2m">2m</span> дорівнює <span class="tex" data-tex="u_{2m}=\dfrac{C_{2m}^{m}}{4^{m}}">u₂ₘ = C₂ₘᵐ/4ᵐ</span>. У непарні моменти вона дорівнює 0. За формулою Стірлінга <span class="tex" data-tex="u_{2m}\approx\dfrac{1}{\sqrt{\pi m}}">u₂ₘ ≈ 1/√(πm)</span>. Те саме число <span class="tex" data-tex="u_{2m}">u₂ₘ</span> є ймовірністю події <span class="tex" data-tex="S_1\ne0,\ldots,S_{2m}\ne0">S₁ ≠ 0, …, S₂ₘ ≠ 0</span>. Ця ймовірність прямує до 0 при <span class="tex" data-tex="m\to\infty">m → ∞</span>. Тому з імовірністю 1 траєкторія повертається в нуль.</p>
+      <p data-modes="ruin"><strong>Розорення гравця.</strong> Гравець має <span class="tex">a</span> грн, суперник має <span class="tex">b</span> грн, <span class="tex" data-tex="N=a+b">N = a + b</span>. Кожен раунд змінює капітал гравця на +1 або −1. Гра триває, поки капітал гравця не стане 0 або <span class="tex">N</span>. Для <span class="tex" data-tex="p=\tfrac12">p = ½</span>: ймовірність розорення <span class="tex" data-tex="b/N">b/N</span>, очікувана тривалість <span class="tex" data-tex="ab">ab</span>. Для <span class="tex" data-tex="p\ne\tfrac12">p ≠ ½</span> нехай <span class="tex" data-tex="r=q/p">r = q/p</span>: ймовірність розорення <span class="tex" data-tex="\dfrac{r^a-r^N}{1-r^N}">(rᵃ − rᴺ)/(1 − rᴺ)</span>, очікувана тривалість <span class="tex" data-tex="\dfrac{1}{q-p}\Bigl(a-N\,\dfrac{1-r^a}{1-r^N}\Bigr)">(a − N(1 − rᵃ)/(1 − rᴺ))/(q − p)</span>. Для <span class="tex" data-tex="p=\tfrac12">p = ½</span> ймовірність розорення тим більша, чим менше <span class="tex">a</span> і чим більше <span class="tex">b</span>.</p>
+      <p data-modes="arc"><strong>Закон арксинуса.</strong> Траєкторія вище нуля в момент <span class="tex">i</span>, якщо <span class="tex" data-tex="S_i>0">Sᵢ > 0</span>, або <span class="tex" data-tex="S_i=0">Sᵢ = 0</span> і <span class="tex" data-tex="S_{i-1}>0">Sᵢ₋₁ > 0</span>. Нехай <span class="tex">L</span> це кількість таких моментів серед перших <span class="tex" data-tex="2m">2m</span>. Для <span class="tex" data-tex="p=\tfrac12">p = ½</span>: <span class="tex" data-tex="P(L=2k)=u_{2k}\,u_{2m-2k}">P(L = 2k) = u₂ₖ·u₂ₘ₋₂ₖ</span>. Ймовірність найбільша при <span class="tex" data-tex="L=0">L = 0</span> і <span class="tex" data-tex="L=2m">L = 2m</span>, найменша посередині. Для великого <span class="tex">m</span>: <span class="tex" data-tex="P\!\left(\dfrac{L}{2m}<x\right)\approx\dfrac{2}{\pi}\arcsin\sqrt{x}">P(L/2m &lt; x) ≈ (2/π)·arcsin √x</span>. Щільність цього розподілу: <span class="tex" data-tex="\dfrac{1}{\pi\sqrt{x(1-x)}}">1/(π√(x(1 − x)))</span>, <span class="tex" data-tex="x\in(0;1)">x ∈ (0; 1)</span>. Проміжок 0,4…0,6 і два краї (до 0,1 та від 0,9) мають однакову сумарну довжину 0,2, але краї ймовірніші: див. показники.</p>
+      </details>
+    </section>
+  </div>
+</main>
+
+<div class="sr-only" id="sr" role="status" aria-live="polite"></div>
+
+<script src="common.js"></script>
+<script src="distributions.js"></script>
+<script src="random.js"></script>
+<script src="formulas.js"></script>
+<script src="walk.js"></script>
+<script>
+(function () {
+  "use strict";
+  var S = Stat, fmt = S.fmt, clamp = S.clamp;
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+  function btn(text, fn, cls) { var b = el("button", "btn" + (cls ? " " + cls : ""), text); b.type = "button"; b.addEventListener("click", fn); return b; }
+  function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  function pct(v) { return fmt(v, 4); }
+  function fmtP(p) { return p < 0.0001 && p > 0 ? "< 0,0001" : fmt(p, 4); }
+
+  var MODES = [
+    { id: "paths", name: "Траєкторії" },
+    { id: "ruin", name: "Розорення гравця" },
+    { id: "arc", name: "Час у плюсі" }
+  ];
+  var MAX_DRAWN = 60, MAX_STEPS = 200000;
+  var st = { mode: 0, n: 100, p: 0.5, count: 200, a: 10, b: 10, m: 100, seed: 1 };
+  var data = {};   /* paths: {drawn, ends}; ruin: {games, ruined, steps, last}; arc: {last, counts, total} */
+
+  /* ---------- Керування ---------- */
+  var chipEls = [];
+  MODES.forEach(function (m, i) {
+    var b = el("button", "chip", m.name); b.type = "button"; b.setAttribute("aria-pressed", "false");
+    b.addEventListener("click", function () { st.mode = i; resetData(); sync(); say(m.name + "."); });
+    $("chips").appendChild(b); chipEls.push(b);
+  });
+  function say(t) { var s = $("sr"); s.textContent = ""; setTimeout(function () { s.textContent = t; }, 200); }
+  function bindRange(id, outId, key, fmtOut, after) {
+    $(id).addEventListener("input", function (e) { st[key] = Number(e.target.value); $(outId).textContent = fmtOut(st[key]); resetData(after === false ? true : false); update(); });
+  }
+  bindRange("nRange", "nOut", "n", String);
+  bindRange("pRange", "pOut", "p", function (v) { return fmt(v, 2); });
+  bindRange("cRange", "cOut", "count", String);
+  bindRange("aRange", "aOut", "a", String);
+  bindRange("bRange", "bOut", "b", String);
+
+  function sync() {
+    var id = MODES[st.mode].id;
+    chipEls.forEach(function (b, i) { b.setAttribute("aria-pressed", String(i === st.mode)); });
+    $("nFld").hidden = id === "ruin"; $("cFld").hidden = id !== "paths";
+    $("aFld").hidden = id !== "ruin"; $("bFld").hidden = id !== "ruin";
+    $("pFld").hidden = id === "arc";
+    $("sec2").hidden = id === "ruin";
+    $("nLab").textContent = id === "arc" ? "Кроків 2m" : "Кроків n";
+    $("nRange").min = id === "arc" ? "20" : "10"; $("nRange").max = id === "arc" ? "400" : "1000";
+    if (id === "arc") { st.n = clamp(st.n, 20, 400); st.n -= st.n % 2; } else st.n = clamp(st.n, 10, 1000);
+    $("nRange").value = String(st.n); $("nOut").textContent = String(st.n);
+    $("btns").textContent = "";
+    if (id === "paths") $("btns").appendChild(btn("Нові траєкторії", function () { st.seed++; resetData(); update(); }, "primary"));
+    if (id === "ruin") {
+      $("btns").appendChild(btn("Одна гра", function () { playRuin(1); update(); }, "primary"));
+      $("btns").appendChild(btn("+1 000 ігор", function () { playRuin(1000); update(); }));
+      $("btns").appendChild(btn("Скинути", function () { resetData(); update(); }));
+    }
+    if (id === "arc") {
+      $("btns").appendChild(btn("Нова траєкторія", function () { playArc(1); update(); }, "primary"));
+      $("btns").appendChild(btn("+1 000 траєкторій", function () { playArc(1000); update(); }));
+      $("btns").appendChild(btn("Скинути", function () { resetData(); update(); }));
+    }
+    resetData(); update();
+  }
+
+  /* ---------- Дані ---------- */
+  var rng = Rand.create(1);
+  function resetData() {
+    var id = MODES[st.mode].id, i;
+    rng = Rand.create(Rand.seedFor(st.seed, st.mode));
+    data = {};
+    if (id === "paths") {
+      var drawn = [], ends = [], k;
+      for (i = 0; i < st.count; i++) {
+        var path = Walk.path(rng, st.n, st.p);
+        ends.push(path[st.n]);
+        if (i < MAX_DRAWN) drawn.push(path);
+      }
+      data = { drawn: drawn, ends: ends };
+    } else if (id === "ruin") {
+      data = { games: 0, ruined: 0, steps: 0, unfinished: 0, last: null };
+      playRuin(1);
+    } else {
+      var m = st.n / 2, counts = [];
+      for (i = 0; i <= m; i++) counts.push(0);
+      data = { last: null, counts: counts, total: 0, m: m };
+      playArc(1);
+    }
+  }
+  function playRuin(times) {
+    var t, g;
+    for (t = 0; t < times; t++) {
+      g = Walk.game(rng, st.a, st.b, st.p, MAX_STEPS, t === times - 1);
+      data.games++; if (g.ruined) data.ruined++; data.steps += g.steps; if (!g.finished) data.unfinished++;
+      if (g.path) data.last = g;
+    }
+  }
+  function playArc(times) {
+    var t, s, m = data.m;
+    for (t = 0; t < times; t++) {
+      s = Walk.path(rng, 2 * m, 0.5);
+      data.counts[Walk.leadSteps(s) / 2]++; data.total++;
+      if (t === times - 1) data.last = s;
+    }
+  }
+
+  /* ---------- Показники ---------- */
+  function dlRow(label, value, wide) {
+    var d = el("div", wide ? "wide" : ""); d.appendChild(el("dt", "", label)); d.appendChild(el("dd", "", value)); $("dl").appendChild(d);
+  }
+  function update() {
+    var id = MODES[st.mode].id, n = st.n, p = st.p, q = 1 - p, i;
+    $("dl").textContent = ""; $("fm1").textContent = ""; $("fm2").textContent = ""; $("rNote").textContent = ""; $("note").textContent = "";
+    if (id === "paths") {
+      var mean = n * (p - q), sd = 2 * Math.sqrt(n * p * q), pos = 0, zero = Walk.positionPmf(n, 0, p), j;
+      for (j = 1; j <= n; j++) pos += Walk.positionPmf(n, j, p);
+      $("statement").textContent = "Кожен крок іде вгору з імовірністю " + fmt(p, 2) + " і вниз з імовірністю " + fmt(q, 2) + ". Зробіть " + n + " кроків. Порівняйте гістограму положень з біноміальною теорією.";
+      $("h1").textContent = "Траєкторії (до " + MAX_DRAWN + ")";
+      $("h2").textContent = "Положення після " + n + " кроків";
+      dlRow("Математичне сподівання E(Sₙ)", fmt(mean, 2)); dlRow("Стандартне відхилення", fmt(sd, 2));
+      dlRow("P(Sₙ > 0)", fmt(pos, 4)); dlRow("P(Sₙ = 0)", n % 2 === 0 ? fmt(zero, 4) : "0 (n непарне)");
+      var ends = data.ends, em = S.mean(ends), ev = 0;
+      ends.forEach(function (x) { ev += (x - em) * (x - em); });
+      dlRow("Вибіркове середнє за " + ends.length + " траєкторіями", fmt(em, 2)); dlRow("Вибіркове стандартне відхилення за ними", ends.length > 1 ? fmt(Math.sqrt(ev / (ends.length - 1)), 2) : "—");
+      var within = 0, inSim = 0;
+      for (j = -n; j <= n; j += 2) if (Math.abs(j - mean) <= 2 * sd + 1e-9) within += Walk.positionPmf(n, j, p);
+      ends.forEach(function (x) { if (Math.abs(x - mean) <= 2 * sd + 1e-9) inSim++; });
+      dlRow("У межах ±2 стандартних відхилень, теорія", fmt(within, 4)); dlRow("У межах ±2 стандартних відхилень, траєкторії", fmt(inSim / ends.length, 4));
+      if (Math.abs(p - 0.5) < 1e-9 && n % 2 === 0) { dlRow("Жодного повернення в нуль за n кроків (p = ½)", fmt(Walk.noReturn(n / 2), 4), true); }
+      var z = data.drawn[0], mx = -Infinity, mn = Infinity, zeros = 0;
+      z.forEach(function (v, k) { if (v > mx) mx = v; if (v < mn) mn = v; if (k > 0 && v === 0) zeros++; });
+      dlRow("Перша траєкторія: максимум і мінімум", String(mx).replace("-", "−") + " і " + String(mn).replace("-", "−"), true);
+      dlRow("Перша траєкторія: повернень у нуль", String(zeros), true);
+      $("rNote").textContent = "Сіра смуга: середнє ± 2 стандартні відхилення (нормальне наближення). Гістограма: середнє ± 5 стандартних відхилень.";
+      $("note").textContent = "Графік показує до " + MAX_DRAWN + " траєкторій. Гістограма використовує всі " + st.count + ".";
+      $("c1").setAttribute("aria-label", "Траєкторії блукання: " + n + " кроків, p = " + fmt(p, 2));
+      $("c2").setAttribute("aria-label", "Гістограма положень після " + n + " кроків і біноміальна теорія");
+    } else if (id === "ruin") {
+      var N = st.a + st.b, pr = Walk.ruinProb(st.a, st.b, p), dur = Walk.duration(st.a, st.b, p), g = data;
+      $("statement").textContent = "Гравець має " + st.a + " грн. Суперник має " + st.b + " грн. У кожному раунді гравець виграє 1 грн з імовірністю " + fmt(p, 2) + ", інакше програє 1 грн. Гра закінчується, коли хтось із них втрачає все. Знайдіть ймовірність розорення гравця й тривалість гри.";
+      $("h1").textContent = "Остання гра: капітал гравця по раундах";
+      dlRow("P(розорення), теорія", fmt(pr, 4)); dlRow("P(виграти все), теорія", fmt(1 - pr, 4));
+      dlRow("Очікувана тривалість, теорія", fmt(dur, 1) + " раундів", true);
+      dlRow("Зіграно ігор", String(g.games)); dlRow("Розорень", String(g.ruined));
+      dlRow("Частка розорень", fmt(g.ruined / g.games, 4)); dlRow("Вибіркова середня тривалість", fmt(g.steps / g.games, 1));
+      if (Math.abs(p - 0.5) < 1e-9) { Tex.set($("fm1"), "P(розорення) = b/(a + b) = " + st.b + "/" + N, "P(\\text{розорення})=\\dfrac{b}{a+b}=\\dfrac{" + st.b + "}{" + N + "}"); Tex.set($("fm2"), "Тривалість = a·b = " + st.a * st.b, "\\text{Тривалість}=ab=" + st.a * st.b); }
+      else { Tex.set($("fm1"), "P(розорення) = (rᵃ − rᴺ)/(1 − rᴺ), r = q/p = " + fmt(q / p, 3), "P(\\text{розорення})=\\dfrac{r^a-r^N}{1-r^N},\\ r=\\dfrac qp=" + fmt(q / p, 3).replace(",", "{,}")); }
+      if (g.unfinished) $("rNote").textContent = "Гру обірвано після " + MAX_STEPS + " раундів.";
+      $("c1").setAttribute("aria-label", "Остання гра: капітал гравця від 0 до " + N + " по раундах");
+    } else {
+      var m = data.m, th = Walk.arcsinePmf(m), mid = 0, edge = 0, k;
+      for (k = 0; k <= m; k++) { var x = k / m; if (x >= 0.4 && x <= 0.6) mid += th[k]; if (x < 0.1 || x > 0.9) edge += th[k]; }
+      $("statement").textContent = "Монетка чесна. Зробіть " + n + " кроків. Знайдіть частку часу вище нуля. Порівняйте симуляцію з теорією.";
+      $("h1").textContent = "Остання траєкторія: вище нуля й нижче нуля";
+      $("h2").textContent = "Частка часу вище нуля";
+      var last = data.last, lead = Walk.leadSteps(last);
+      dlRow("Остання траєкторія: частка часу вище нуля", fmt(lead / n, 3), true);
+      dlRow("Теорія: частка між 0,4 і 0,6", fmt(mid, 4)); dlRow("Теорія: менше 0,1 або більше 0,9", fmt(edge, 4));
+      if (data.total) {
+        var cm = 0, ce = 0;
+        for (k = 0; k <= m; k++) { var xx = k / m; if (xx >= 0.4 && xx <= 0.6) cm += data.counts[k]; if (xx < 0.1 || xx > 0.9) ce += data.counts[k]; }
+        dlRow("Симуляція: частка між 0,4 і 0,6", fmt(cm / data.total, 4)); dlRow("Симуляція: менше 0,1 або більше 0,9", fmt(ce / data.total, 4));
+      }
+      dlRow("Змодельовано траєкторій", String(data.total), true);
+      Tex.set($("fm1"), "P(L = 2k) = u₂ₖ·u₂ₘ₋₂ₖ,  u₂ₘ = C₂ₘᵐ/4ᵐ", "P(L=2k)=u_{2k}\\,u_{2m-2k},\\quad u_{2m}=\\dfrac{C_{2m}^{m}}{4^{m}}");
+      $("rNote").textContent = "Найвищі стовпчики на краях, найнижчі посередині.";
+      $("c1").setAttribute("aria-label", "Остання траєкторія з " + n + " кроків; частка часу вище нуля " + fmt(lead / n, 3));
+      $("c2").setAttribute("aria-label", "Гістограма частки часу вище нуля та теорія арксинуса");
+    }
+    var ps = document.querySelectorAll("[data-modes]"), pi;
+    for (pi = 0; pi < ps.length; pi++) ps[pi].hidden = ps[pi].getAttribute("data-modes").indexOf(id) < 0;
+    draw();
+  }
+
+  /* ---------- Малювання ---------- */
+  function Chart(canvas) { this.el = canvas; this.ctx = canvas.getContext("2d"); this.W = 0; this.H = 0; }
+  Chart.prototype.resize = function () {
+    var r = this.el.getBoundingClientRect(), d = window.devicePixelRatio || 1;
+    this.W = r.width; this.H = r.height;
+    this.el.width = Math.max(1, Math.round(this.W * d)); this.el.height = Math.max(1, Math.round(this.H * d));
+    this.ctx.setTransform(d, 0, 0, d, 0, 0);
+  };
+  var c1 = new Chart($("c1")), c2 = new Chart($("c2"));
+  function colors() {
+    return { panel: css("--panel"), ink: css("--ink"), muted: css("--muted"), grid: css("--grid"), pos: css("--pos"), neg: css("--neg"), data: css("--font-data"), body: css("--font-body") };
+  }
+  /** Осі: xs (від x0 до x1), ys (від y0 до y1); повертає перетворення. */
+  function axes(ch, C, x0, x1, y0, y1, M, xl, yl) {
+    var ctx = ch.ctx, pw = ch.W - M.l - M.r, ph = ch.H - M.t - M.b, tx = S.ticksFor(x0, x1, 6), ty = S.ticksFor(y0, y1, 5), i;
+    function X(v) { return M.l + (v - x0) / (x1 - x0) * pw; }
+    function Y(v) { return M.t + (1 - (v - y0) / (y1 - y0)) * ph; }
+    ctx.clearRect(0, 0, ch.W, ch.H); ctx.fillStyle = C.panel; ctx.fillRect(0, 0, ch.W, ch.H);
+    ctx.strokeStyle = C.grid; ctx.lineWidth = 1; ctx.beginPath();
+    for (i = 0; i < ty.major.length; i++) { var y = Math.round(Y(ty.major[i])) + 0.5; ctx.moveTo(M.l, y); ctx.lineTo(M.l + pw, y); }
+    ctx.stroke();
+    ctx.fillStyle = C.muted; ctx.font = "11px " + C.data; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    for (i = 0; i < ty.major.length; i++) ctx.fillText(fmt(ty.major[i], ty.decimals), M.l - 6, Y(ty.major[i]));
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    for (i = 0; i < tx.major.length; i++) ctx.fillText(fmt(tx.major[i], tx.decimals), X(tx.major[i]), M.t + ph + 6);
+    ctx.font = "500 11px " + C.body; ctx.textAlign = "right"; ctx.textBaseline = "bottom"; ctx.fillText(xl, ch.W - 4, ch.H - 2);
+    ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.fillText(yl, 4, 2);
+    return { X: X, Y: Y, pw: pw, ph: ph };
+  }
+  function legend(id, items) {
+    var box = $(id); box.textContent = "";
+    items.forEach(function (it) { var s = el("span", "", it[0]); s.style.setProperty("--sw", it[1]); box.appendChild(s); });
+  }
+
+  function drawPaths(C) {
+    var n = st.n, p = st.p, ctx = c1.ctx, M = { l: 44, r: 12, t: 20, b: 28 }, sdn = 2 * Math.sqrt(n * p * (1 - p)), mean = n * (2 * p - 1);
+    var lo = Math.min(mean - 2 * sdn, 0), hi = Math.max(mean + 2 * sdn, 0), i, k;
+    data.drawn.forEach(function (s) { s.forEach(function (v) { if (v < lo) lo = v; if (v > hi) hi = v; }); });
+    var pad = (hi - lo) * 0.05 + 1; lo -= pad; hi += pad;
+    var A = axes(c1, C, 0, n, lo, hi, M, "k", "Sₖ");
+    ctx.save(); ctx.beginPath(); ctx.rect(M.l, M.t, A.pw, A.ph); ctx.clip();
+    ctx.globalAlpha = 0.2; ctx.fillStyle = C.muted; ctx.beginPath();
+    for (k = 0; k <= n; k += Math.max(1, Math.floor(n / 80))) { var s2 = 2 * Math.sqrt(k * p * (1 - p)); ctx.lineTo(A.X(k), A.Y(k * (2 * p - 1) + 2 * s2)); }
+    ctx.lineTo(A.X(n), A.Y(mean + sdn));
+    for (k = n; k >= 0; k -= Math.max(1, Math.floor(n / 80))) { var s3 = 2 * Math.sqrt(k * p * (1 - p)); ctx.lineTo(A.X(k), A.Y(k * (2 * p - 1) - 2 * s3)); }
+    ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+    ctx.lineWidth = 1.1; ctx.strokeStyle = C.pos; ctx.globalAlpha = Math.max(0.25, Math.min(0.6, 8 / data.drawn.length));
+    data.drawn.forEach(function (s, idx) { if (idx === 0) return; ctx.beginPath(); s.forEach(function (v, t) { if (t === 0) ctx.moveTo(A.X(t), A.Y(v)); else ctx.lineTo(A.X(t), A.Y(v)); }); ctx.stroke(); });
+    ctx.globalAlpha = 1; ctx.lineWidth = 2.2; ctx.strokeStyle = C.neg; ctx.beginPath();
+    data.drawn[0].forEach(function (v, t) { if (t === 0) ctx.moveTo(A.X(t), A.Y(v)); else ctx.lineTo(A.X(t), A.Y(v)); }); ctx.stroke();
+    ctx.restore();
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(M.l, Math.round(A.Y(0)) + 0.5); ctx.lineTo(M.l + A.pw, Math.round(A.Y(0)) + 0.5); ctx.stroke();
+    ctx.setLineDash([6, 4]); ctx.strokeStyle = C.muted; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(A.X(0), A.Y(0)); ctx.lineTo(A.X(n), A.Y(mean)); ctx.stroke(); ctx.setLineDash([]);
+    legend("leg1", [["Перша траєкторія", C.neg], ["Інші траєкторії", C.pos], ["Середнє і смуга ±2 стандартні відхилення (нормальне наближення)", C.muted]]);
+  }
+
+  /** Стовпчики: bins [{x0, x1, obs, th}] у вісь x; obs і th це ймовірності (частки). */
+  function drawBars(C, bins, xlabel, M, xmin, xmax, thLine) {
+    var ctx = c2.ctx, ymax = 0, i;
+    bins.forEach(function (b) { ymax = Math.max(ymax, b.obs || 0, b.th); });
+    ymax *= 1.1; if (!(ymax > 0)) ymax = 1;
+    var A = axes(c2, C, xmin, xmax, 0, ymax, M, xlabel, "частка");
+    bins.forEach(function (b) {
+      var x0 = A.X(b.x0) + 1, x1 = A.X(b.x1) - 1, y = A.Y(b.obs || 0);
+      ctx.fillStyle = C.pos; ctx.globalAlpha = 0.7; ctx.fillRect(x0, y, Math.max(1, x1 - x0), A.Y(0) - y); ctx.globalAlpha = 1;
+    });
+    ctx.strokeStyle = C.neg; ctx.lineWidth = 2; ctx.beginPath();
+    bins.forEach(function (b, i) { var x = (A.X(b.x0) + A.X(b.x1)) / 2, y = A.Y(b.th); if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
+    ctx.stroke();
+    ctx.fillStyle = C.neg; bins.forEach(function (b) { ctx.beginPath(); ctx.arc((A.X(b.x0) + A.X(b.x1)) / 2, A.Y(b.th), 2.6, 0, 2 * Math.PI); ctx.fill(); });
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(M.l, A.Y(0) + 0.5); ctx.lineTo(M.l + A.pw, A.Y(0) + 0.5); ctx.stroke();
+  }
+
+  function drawEnds(C) {
+    var n = st.n, p = st.p, b = Math.max(1, Math.ceil(n / 40)), nb = Math.ceil((n + 1) / b), bins = [], i, K;
+    for (i = 0; i < nb; i++) bins.push({ k0: i * b, k1: Math.min(n, (i + 1) * b - 1), obs: 0, th: 0 });
+    bins.forEach(function (bn) { for (K = bn.k0; K <= bn.k1; K++) bn.th += Dist.binomial.pmf(K, { n: n, p: p }); });
+    data.ends.forEach(function (s) { var Kk = (s + n) / 2; bins[Math.min(nb - 1, Math.floor(Kk / b))].obs += 1 / data.ends.length; });
+    bins.forEach(function (bn) { bn.x0 = 2 * bn.k0 - n - 1; bn.x1 = 2 * bn.k1 - n + 1; });
+    var mu = n * (2 * p - 1), sd = 2 * Math.sqrt(n * p * (1 - p)), xmin = Math.max(-n - 1, mu - 5 * sd), xmax = Math.min(n + 1, mu + 5 * sd);
+    bins = bins.filter(function (bn) { return bn.x1 >= xmin && bn.x0 <= xmax; });
+    drawBars(C, bins, "Sₙ", { l: 44, r: 12, t: 14, b: 28 }, xmin, xmax);
+    legend("leg2", [["Частка траєкторій", C.pos], ["Теорія: біноміальний розподіл", C.neg]]);
+  }
+
+  function drawRuin(C) {
+    var ctx = c1.ctx, g = data.last, N = st.a + st.b, steps = g.path.length - 1, M = { l: 44, r: 12, t: 20, b: 28 };
+    var A = axes(c1, C, 0, Math.max(steps, 1), 0, N, M, "раунд", "капітал");
+    ctx.lineWidth = 2; ctx.strokeStyle = C.neg; ctx.setLineDash([5, 4]);
+    ctx.beginPath(); ctx.moveTo(M.l, A.Y(0)); ctx.lineTo(M.l + A.pw, A.Y(0)); ctx.stroke();
+    ctx.strokeStyle = C.pos; ctx.beginPath(); ctx.moveTo(M.l, A.Y(N)); ctx.lineTo(M.l + A.pw, A.Y(N)); ctx.stroke();
+    ctx.strokeStyle = C.muted; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(M.l, A.Y(st.a)); ctx.lineTo(M.l + A.pw, A.Y(st.a)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.lineWidth = 2.2; ctx.strokeStyle = C.ink; ctx.beginPath();
+    g.path.forEach(function (v, t) { if (t === 0) ctx.moveTo(A.X(t), A.Y(v)); else ctx.lineTo(A.X(t), A.Y(v)); }); ctx.stroke();
+    ctx.fillStyle = g.ruined ? C.neg : C.pos; ctx.beginPath(); ctx.arc(A.X(steps), A.Y(g.path[steps]), 5, 0, 2 * Math.PI); ctx.fill();
+    legend("leg1", [["Розорення (0)", C.neg], ["Усі гроші суперника (a + b)", C.pos], ["Початковий капітал", C.muted]]);
+  }
+
+  function drawArcPath(C) {
+    var s = data.last, n = st.n, ctx = c1.ctx, M = { l: 44, r: 12, t: 20, b: 28 }, lo = 0, hi = 0, t;
+    s.forEach(function (v) { if (v < lo) lo = v; if (v > hi) hi = v; });
+    var pad = (hi - lo) * 0.08 + 1, A = axes(c1, C, 0, n, lo - pad, hi + pad, M, "k", "Sₖ");
+    ctx.lineWidth = 2.2;
+    for (t = 1; t < s.length; t++) {
+      ctx.strokeStyle = s[t - 1] + s[t] > 0 ? C.pos : C.neg;
+      ctx.beginPath(); ctx.moveTo(A.X(t - 1), A.Y(s[t - 1])); ctx.lineTo(A.X(t), A.Y(s[t])); ctx.stroke();
+    }
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(M.l, Math.round(A.Y(0)) + 0.5); ctx.lineTo(M.l + A.pw, Math.round(A.Y(0)) + 0.5); ctx.stroke();
+    legend("leg1", [["Вище нуля", C.pos], ["Нижче нуля", C.neg]]);
+  }
+  function drawArcHist(C) {
+    var m = data.m, th = Walk.arcsinePmf(m), bins = [], k;
+    for (k = 0; k <= m; k++) bins.push({ x0: Math.max(0, (k - 0.5) / m), x1: Math.min(1, (k + 0.5) / m), obs: data.total ? data.counts[k] / data.total : 0, th: th[k] });
+    drawBars(C, bins, "частка часу вище нуля", { l: 44, r: 12, t: 14, b: 28 }, 0, 1);
+    legend("leg2", [["Частка траєкторій", C.pos], ["Теорія: u₂ₖ·u₂ₘ₋₂ₖ", C.neg]]);
+  }
+
+  function draw() {
+    if (!c1.W) return;
+    var C = colors(), id = MODES[st.mode].id;
+    if (id === "paths") { drawPaths(C); if (c2.W) drawEnds(C); }
+    else if (id === "ruin") drawRuin(C);
+    else { drawArcPath(C); if (c2.W) drawArcHist(C); }
+  }
+  function resizeAll() { c1.resize(); c2.resize(); draw(); }
+
+  /* ---------- Старт ---------- */
+  sync();
+  if (window.ResizeObserver) { var ro = new ResizeObserver(resizeAll); ro.observe($("c1")); ro.observe($("c2")); }
+  else window.addEventListener("resize", resizeAll);
+  if (window.matchMedia) { var mq = window.matchMedia("(prefers-color-scheme: dark)"); if (mq.addEventListener) mq.addEventListener("change", draw); }
+  new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  resizeAll();
+})();
+</script>
+</body>
+</html>

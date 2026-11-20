@@ -150,3 +150,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus
 .dv-tbl th { font-family: var(--font-body); font-weight: 500; color: var(--muted); position: sticky; top: 0; background: var(--panel); }
 .dv-tbl .l { text-align: left; }
 .dv-act { margin: 10px 0 0; }
+
+/* Згорнуте «Докладніше» у блоці «Що тут відбувається» */
+.explain details { margin-top: 12px; }
+.explain summary { cursor: pointer; font-size: 14.5px; font-weight: 700; min-height: 32px; }
+.explain details[open] > summary { margin-bottom: 2px; }

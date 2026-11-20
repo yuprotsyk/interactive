@@ -175,17 +175,20 @@ tr.exact td, tr.exact th { font-weight: 700; }
 
   <section class="explain panel" aria-labelledby="xTitle">
     <h2 id="xTitle">Що тут відбувається</h2>
-    <p class="key"><strong>Що наближаємо.</strong> <span class="tex">X</span> — кількість успіхів у <span class="tex">n</span> незалежних випробуваннях з ймовірністю успіху <span class="tex">p</span>; <span class="tex">q = 1 − p</span>. Точні ймовірності дає формула Бернуллі, але при великому <span class="tex">n</span> вона незручна. Наближення замінюють її простішими виразами.</p>
-    <p><strong>Теорема Муавра–Лапласа (локальна).</strong> При великому <span class="tex">npq</span></p>
-    <p class="eq"><span class="tex" data-tex="P(X=k)\approx\frac{1}{\sqrt{npq}}\,\varphi(x),\qquad x=\frac{k-np}{\sqrt{npq}},\qquad \varphi(x)=\frac{1}{\sqrt{2\pi}}e^{-x^{2}/2}">P(X = k) ≈ φ(x)/√(npq), x = (k − np)/√(npq), φ(x) = e^(−x²/2)/√(2π)</span></p>
-    <p><strong>Інтегральна.</strong> Ймовірність потрапити в проміжок:</p>
-    <p class="eq"><span class="tex" data-tex="P(a\le X\le b)\approx\Phi(x_2)-\Phi(x_1),\qquad x_1=\frac{a-np}{\sqrt{npq}},\quad x_2=\frac{b-np}{\sqrt{npq}}">P(a ≤ X ≤ b) ≈ Φ(x₂) − Φ(x₁), x₁ = (a − np)/√(npq), x₂ = (b − np)/√(npq)</span></p>
-    <p>Тут <span class="tex">Φ</span> — функція розподілу стандартного нормального розподілу. <strong>Поправка на неперервність:</strong> цілі значення <span class="tex">a</span> і <span class="tex">b</span> замінюють на <span class="tex" data-tex="a-\tfrac12">a − ½</span> і <span class="tex" data-tex="b+\tfrac12">b + ½</span>, бо стовпчик біноміального розподілу займає відрізок завширшки 1 навколо цілого числа. Порівняйте два рядки в таблиці події.</p>
-    <p><strong>Теорема Пуассона.</strong> Якщо <span class="tex" data-tex="n\to\infty">n → ∞</span>, <span class="tex" data-tex="p\to 0">p → 0</span> і <span class="tex" data-tex="np\to\lambda">np → λ</span>, то</p>
-    <p class="eq"><span class="tex" data-tex="P(X=k)\to\frac{\lambda^{k}e^{-\lambda}}{k!}">P(X = k) → λᵏ e^(−λ)/k!</span></p>
-    <p>На практиці беруть <span class="tex" data-tex="\lambda=np">λ = np</span>. Перемикач «Що тримати сталим» → <span class="tex">λ = np</span> саме так і показує: збільшуйте <span class="tex">n</span>, а стовпчики сповзають до крапок Пуассона.</p>
-    <p><strong>Коли яке наближення.</strong> Для нормального потрібне велике <span class="tex">npq</span> (часто використовують <span class="tex">npq ≥ 10</span>): тоді розподіл широкий і майже симетричний. Для Пуассона потрібне мале <span class="tex">p</span> і велике <span class="tex">n</span>, тоді <span class="tex">λ = np</span> помірне. Це орієнтири, а не теореми. Точність дивіться за похибкою <span class="tex">d</span> у блоці «Наскільки добре наближення» і в таблиці.</p>
-    <p><strong>Чому нормальне погане при малому p.</strong> Асиметрія біноміального розподілу <span class="tex" data-tex="\gamma=\frac{q-p}{\sqrt{npq}}">γ = (q − p)/√(npq)</span>: при малому <span class="tex">p</span> вона помітна, а нормальна крива симетрична (<span class="tex">γ = 0</span>).</p>
+    <p class="key"><strong>Що наближаємо.</strong> <span class="tex">X</span> — кількість успіхів у <span class="tex">n</span> незалежних випробуваннях з ймовірністю успіху <span class="tex">p</span>. Тут <span class="tex">q = 1 − p</span>. Точні ймовірності дає формула Бернуллі, але при великому <span class="tex">n</span> вона незручна. Наближення замінюють її простішими виразами.</p>
+    <details>
+      <summary>Докладніше: формули й пояснення</summary>
+      <p><strong>Теорема Муавра–Лапласа (локальна).</strong> При великому <span class="tex">npq</span></p>
+      <p class="eq"><span class="tex" data-tex="P(X=k)\approx\frac{1}{\sqrt{npq}}\,\varphi(x),\qquad x=\frac{k-np}{\sqrt{npq}},\qquad \varphi(x)=\frac{1}{\sqrt{2\pi}}e^{-x^{2}/2}">P(X = k) ≈ φ(x)/√(npq), x = (k − np)/√(npq), φ(x) = e^(−x²/2)/√(2π)</span></p>
+      <p><strong>Інтегральна.</strong> Ймовірність потрапити в проміжок:</p>
+      <p class="eq"><span class="tex" data-tex="P(a\le X\le b)\approx\Phi(x_2)-\Phi(x_1),\qquad x_1=\frac{a-np}{\sqrt{npq}},\quad x_2=\frac{b-np}{\sqrt{npq}}">P(a ≤ X ≤ b) ≈ Φ(x₂) − Φ(x₁), x₁ = (a − np)/√(npq), x₂ = (b − np)/√(npq)</span></p>
+      <p>Тут <span class="tex">Φ</span> — функція розподілу стандартного нормального розподілу. <strong>Поправка на неперервність:</strong> цілі значення <span class="tex">a</span> і <span class="tex">b</span> замінюють на <span class="tex" data-tex="a-\tfrac12">a − ½</span> і <span class="tex" data-tex="b+\tfrac12">b + ½</span>. Причина: стовпчик біноміального розподілу займає відрізок завширшки 1 навколо цілого числа. Порівняйте два рядки в таблиці події.</p>
+      <p><strong>Теорема Пуассона.</strong> Якщо <span class="tex" data-tex="n\to\infty">n → ∞</span>, <span class="tex" data-tex="p\to 0">p → 0</span> і <span class="tex" data-tex="np\to\lambda">np → λ</span>, то</p>
+      <p class="eq"><span class="tex" data-tex="P(X=k)\to\frac{\lambda^{k}e^{-\lambda}}{k!}">P(X = k) → λᵏ e^(−λ)/k!</span></p>
+      <p>На практиці беруть <span class="tex" data-tex="\lambda=np">λ = np</span>. Перемикач «Що тримати сталим» → <span class="tex">λ = np</span> показує саме це. Збільшуйте <span class="tex">n</span>: стовпчики сповзають до крапок Пуассона.</p>
+      <p><strong>Коли яке наближення.</strong> Для нормального потрібне велике <span class="tex">npq</span> (часто використовують <span class="tex">npq ≥ 10</span>): тоді розподіл широкий і майже симетричний. Для Пуассона потрібне мале <span class="tex">p</span> і велике <span class="tex">n</span>. Тоді <span class="tex">λ = np</span> помірне. Це орієнтири, а не теореми. Точність дивіться за похибкою <span class="tex">d</span> у блоці «Наскільки добре наближення» і в таблиці.</p>
+      <p><strong>Чому нормальне погане при малому p.</strong> Асиметрія біноміального розподілу <span class="tex" data-tex="\gamma=\frac{q-p}{\sqrt{npq}}">γ = (q − p)/√(npq)</span>: при малому <span class="tex">p</span> вона помітна, а нормальна крива симетрична (<span class="tex">γ = 0</span>).</p>
+    </details>
   </section>
 
   <details class="tablebox panel">

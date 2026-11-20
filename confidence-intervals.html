@@ -158,7 +158,7 @@ tfoot td, tfoot th { font-weight: 700; border-top: 1px solid var(--grid-strong);
     <h2 id="chTitle">Серія довірчих інтервалів</h2>
     <canvas id="cv" role="img" aria-label="Серія довірчих інтервалів"></canvas>
     <p class="ivrow" id="legend"></p>
-    <p class="cmsg">Кожен рядок це довірчий інтервал за окремою вибіркою, точка це вибіркове середнє <span class="tex">x̄</span>. Вертикальна лінія це справжнє математичне сподівання <span class="tex">μ</span>. Інтервал, що виходить за межі графіка, позначено стрілкою.</p>
+    <p class="cmsg">Кожен рядок — довірчий інтервал за окремою вибіркою, точка — вибіркове середнє <span class="tex">x̄</span>. Вертикальна лінія — справжнє математичне сподівання <span class="tex">μ</span>. Інтервал, що виходить за межі графіка, позначено стрілкою.</p>
   </section>
 
   <div class="side">
@@ -185,10 +185,13 @@ tfoot td, tfoot th { font-weight: 700; border-top: 1px solid var(--grid-strong);
 
     <section class="explain panel" aria-labelledby="eTitle">
       <h2 id="eTitle">Що тут відбувається</h2>
-      <p class="key"><strong>Що означає «95 %».</strong> Це властивість методу: якщо багато разів брати вибірки й будувати інтервали, приблизно 95 % з них накриють <span class="tex">μ</span>. Конкретний інтервал або накриває <span class="tex">μ</span>, або ні; не можна сказати, що в ньому <span class="tex">μ</span> «з імовірністю 95 %».</p>
-      <p><strong>Ширина.</strong> Більше n дає вужчий інтервал, приблизно як <span class="tex">1/√n</span>. Вищий рівень довіри дає ширший інтервал: щоб рідше помилятися, інтервал має бути довшим.</p>
-      <p><strong>Навіщо <span class="tex">t</span>.</strong> Якщо <span class="tex">σ</span> невідома, її замінюють на <span class="tex">s</span>. Тоді відношення вже не нормальне, і потрібне розподіл Стьюдента з <span class="tex">n − 1</span> ступенями свободи. Метод «<span class="tex">z</span> із <span class="tex">s</span>» цього не враховує й при малих <span class="tex">n</span> накриває <span class="tex">μ</span> рідше заявленого. Виберіть його й <span class="tex">n = 5</span>, щоб побачити.</p>
-      <p><strong>Це інтервал для математичного сподівання <span class="tex">μ</span>,</strong> а не для окремих значень: майже всі значення сукупності в нього не потрапляють.</p>
+      <p class="key"><strong>Що означає «95 %».</strong> Це властивість методу: якщо багато разів брати вибірки й будувати інтервали, приблизно 95 % з них накриють <span class="tex">μ</span>. Конкретний інтервал або накриває <span class="tex">μ</span>, або ні. Не можна сказати, що в ньому <span class="tex">μ</span> «з імовірністю 95 %».</p>
+      <details>
+        <summary>Докладніше: формули й пояснення</summary>
+        <p><strong>Ширина.</strong> Більше n дає вужчий інтервал, приблизно як <span class="tex">1/√n</span>. Вищий рівень довіри дає ширший інтервал: щоб рідше помилятися, інтервал має бути довшим.</p>
+        <p><strong>Навіщо <span class="tex">t</span>.</strong> Якщо <span class="tex">σ</span> невідома, її замінюють на <span class="tex">s</span>. Тоді відношення вже не нормальне, і потрібен розподіл Стьюдента з <span class="tex">n − 1</span> ступенями свободи. Метод «<span class="tex">z</span> із <span class="tex">s</span>» цього не враховує. При малих <span class="tex">n</span> він накриває <span class="tex">μ</span> рідше заявленого. Виберіть його й <span class="tex">n = 5</span>, щоб побачити.</p>
+        <p><strong>Це інтервал для математичного сподівання <span class="tex">μ</span>,</strong> а не для окремих значень: майже всі значення сукупності в нього не потрапляють.</p>
+      </details>
     </section>
   </div>
 </main>

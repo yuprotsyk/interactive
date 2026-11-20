@@ -11,6 +11,7 @@ export default async function (h) {
     p.on('pageerror', e => errs.push(name+': '+String(e))); p.on('console', m => { if (m.type()==='error' && !/fonts|ERR_/.test(m.text())) errs.push(name+': '+m.text()); });
     await p.route(/fonts\.(googleapis|gstatic)/, r=>r.abort());
     await p.goto(U("confidence-intervals.html")); await p.waitForSelector('#chips .chip');
+    assert.equal(await p.locator('#eTitle ~ details').count(), 1); assert(!(await p.locator('#eTitle ~ details').evaluate(d => d.open)), 'докладне пояснення згорнуте');
     const check = async l => { await p.waitForTimeout(40); const t = await p.evaluate(() => document.body.innerText); const m = t.match(/.{25}(NaN|undefined|null|Infinity).{15}/); if (m) bad.push(name+' '+l+': '+m[0].replace(/\n/g,' ')); };
     const cover = async () => { const t = await p.textContent('#rAcc'); return num(t.match(/\(([\d,]+) %\)/)[1]); };
     const setn = v => p.evaluate(v=>{const r=document.getElementById('nRange');r.value=v;r.dispatchEvent(new Event('input',{bubbles:true}))},v);

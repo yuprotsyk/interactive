@@ -116,7 +116,7 @@ tfoot td, tfoot th { font-weight: 700; border-top: 1px solid var(--grid-strong);
       <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="12" r="6"/><circle cx="15" cy="12" r="6"/></svg>
       <h1>Умовна ймовірність і незалежність подій</h1>
     </div>
-    <p class="lead">Дві події A і B розбивають усі можливості на чотири частини. Задайте їхні ймовірності, «звузьте» простір до однієї події й перевірте, чи знання про B змінює ймовірність A.</p>
+    <p class="lead">Дві події A і B розбивають усі можливості на чотири частини. Задайте їхні ймовірності. «Звузьте» простір до однієї події й перевірте, чи знання про B змінює ймовірність A.</p>
   </header>
 
   <section class="choose panel" aria-label="Приклад і налаштування">
@@ -147,7 +147,7 @@ tfoot td, tfoot th { font-weight: 700; border-top: 1px solid var(--grid-strong);
     <h2 id="chTitle">Мозаїка ймовірностей</h2>
     <canvas id="cv" role="img" aria-label="Мозаїка ймовірностей"></canvas>
     <p class="legend" id="legend"></p>
-    <p class="cmsg" id="chNote">Ширина стовпчика це <span class="tex">P(A)</span> чи P(не A), висота заповненої частини це ймовірність B всередині стовпчика, а площа клітинки це ймовірність відповідної частини. Пунктир продовжує межу B із стовпчика A: якщо події незалежні, вона йде рівно через обидва стовпчики.</p>
+    <p class="cmsg" id="chNote">Ширина стовпчика: <span class="tex">P(A)</span> чи P(не A). Висота заповненої частини: ймовірність B всередині стовпчика. Площа клітинки: ймовірність відповідної частини. Пунктир продовжує межу B зі стовпчика A. Якщо події незалежні, вона йде рівно через обидва стовпчики.</p>
   </section>
 
   <div class="side">
@@ -165,10 +165,13 @@ tfoot td, tfoot th { font-weight: 700; border-top: 1px solid var(--grid-strong);
 
     <section class="explain panel" aria-labelledby="eTitle">
       <h2 id="eTitle">Що тут відбувається</h2>
-      <p class="key"><strong>Умовна ймовірність</strong> <span class="tex">P(A | B) = P(A ∩ B) / P(B)</span>. Коли відомо, що B настала, можливі лише наслідки з B. Простір звужується до B, і ми питаємо, яка частка B припадає на A.</p>
-      <p><strong>Незалежність.</strong> Події незалежні, якщо <span class="tex">P(A ∩ B) = P(A)·P(B)</span>. Це те саме, що <span class="tex">P(A | B) = P(A)</span>: знання про B нічого не змінює для A.</p>
-      <p><strong>Несумісні події не є незалежними.</strong> Якщо A і B не можуть настати разом <span class="tex">(P(A ∩ B) = 0)</span> і обидві можливі, то коли настала B, A настати вже не може. Отже, знання про B змінює ймовірність A, тобто події залежні.</p>
-      <p><strong>Залежність не означає причину.</strong> <span class="tex">P(A | B)</span> відрізняється від <span class="tex">P(A)</span>, коли події пов'язані, але це не каже, що одна спричиняє іншу.</p>
+      <p class="key"><strong>Умовна ймовірність</strong> <span class="tex">P(A | B) = P(A ∩ B) / P(B)</span>. Коли відомо, що B настала, можливі лише наслідки з B. Простір звужується до B. Питаємо: яка частка B припадає на A.</p>
+      <details>
+        <summary>Докладніше: формули й пояснення</summary>
+        <p><strong>Незалежність.</strong> Події незалежні, якщо <span class="tex">P(A ∩ B) = P(A)·P(B)</span>. Це те саме, що <span class="tex">P(A | B) = P(A)</span>: знання про B нічого не змінює для A.</p>
+        <p><strong>Несумісні події не є незалежними.</strong> Якщо A і B не можуть настати разом <span class="tex">(P(A ∩ B) = 0)</span> і обидві можливі, то після настання B подія A настати вже не може. Отже, знання про B змінює ймовірність A: події залежні.</p>
+        <p><strong>Залежність не означає причину.</strong> <span class="tex">P(A | B)</span> відрізняється від <span class="tex">P(A)</span>, коли події пов'язані. Це не означає, що одна спричиняє іншу.</p>
+      </details>
     </section>
   </div>
 
@@ -185,7 +188,7 @@ tfoot td, tfoot th { font-weight: 700; border-top: 1px solid var(--grid-strong);
     <div class="twrap"><table><caption class="sr-only">Наслідки й події</caption><thead id="t3Head"></thead><tbody id="t3Body"></tbody></table></div>
     <div class="twrap"><table><caption class="sr-only">Перевірка незалежності</caption><thead><tr><th scope="col">Перевірка</th><th scope="col"><span class="tex">P(...)</span></th><th scope="col">Добуток</th><th scope="col">Збіг?</th></tr></thead><tbody id="t3Chk"></tbody></table></div>
     <p class="verdict" id="t3Verdict" style="margin-top:10px"></p>
-    <p class="cmsg">Попарна незалежність означає, що кожна пара подій незалежна. Незалежність у сукупності вимагає ще й <span class="tex">P(A ∩ B ∩ C) = P(A)·P(B)·P(C)</span>, а в попередньої умови цього не випливає.</p>
+    <p class="cmsg">Попарна незалежність означає, що кожна пара подій незалежна. Незалежність у сукупності вимагає ще й <span class="tex">P(A ∩ B ∩ C) = P(A)·P(B)·P(C)</span>. З попарної незалежності ця умова не випливає.</p>
   </section>
 </main>
 
@@ -216,7 +219,7 @@ tfoot td, tfoot th { font-weight: 700; border-top: 1px solid var(--grid-strong);
     { id: "cardsWith", name: "Карти з поверненням", pa: 4 / 52, pb: 4 / 52, pab: (4 / 52) * (4 / 52),
       note: "Із колоди 52 карт беремо карту, повертаємо й перемішуємо, беремо ще одну. A: перша карта туз, B: друга карта туз. Незалежні." },
     { id: "cardsWithout", name: "Карти без повернення", pa: 4 / 52, pb: 4 / 52, pab: (4 / 52) * (3 / 51),
-      note: "Те саме, але першу карту не повертаємо. Якщо перша карта туз, то тузів лишилося 3 з 51, тому P(B | A) = 3/51 менше за P(B) = 4/52: події залежні." }
+      note: "Те саме, але першу карту не повертаємо. Якщо перша карта туз, то тузів лишилося 3 з 51. Тому P(B | A) = 3/51 менше за P(B) = 4/52: події залежні." }
   ];
   var BY_ID = {};
   PRESETS.forEach(function (p) { BY_ID[p.id] = p; });

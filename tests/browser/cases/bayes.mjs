@@ -13,6 +13,7 @@ export default async function (h) {
     p.on('pageerror', e => errs.push(String(e)));
     p.on('console', m => { if (m.type()==='error' && !/fonts|ERR_/.test(m.text())) errs.push(m.text()); });
     await p.goto(url); await p.waitForSelector('#chips .chip');
+    assert.equal(await p.locator('#eTitle ~ details').count(), 1); assert(!(await p.locator('#eTitle ~ details').evaluate(d => d.open)), 'докладне пояснення згорнуте');
     const rv = async () => num(await p.textContent('#rVal'));
     if (name==='desktop') {
       close(await rv(), 0.009/0.0981, 5e-5, 'медичний');

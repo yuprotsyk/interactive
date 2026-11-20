@@ -11,6 +11,7 @@ export default async function (h) {
   p.on("pageerror", (e) => errors.push(String(e)));
   p.on("console", (m) => { if (m.type() === "error" && !/fonts|ERR_/.test(m.text())) errors.push(m.text()); });
   await p.goto(PAGE);
+  assert.equal(await p.locator('#xTitle ~ details').count(), 1); assert(!(await p.locator('#xTitle ~ details').evaluate(d => d.open)), 'докладне пояснення згорнуте');
   await p.waitForSelector("#chips .chip");
 
   const q = () => p.evaluate(() => ({

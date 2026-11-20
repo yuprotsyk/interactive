@@ -211,16 +211,19 @@ table.ctab { width: 100%; border-collapse: collapse; margin-top: 10px; font-size
 
     <section class="explain panel" aria-labelledby="eTitle">
       <h2 id="eTitle">Що тут відбувається</h2>
-      <p class="key"><strong>Правило добутку.</strong> Якщо перший вибір можна зробити <span class="tex">m</span> способами, а другий за будь-якого першого <span class="tex">r</span> способами, то пару можна вибрати <span class="tex" data-tex="m\cdot r">m·r</span> способами. Усі формули нижче це правило добутку, застосоване кілька разів.</p>
-      <p><strong>Два питання.</strong> Щоб обрати схему, треба відповісти: чи важливий порядок вибраних елементів (призові місця так, склад комісії ні) і чи може елемент траплятися повторно (цифра в коді так, учасник забігу ні).</p>
-      <p><strong>Розміщення без повторень.</strong> Перший елемент обираємо <span class="tex">n</span> способами, другий <span class="tex" data-tex="n-1">n − 1</span>, і так <span class="tex">k</span> разів: <span class="tex" data-tex="A_n^k=n(n-1)\cdots(n-k+1)=\dfrac{n!}{(n-k)!}">Aₙᵏ = n(n − 1)…(n − k + 1) = n!/(n − k)!</span>. <strong>Перестановки</strong> це випадок <span class="tex" data-tex="k=n">k = n</span>: <span class="tex" data-tex="P_n=n!">Pₙ = n!</span>.</p>
-      <p><strong>Розміщення з повтореннями.</strong> Кожне з <span class="tex">k</span> місць заповнюємо <span class="tex">n</span> способами незалежно від інших: <span class="tex" data-tex="n^k">nᵏ</span>.</p>
-      <p><strong>Сполучення без повторень.</strong> Якщо порядок неважливий, кожен набір з <span class="tex">k</span> елементів у розміщеннях трапляється <span class="tex" data-tex="k!">k!</span> разів (усіма способами його впорядкувати). Тому <span class="tex" data-tex="C_n^k=\dfrac{A_n^k}{k!}=\dfrac{n!}{k!\,(n-k)!}">Cₙᵏ = Aₙᵏ/k! = n!/(k!(n − k)!)</span>. Звідси <span class="tex" data-tex="A_n^k=C_n^k\cdot k!">Aₙᵏ = Cₙᵏ·k!</span>, це видно в таблиці всіх схем.</p>
-      <p><strong>Сполучення з повтореннями.</strong> Вибір <span class="tex">k</span> елементів із <span class="tex">n</span> видів, коли порядок неважливий, зводиться до розстановки <span class="tex">k</span> предметів і <span class="tex" data-tex="n-1">n − 1</span> перегородок: <span class="tex" data-tex="\tilde C_n^k=C_{n+k-1}^k">C̃ₙᵏ = Cₙ₊ₖ₋₁ᵏ</span>.</p>
-      <p><strong>Перестановки з повторами.</strong> Слово з <span class="tex">n</span> букв, де буква <span class="tex">i</span> трапляється <span class="tex" data-tex="m_i">mᵢ</span> разів, можна переставити <span class="tex" data-tex="\dfrac{n!}{m_1!\,m_2!\cdots m_r!}">n!/(m₁! m₂! … mᵣ!)</span> різними способами: однакові літери між собою не відрізняються.</p>
-      <p><strong>Круговий стіл.</strong> Якщо обертання столу не змінює розсадки, першу особу можна зафіксувати, а решту <span class="tex" data-tex="n-1">n − 1</span> розсадити довільно: <span class="tex" data-tex="(n-1)!">(n − 1)!</span> способів.</p>
-      <p><strong>Властивості сполучень.</strong> <span class="tex" data-tex="C_n^k=C_n^{n-k}">Cₙᵏ = Cₙⁿ⁻ᵏ</span> (обрати, кого взяти, те саме, що обрати, кого лишити), <span class="tex" data-tex="C_n^k=C_{n-1}^{k-1}+C_{n-1}^k">Cₙᵏ = Cₙ₋₁ᵏ⁻¹ + Cₙ₋₁ᵏ</span> (правило трикутника Паскаля) і <span class="tex" data-tex="\sum_{j=0}^{n}C_n^j=2^n">Σ Cₙʲ = 2ⁿ</span> (скільки всього підмножин у множини з <span class="tex">n</span> елементів). Для сполучень графік показує ряд трикутника Паскаля: він симетричний, а найбільші значення посередині.</p>
-      <p><strong>Ймовірність.</strong> За класичним означенням <span class="tex" data-tex="P(A)=\dfrac{m}{N}">P(A) = m/N</span>, де <span class="tex">N</span> кількість усіх рівноможливих наслідків, <span class="tex">m</span> кількість сприятливих для події <span class="tex">A</span>. Обидві кількості рахують комбінаторикою, як у лотереї й задачі про дні народження.</p>
+      <p class="key"><strong>Правило добутку.</strong> Якщо перший вибір можна зробити <span class="tex">m</span> способами, а другий за будь-якого першого <span class="tex">r</span> способами, то пару можна вибрати <span class="tex" data-tex="m\cdot r">m·r</span> способами. Усі формули нижче — це правило добутку, застосоване кілька разів.</p>
+      <details>
+        <summary>Докладніше: формули й пояснення</summary>
+        <p><strong>Два питання.</strong> Щоб обрати схему, треба відповісти: чи важливий порядок вибраних елементів (призові місця так, склад комісії ні) і чи може елемент траплятися повторно (цифра в коді так, учасник забігу ні).</p>
+        <p><strong>Розміщення без повторень.</strong> Перший елемент обираємо <span class="tex">n</span> способами, другий <span class="tex" data-tex="n-1">n − 1</span>, і так <span class="tex">k</span> разів: <span class="tex" data-tex="A_n^k=n(n-1)\cdots(n-k+1)=\dfrac{n!}{(n-k)!}">Aₙᵏ = n(n − 1)…(n − k + 1) = n!/(n − k)!</span>. <strong>Перестановки</strong> — це випадок <span class="tex" data-tex="k=n">k = n</span>: <span class="tex" data-tex="P_n=n!">Pₙ = n!</span>.</p>
+        <p><strong>Розміщення з повтореннями.</strong> Кожне з <span class="tex">k</span> місць заповнюємо <span class="tex">n</span> способами незалежно від інших: <span class="tex" data-tex="n^k">nᵏ</span>.</p>
+        <p><strong>Сполучення без повторень.</strong> Якщо порядок неважливий, кожен набір з <span class="tex">k</span> елементів у розміщеннях трапляється <span class="tex" data-tex="k!">k!</span> разів (усіма способами його впорядкувати). Тому <span class="tex" data-tex="C_n^k=\dfrac{A_n^k}{k!}=\dfrac{n!}{k!\,(n-k)!}">Cₙᵏ = Aₙᵏ/k! = n!/(k!(n − k)!)</span>. Звідси <span class="tex" data-tex="A_n^k=C_n^k\cdot k!">Aₙᵏ = Cₙᵏ·k!</span>. Це видно в таблиці всіх схем.</p>
+        <p><strong>Сполучення з повтореннями.</strong> Вибір <span class="tex">k</span> елементів із <span class="tex">n</span> видів, коли порядок неважливий, зводиться до розстановки <span class="tex">k</span> предметів і <span class="tex" data-tex="n-1">n − 1</span> перегородок: <span class="tex" data-tex="\tilde C_n^k=C_{n+k-1}^k">C̃ₙᵏ = Cₙ₊ₖ₋₁ᵏ</span>.</p>
+        <p><strong>Перестановки з повторами.</strong> Слово з <span class="tex">n</span> букв, де буква <span class="tex">i</span> трапляється <span class="tex" data-tex="m_i">mᵢ</span> разів, можна переставити <span class="tex" data-tex="\dfrac{n!}{m_1!\,m_2!\cdots m_r!}">n!/(m₁! m₂! … mᵣ!)</span> різними способами: однакові літери між собою не відрізняються.</p>
+        <p><strong>Круговий стіл.</strong> Якщо обертання столу не змінює розсадки, першу особу можна зафіксувати, а решту <span class="tex" data-tex="n-1">n − 1</span> розсадити довільно: <span class="tex" data-tex="(n-1)!">(n − 1)!</span> способів.</p>
+        <p><strong>Властивості сполучень.</strong> <span class="tex" data-tex="C_n^k=C_n^{n-k}">Cₙᵏ = Cₙⁿ⁻ᵏ</span> (обрати, кого взяти, те саме, що обрати, кого лишити), <span class="tex" data-tex="C_n^k=C_{n-1}^{k-1}+C_{n-1}^k">Cₙᵏ = Cₙ₋₁ᵏ⁻¹ + Cₙ₋₁ᵏ</span> (правило трикутника Паскаля) і <span class="tex" data-tex="\sum_{j=0}^{n}C_n^j=2^n">Σ Cₙʲ = 2ⁿ</span> (скільки всього підмножин у множини з <span class="tex">n</span> елементів). Для сполучень графік показує ряд трикутника Паскаля: він симетричний, а найбільші значення посередині.</p>
+        <p><strong>Ймовірність.</strong> За класичним означенням <span class="tex" data-tex="P(A)=\dfrac{m}{N}">P(A) = m/N</span>, де <span class="tex">N</span> — кількість усіх рівноможливих наслідків, <span class="tex">m</span> — кількість сприятливих для події <span class="tex">A</span>. Обидві кількості рахують комбінаторикою, як у лотереї й задачі про дні народження.</p>
+      </details>
     </section>
   </div>
 </main>
@@ -504,12 +507,12 @@ table.ctab { width: 100%; border-collapse: collapse; margin-top: 10px; font-size
       if (meta.prob === "birthday" && kind === meta.kind) {
         $("rowSec").hidden = false; chartMode = "bday"; rowN = n; rowK = k;
         $("h2").textContent = "Ймовірність збігу залежно від числа людей";
-        $("rowMsg").textContent = "Крива це 1 − A(" + n + ", j)/" + n + "ʲ. Штрихова лінія це ймовірність ½, точка це поточне k = " + k + ".";
+        $("rowMsg").textContent = "Крива — це 1 − A(" + n + ", j)/" + n + "ʲ. Штрихова лінія — ймовірність ½, точка — поточне k = " + k + ".";
         $("c1").setAttribute("aria-label", "Ймовірність збігу днів народження залежно від числа людей; для " + k + " людей " + fmtProb(1 - Comb.birthdayDistinct(n, k)));
       } else if (!meta.nochart && N <= 120 && (kind === "C" || kind === "Crep")) {
         $("rowSec").hidden = false; rowN = N; rowK = k;
         $("h2").textContent = "Ряд " + N + " трикутника Паскаля: C(" + N + ", j)";
-        $("rowMsg").textContent = "Висота стовпчика це C(" + N + ", j) відносно найбільшого. Виділено j = " + (rowK <= N ? rowK : "—") + ". Ряд симетричний: C(n, j) = C(n, n − j).";
+        $("rowMsg").textContent = "Висота стовпчика — це C(" + N + ", j) відносно найбільшого. Виділено j = " + (rowK <= N ? rowK : "—") + ". Ряд симетричний: C(n, j) = C(n, n − j).";
         $("c1").setAttribute("aria-label", "Ряд " + N + " трикутника Паскаля; виділено j = " + rowK + ", значення " + fmtBig(Comb.comb(N, rowK)));
       }
       showProb(kind, n, k);
@@ -569,7 +572,7 @@ table.ctab { width: 100%; border-collapse: collapse; margin-top: 10px; font-size
       table("probTab", rows, 0);
     } else if (meta.prob === "birthday") {
       p = Comb.birthdayDistinct(n, k);
-      $("probText").textContent = "Усі дні різні: A(" + n + ", " + k + ") способів із " + n + sup(k) + " рівноможливих. Ймовірність збігу це 1 мінус ймовірність того, що всі дні різні. Вже для k = 23 вона перевищує 1/2.";
+      $("probText").textContent = "Усі дні різні: A(" + n + ", " + k + ") способів із " + n + sup(k) + " рівноможливих. Ймовірність збігу — це 1 мінус ймовірність того, що всі дні різні. Вже для k = 23 вона перевищує 1/2.";
       Tex.set($("probF"), "P(збіг) = 1 − A(" + n + ", " + k + ")/" + n + sup(k), "P(\\text{збіг})=1-\\dfrac{A_{" + n + "}^{" + k + "}}{" + n + "^{" + k + "}}");
       table("probTab", [["Усі дні різні", fmtProb(p)], ["Є хоча б один збіг", fmtProb(1 - p)]], 1);
     } else {
@@ -673,7 +676,7 @@ table.ctab { width: 100%; border-collapse: collapse; margin-top: 10px; font-size
     var prefix = BigInt(1);
     for (i = 0; i < done; i++) prefix *= BigInt(counts[i]);
     var line = el("p", "cmsg");
-    line.textContent = "Число над клітинкою це кількість способів її заповнити" + (rep ? " (елементи можна повторювати)" : " (використані елементи вже не беремо)") + ". " +
+    line.textContent = "Число над клітинкою — кількість способів її заповнити" + (rep ? " (елементи можна повторювати)" : " (використані елементи вже не беремо)") + ". " +
       (done === 0 ? "Кроки множимо: " + counts.join(" · ") + " = " + fmtBig(cur.total) + "."
         : "Зроблено кроків: " + done + " з " + k + ". Різних початків такої довжини " + counts.slice(0, done).join(" · ") + " = " + fmtBig(prefix) + (done === k ? ", це й є всі розміщення." : "."));
     host.appendChild(line);
@@ -714,7 +717,7 @@ table.ctab { width: 100%; border-collapse: collapse; margin-top: 10px; font-size
     if (n > 12 || k > 24) { host.appendChild(el("p", "cmsg", "Для малюнка забагато елементів: зменште n до 12 або менше і k до 24 або менше.")); return; }
     for (i = 0; i < n; i++) counts.push(0);
     set.forEach(function (j) { counts[j]++; });
-    host.appendChild(el("p", "cmsg", "Натисніть на набір у переліку нижче. У наборі " + itemText(set, false) + " кожен сорт це група зірочок, між групами " + (n - 1) + " " + pl(n - 1, "перегородка", "перегородки", "перегородок") + "."));
+    host.appendChild(el("p", "cmsg", "Натисніть на набір у переліку нижче. У наборі " + itemText(set, false) + " кожен сорт — група зірочок, між групами " + (n - 1) + " " + pl(n - 1, "перегородка", "перегородки", "перегородок") + "."));
     var row = el("div", "vz-bars");
     counts.forEach(function (c, j) {
       if (j > 0) row.appendChild(el("span", "vz-bar", "|"));

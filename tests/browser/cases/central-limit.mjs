@@ -14,6 +14,7 @@ export default async function (h) {
     p.on('console', m => { if (m.type()==='error' && !/fonts|ERR_/.test(m.text())) errs.push(m.text()); });
     p.on('pageerror', e => errs.push(String(e)));
     await p.goto(url);
+    assert.equal(await p.locator('.explain details').count(), 2); assert(!(await p.locator('.explain details').first().evaluate(d => d.open)), 'докладне пояснення згорнуте');
     await p.waitForSelector('#chips .chip');
     if (name==='desktop') {
       // n=1: SD ~ sigma

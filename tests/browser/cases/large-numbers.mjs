@@ -15,6 +15,7 @@ export default async function (h) {
   page.on('pageerror', e => errors.push('pageerror: ' + e.message));
   page.on('console', m => { if (m.type() === 'error' && !/fonts|ERR_|Failed to load resource/i.test(m.text())) errors.push('console: ' + m.text()); });
   await page.goto(PAGE);
+  assert.equal(await page.locator('.explain details').count(), 2); assert(!(await page.locator('.explain details').first().evaluate(d => d.open)), 'докладне пояснення згорнуте');
   await page.waitForTimeout(500);
   const txt = (id) => page.textContent('#' + id);
   const chip = (name) => page.click(`.chip:text-is("${name}")`);
@@ -88,9 +89,10 @@ export default async function (h) {
   ok(!(await page.locator('#chart2').isHidden()), 'повернення до монети: другий графік знову видно');
 
   // нова симуляція змінює результат; відтворюваність при перезавантаженні
-  const before = await txt('rMean');
+  const sig = async () => (await txt('rMean')) + '|' + (await txt('rSpread'));
+  const before = await sig();
   await page.click('#fresh');
-  ok((await txt('rMean')) !== before, 'нова симуляція дає інші числа');
+  ok((await sig()) !== before, 'нова симуляція дає інші числа');
   await page.reload(); await page.waitForTimeout(400);
   ok((await txt('rMean')) === mean0, 'за тим самим зерном результат відтворюється: ' + mean0);
 

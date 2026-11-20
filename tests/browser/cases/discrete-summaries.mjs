@@ -12,6 +12,7 @@ export default async function (h) {
     p.on('pageerror', e => errs.push(name+': '+String(e)));
     p.on('console', m => { if (m.type()==='error' && !/fonts|ERR_/.test(m.text())) errs.push(name+': '+m.text()); });
     await p.route(/fonts\.(googleapis|gstatic)/, r=>r.abort()); await p.goto(url); await p.waitForSelector('#chips .chip');
+    assert.equal(await p.locator('#eTitle ~ details').count(), 1); assert(!(await p.locator('#eTitle ~ details').evaluate(d => d.open)), 'докладне пояснення згорнуте');
     const rows = async () => p.evaluate(() => Object.fromEntries([...document.querySelectorAll('#rBody tr')].map(tr => [tr.children[0].textContent, tr.children[1].textContent])));
     let r = await rows();
     if (name==='desktop') {

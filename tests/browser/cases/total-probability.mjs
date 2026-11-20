@@ -15,6 +15,7 @@ export default async function (h) {
     if (name==='desktop') {
       assert(Math.abs(num(await p.textContent('#rVal'))-0.55)<1e-9); await p.click('#chips .chip:nth-child(2)'); assert(Math.abs(num(await p.textContent('#rVal'))-0.145)<1e-9);
       assert.equal(await p.locator('#hrows .hrow').count(), 3);
+      assert.equal(await p.locator('#eTitle ~ details').count(), 1); assert(!(await p.locator('#eTitle ~ details').evaluate(d => d.open)), 'докладне пояснення згорнуте');
       // preset 2
       await p.click('#chips .chip:nth-child(1)');
       assert(Math.abs(num(await p.textContent('#rVal'))-0.55)<1e-9);

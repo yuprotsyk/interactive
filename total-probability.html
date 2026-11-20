@@ -97,7 +97,7 @@ tfoot td, tfoot th { font-weight: 700; border-top: 1px solid var(--grid-strong);
       <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="1"/><path d="M9 4v16M14 4v16M4 13h5M9 9h5M14 15h6"/></svg>
       <h1>Формула повної ймовірності</h1>
     </div>
-    <p class="lead">Подія може настати різними шляхами. Задайте ймовірність кожного шляху й ймовірність події на ньому, і сторінка складе повну ймовірність.</p>
+    <p class="lead">Подія може настати різними шляхами. Задайте ймовірність кожного шляху й ймовірність події на ньому. Сторінка обчислить повну ймовірність.</p>
   </header>
 
   <section class="choose panel" aria-label="Що рахуємо">
@@ -147,9 +147,12 @@ tfoot td, tfoot th { font-weight: 700; border-top: 1px solid var(--grid-strong);
     <section class="explain panel" aria-labelledby="eTitle">
       <h2 id="eTitle">Що тут відбувається</h2>
       <p class="key"><strong>Гіпотези <span class="tex">H₁…Hₖ</span></strong> не перетинаються й разом охоплюють усі можливості, тому їхні ймовірності в сумі дають 1. Змінюєте одну, решта підлаштовується.</p>
-      <p><strong>Квадрат.</strong> Ширина стовпчика це <span class="tex">P(Hᵢ)</span>, заповнена частина по висоті це <span class="tex">P(A | Hᵢ)</span>. Площа заповненої частини дорівнює <span class="tex">P(Hᵢ)·P(A | Hᵢ)</span>. Справа всі ці площі складено в один стовпчик, і його висота є повною ймовірністю <span class="tex">P(A)</span>.</p>
-      <p><strong>Дерево.</strong> Ймовірності вздовж шляху перемножуються, а шляхи, що закінчуються на A, додаються.</p>
-      <p><strong>Це зважене середнє.</strong> <span class="tex">P(A)</span> завжди лежить між найменшим і найбільшим із <span class="tex">P(A | Hᵢ)</span>, а вагами є <span class="tex">P(Hᵢ)</span>. Зробіть одну гіпотезу майже певною, і <span class="tex">P(A)</span> наблизиться до її <span class="tex">P(A | H)</span>.</p>
+      <details>
+        <summary>Докладніше: формули й пояснення</summary>
+        <p><strong>Квадрат.</strong> Ширина стовпчика: <span class="tex">P(Hᵢ)</span>. Висота заповненої частини: <span class="tex">P(A | Hᵢ)</span>. Площа заповненої частини: <span class="tex">P(Hᵢ)·P(A | Hᵢ)</span>. Справа всі ці площі складено в один стовпчик. Його висота — повна ймовірність <span class="tex">P(A)</span>.</p>
+        <p><strong>Дерево.</strong> Ймовірності вздовж шляху перемножуються. Шляхи, що закінчуються на A, додаються.</p>
+        <p><strong>Це зважене середнє.</strong> <span class="tex">P(A)</span> завжди лежить між найменшим і найбільшим із <span class="tex">P(A | Hᵢ)</span>. Вагами є <span class="tex">P(Hᵢ)</span>. Якщо одна гіпотеза майже певна, <span class="tex">P(A)</span> наближається до її <span class="tex">P(A | H)</span>.</p>
+      </details>
     </section>
   </div>
 </main>

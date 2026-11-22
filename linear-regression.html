@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Лінійна регресія</title>
+<meta name="description" content="Пряма найменших квадратів, залишки, коефіцієнт детермінації й вплив окремих точок на пряму.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="common.css">
+<style>
+/* Розмітка: телефон — одна колонка; від 900 px графіки зліва, результати й пояснення справа. */
+.app {
+  max-width: 1100px; margin: 0 auto; display: grid; gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "head" "controls" "chart" "resid" "result" "point" "table" "explain";
+}
+.head { grid-area: head; }
+.backlink { display: inline-block; margin-bottom: 10px; font-size: 13px; }
+.controls { grid-area: controls; }
+.chart { grid-area: chart; min-width: 0; }
+.resid { grid-area: resid; min-width: 0; }
+.result { grid-area: result; }
+.point { grid-area: point; }
+.tablebox { grid-area: table; min-width: 0; }
+.explain { grid-area: explain; }
+.side { display: contents; }
+
+.btnrow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 14px; }
+.btnrow label { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; min-height: 40px; }
+.srcnote, .cmsg { margin: 8px 0 0; font-size: 13.5px; color: var(--muted); max-width: 72ch; text-wrap: pretty; }
+
+.chart h2, .resid h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
+canvas.cv {
+  display: block; width: 100%; aspect-ratio: 4 / 3; background: var(--panel);
+  border: 1px solid var(--grid-strong); border-radius: 6px; touch-action: none;
+}
+canvas.cv:focus-visible { outline: 2px solid var(--pos); outline-offset: 2px; }
+canvas.cv.small { aspect-ratio: 16 / 8; touch-action: auto; }
+
+.eq { margin: 6px 0 0; font-family: var(--font-data); font-size: clamp(20px, 6vw, 26px); font-variant-numeric: tabular-nums; color: var(--pos); overflow-wrap: anywhere; }
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; margin: 14px 0 0; }
+.stats dt { font-size: 12px; color: var(--muted); }
+.stats dd { margin: 2px 0 0; font-family: var(--font-data); font-size: 15px; font-variant-numeric: tabular-nums; }
+.verdict { margin: 12px 0 0; font-size: 14px; }
+.cmp { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13.5px; }
+.cmp th, .cmp td { padding: 5px 6px; text-align: right; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; }
+.cmp th:first-child, .cmp td:first-child { text-align: left; }
+.cmp td { font-family: var(--font-data); }
+.pbtns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+
+.tablebox summary { cursor: pointer; font-weight: 500; min-height: 24px; }
+.tablescroll { overflow: auto; margin-top: 10px; max-height: 360px; }
+.tbl { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+.tbl th, .tbl td { padding: 5px 8px; text-align: right; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tbl td { font-family: var(--font-data); }
+.tbl th:first-child, .tbl td:first-child { text-align: left; }
+.tbl tr.sel td { background: color-mix(in srgb, var(--neg) 14%, transparent); }
+.tbl button { min-height: 32px; padding: 2px 10px; }
+
+.explain h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
+.explain p { margin: 8px 0 0; font-size: 14.5px; max-width: 68ch; text-wrap: pretty; }
+.explain p.key { margin-top: 0; }
+
+@media (min-width: 900px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr) 360px; column-gap: 24px;
+    grid-template-areas: "head head" "controls controls" "chart side" "resid side" "table side" ". side";
+    grid-template-rows: auto auto auto auto auto 1fr;
+  }
+  .side { grid-area: side; display: flex; flex-direction: column; gap: 16px; align-self: start; min-width: 0; }
+}
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="head g4">
+    <a class="backlink" href="index.html">← Усі сторінки</a>
+    <p class="kicker">Оцінювання та залежність</p>
+    <div class="titlerow">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M6 16 19 8"/><circle cx="8" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="13.5" r="1.2" fill="currentColor"/><circle cx="15" cy="7.5" r="1.2" fill="currentColor"/><circle cx="18" cy="11" r="1.2" fill="currentColor"/></svg>
+      <h1>Лінійна регресія</h1>
+    </div>
+    <p class="lead">Ставте точки на полі, і пряма найменших квадратів перебудовується одразу. Виділіть точку й перетягніть її: побачите залишок і вплив на пряму. Почніть з готового набору.</p>
+  </header>
+
+  <section class="controls panel" aria-label="Параметри">
+    <p class="eyebrow">Готовий набір</p>
+    <div class="chips" id="chips"></div>
+    <p class="srcnote" id="srcNote"></p>
+    <div class="btnrow">
+      <label><input type="checkbox" id="showRes" checked> Залишки</label>
+      <label><input type="checkbox" id="showWithout" checked> Пряма без виділеної точки</label>
+      <button type="button" class="btn" id="undoBtn" disabled>Скасувати</button>
+      <button type="button" class="btn" id="clearBtn">Очистити</button>
+    </div>
+  </section>
+
+  <section class="chart" aria-labelledby="chTitle">
+    <h2 id="chTitle">Діаграма розсіювання й пряма регресії</h2>
+    <canvas class="cv" id="c1" tabindex="0" role="img" aria-label="Діаграма розсіювання"></canvas>
+    <p class="cmsg" id="chNote">Клацніть по полю, щоб додати точку. Клацніть по точці, щоб виділити її, і перетягніть. З клавіатури: Tab до поля, [ і ] вибирають точку, стрілки рухають її (з Shift швидше), Delete видаляє.</p>
+  </section>
+
+  <section class="resid" aria-labelledby="rsTitle">
+    <h2 id="rsTitle">Залишки</h2>
+    <canvas class="cv small" id="c2" role="img" aria-label="Графік залишків"></canvas>
+    <p class="cmsg" id="rsNote"></p>
+  </section>
+
+  <div class="side">
+    <section class="result panel" aria-labelledby="rTitle">
+      <p class="eyebrow" id="rTitle">Пряма регресії</p>
+      <p class="eq" id="eq">—</p>
+      <dl class="stats" id="stats"></dl>
+      <p class="cmsg" id="rNote"></p>
+    </section>
+
+    <section class="point panel" aria-labelledby="pTitle">
+      <p class="eyebrow" id="pTitle">Виділена точка</p>
+      <div id="pBody"></div>
+    </section>
+
+    <section class="explain panel" aria-labelledby="eTitle">
+      <h2 id="eTitle">Що тут відбувається</h2>
+      <p class="key"><strong>Пряма найменших квадратів.</strong> Пряма <span class="tex" data-tex="\hat y=a+bx">ŷ = a + bx</span>&#8288; робить найменшою суму квадратів залишків. Залишок — це відстань по вертикалі від точки до прямої. Коефіцієнт детермінації <span class="tex" data-tex="R^2">R²</span>&#8288; показує, яку частку розкиду <span class="tex">y</span> пояснює пряма.</p>
+      <details>
+        <summary>Докладніше: формули й пояснення</summary>
+        <p><strong>Оцінки.</strong> Нехай <span class="tex" data-tex="S_{xx}=\sum (x_i-\bar x)^2">Sxx = Σ(xᵢ − x̄)²</span>&#8288; і <span class="tex" data-tex="S_{xy}=\sum (x_i-\bar x)(y_i-\bar y)">Sxy = Σ(xᵢ − x̄)(yᵢ − ȳ)</span>&#8288;. Тоді <span class="tex" data-tex="b=S_{xy}/S_{xx}">b = Sxy/Sxx</span>&#8288; і <span class="tex" data-tex="a=\bar y-b\bar x">a = ȳ − b·x̄</span>&#8288;. Пряма проходить через точку <span class="tex" data-tex="(\bar x,\bar y)">(x̄, ȳ)</span>&#8288;. Залишок <span class="tex" data-tex="e_i=y_i-\hat y_i">eᵢ = yᵢ − ŷᵢ</span>&#8288;, а сума залишків дорівнює нулю.</p>
+        <p><strong>R² і s.</strong> <span class="tex" data-tex="R^2=1-\mathrm{SSE}/\mathrm{SST}">R² = 1 − SSE/SST</span>&#8288;, де <span class="tex" data-tex="\mathrm{SSE}=\sum e_i^2">SSE = Σeᵢ²</span>&#8288; і <span class="tex" data-tex="\mathrm{SST}=\sum (y_i-\bar y)^2">SST = Σ(yᵢ − ȳ)²</span>&#8288;. Для простої регресії <span class="tex" data-tex="R^2=r^2">R² = r²</span>&#8288;, де <span class="tex">r</span>&#8288; — коефіцієнт кореляції Пірсона (сторінка «<a href="correlation.html">Коефіцієнт кореляції</a>»). Стандартна похибка залишків <span class="tex" data-tex="s=\sqrt{\mathrm{SSE}/(n-2)}">s = √(SSE/(n − 2))</span>&#8288; оцінює σ.</p>
+        <p><strong>Довірчий інтервал для b.</strong> <span class="tex" data-tex="b\pm t_{1-\alpha/2}(n-2)\cdot s/\sqrt{S_{xx}}">b ± t₁₋α/₂(n − 2)·s/√Sxx</span>&#8288;. Він правильний за припущень: похибки незалежні, мають нормальний розподіл і однакову дисперсію. Потрібно <span class="tex" data-tex="n\ge 3">n ≥ 3</span>&#8288;.</p>
+        <p><strong>Графік залишків.</strong> Якщо залишки утворюють безладну хмару навколо нуля, лінійна модель припустима. Якщо вони утворюють дугу (U-подібну чи ∩-подібну), зв'язок не лінійний. Якщо розкид росте разом з <span class="tex">x</span>&#8288;, дисперсія похибок не стала.</p>
+        <p><strong>Важіль і вплив.</strong> Важіль <span class="tex" data-tex="h_i=1/n+(x_i-\bar x)^2/S_{xx}">hᵢ = 1/n + (xᵢ − x̄)²/Sxx</span>&#8288; великий, коли точка далека від <span class="tex" data-tex="\bar x">x̄</span>&#8288; по осі <span class="tex">x</span>&#8288;. Сума важелів дорівнює 2. Відстань Кука <span class="tex" data-tex="D_i=\dfrac{e_i^2 h_i}{2s^2(1-h_i)^2}">Dᵢ = eᵢ²·hᵢ / (2s²(1 − hᵢ)²)</span>&#8288; поєднує залишок і важіль. Орієнтири з підручників: <span class="tex" data-tex="h_i>4/n">hᵢ &gt; 4/n</span>&#8288; і <span class="tex" data-tex="D_i>1">Dᵢ &gt; 1</span>&#8288;. Точка з великим важелем, але малим залишком майже не змінює пряму. Точка з великим важелем і великим залишком змінює її сильно.</p>
+        <p><strong>Межі застосування.</strong> Пряма описує лише діапазон наявних <span class="tex">x</span>&#8288;. Поза ним прогноз ненадійний. Високий <span class="tex" data-tex="R^2">R²</span>&#8288; не доводить, що <span class="tex">x</span>&#8288; є причиною <span class="tex">y</span>&#8288;.</p>
+      </details>
+    </section>
+  </div>
+
+  <details class="tablebox panel" id="tbox">
+    <summary>Таблиця точок</summary>
+    <div class="tablescroll"><table class="tbl" id="tbl"></table></div>
+  </details>
+</main>
+
+<div class="sr-only" id="sr" role="status" aria-live="polite"></div>
+
+<script src="common.js"></script>
+<script src="formulas.js"></script>
+<script src="distributions.js"></script>
+<script src="regression.js"></script>
+<script>
+(function () {
+  "use strict";
+  var fmt = Stat.fmt, fmtSigned = Stat.fmtSigned;
+  function $(id) { return document.getElementById(id); }
+  var MAXN = 60, LO = 0, HI = 100;
+
+  /* ---------- Готові набори ---------- */
+  var LIN = [[8,15.1],[14,16.9],[20,28.1],[26,24.2],[32,34.9],[38,36.7],[44,36.6],[50,47.1],[56,44.7],[62,54.5],[68,53.6],[74,58.1]];
+  function withExtra(extra) { return LIN.concat([extra]); }
+  var PRESETS = [
+    { name: "Лінійний зв'язок", sel: -1, pts: LIN,
+      note: "Точки лежать близько до прямої, залишки невеликі й безладні." },
+    { name: "Викид по y", sel: 12, pts: withExtra([46, 92]),
+      note: "Одна точка далеко від прямої по y, але її x посередині. Пряма зсувається вгору, нахил змінюється мало, а R² сильно падає." },
+    { name: "Важіль із впливом", sel: 12, pts: withExtra([96, 14]),
+      note: "Точка далеко по x і не на лінії тренду. Вона сильно нахиляє пряму. Порівняйте суцільну пряму з пунктирною, побудованою без цієї точки." },
+    { name: "Важіль без впливу", sel: 12, pts: withExtra([96, 74]),
+      note: "Точка далеко по x, але лежить поблизу лінії тренду. Важіль великий, а пряма майже не змінюється." },
+    { name: "Викривлений зв'язок", sel: -1, pts: [[6,75],[14,54.6],[22,35],[30,23.1],[38,14.1],[46,5.1],[54,4.7],[62,15.8],[70,20.4],[78,33.9],[86,58.3],[94,76.9]],
+      note: "Зв'язок не лінійний: пряма не підходить, а залишки утворюють дугу." }
+  ];
+
+  /* ---------- Стан ---------- */
+  var pts = [], sel = -1, undoStack = [], drag = null, activePreset = 0;
+  function copy(a) { return a.map(function (p) { return { x: p.x, y: p.y }; }); }
+  function fromPreset(p) { return p.pts.map(function (q) { return { x: q[0], y: q[1] }; }); }
+  function pushUndo() { undoStack.push({ pts: copy(pts), sel: sel }); if (undoStack.length > 50) undoStack.shift(); $("undoBtn").disabled = false; }
+  function clamp(v) { return Math.min(HI, Math.max(LO, Math.round(v * 10) / 10)); }
+
+  /* ---------- Малювання ---------- */
+  function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  function K() {
+    return { panel: cssVar("--panel"), grid: cssVar("--grid"), gridS: cssVar("--grid-strong"), muted: cssVar("--muted"), ink: cssVar("--ink"),
+             pt: cssVar("--pt") || cssVar("--pos"), pos: cssVar("--pos"), neg: cssVar("--neg"), font: cssVar("--font-data") };
+  }
+  function setup(cv) {
+    var rect = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    var W = rect.width, H = rect.height;
+    cv.width = Math.max(1, Math.round(W * dpr)); cv.height = Math.max(1, Math.round(H * dpr));
+    var ctx = cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx: ctx, W: W, H: H };
+  }
+  function halo(ctx, text, x, y, c, bg) {
+    ctx.lineWidth = 3; ctx.strokeStyle = bg; ctx.strokeText(text, x, y); ctx.fillStyle = c; ctx.fillText(text, x, y);
+  }
+  /* Перетворення «дані → піксель» для обох полотен; зберігаємо для перетягування. */
+  var geo = { pad: { l: 40, r: 12, t: 12, b: 28 }, W: 0, H: 0 };
+  function X(x) { return geo.pad.l + (x - LO) / (HI - LO) * (geo.W - geo.pad.l - geo.pad.r); }
+  function Y(y) { return geo.H - geo.pad.b - (y - LO) / (HI - LO) * (geo.H - geo.pad.t - geo.pad.b); }
+  function invX(px) { return LO + (px - geo.pad.l) / (geo.W - geo.pad.l - geo.pad.r) * (HI - LO); }
+  function invY(py) { return LO + (geo.H - geo.pad.b - py) / (geo.H - geo.pad.t - geo.pad.b) * (HI - LO); }
+
+  function axes(ctx, k, W, H, pad, xTicks, yTicks, xf, yf, zeroY) {
+    ctx.lineWidth = 1; ctx.font = "12px " + k.font; ctx.fillStyle = k.muted;
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    xTicks.forEach(function (v) {
+      var px = xf(v); ctx.strokeStyle = k.grid; ctx.beginPath(); ctx.moveTo(px, pad.t); ctx.lineTo(px, H - pad.b); ctx.stroke();
+      ctx.fillText(fmt(v, 0), px, H - pad.b + 6);
+    });
+    ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    yTicks.forEach(function (v) {
+      var py = yf(v); ctx.strokeStyle = k.grid; ctx.beginPath(); ctx.moveTo(pad.l, py); ctx.lineTo(W - pad.r, py); ctx.stroke();
+      ctx.fillText(fmt(v, v % 1 ? 1 : 0), pad.l - 6, py);
+    });
+    ctx.strokeStyle = k.gridS; ctx.strokeRect(pad.l, pad.t, W - pad.l - pad.r, H - pad.t - pad.b);
+    if (zeroY !== undefined) { ctx.beginPath(); ctx.moveTo(pad.l, zeroY); ctx.lineTo(W - pad.r, zeroY); ctx.lineWidth = 1.5; ctx.stroke(); }
+  }
+
+  function drawMain() {
+    var cv = $("c1"), s = setup(cv), ctx = s.ctx, k = K(); geo.W = s.W; geo.H = s.H;
+    ctx.fillStyle = k.panel; ctx.fillRect(0, 0, s.W, s.H);
+    var t = [0, 20, 40, 60, 80, 100];
+    axes(ctx, k, s.W, s.H, geo.pad, t, t, X, Y);
+    ctx.save(); ctx.beginPath(); ctx.rect(geo.pad.l, geo.pad.t, s.W - geo.pad.l - geo.pad.r, s.H - geo.pad.t - geo.pad.b); ctx.clip();
+    var m = Reg.fit(pts);
+    if (m && $("showRes").checked) {
+      ctx.strokeStyle = k.neg; ctx.globalAlpha = 0.7; ctx.lineWidth = 1.5;
+      pts.forEach(function (p, i) { ctx.beginPath(); ctx.moveTo(X(p.x), Y(p.y)); ctx.lineTo(X(p.x), Y(m.fitted[i])); ctx.stroke(); });
+      ctx.globalAlpha = 1;
+    }
+    function line(mm, color, dash, w) {
+      ctx.setLineDash(dash); ctx.strokeStyle = color; ctx.lineWidth = w; ctx.beginPath();
+      ctx.moveTo(X(LO), Y(Reg.predict(mm, LO))); ctx.lineTo(X(HI), Y(Reg.predict(mm, HI))); ctx.stroke(); ctx.setLineDash([]);
+    }
+    var w = (sel >= 0 && sel < pts.length && $("showWithout").checked) ? Reg.without(pts, sel) : null;
+    if (w) line(w, k.muted, [6, 4], 2);
+    if (m) line(m, k.ink, [], 2);
+    ctx.restore();
+    pts.forEach(function (p, i) {
+      ctx.beginPath(); ctx.arc(X(p.x), Y(p.y), i === sel ? 7 : 5, 0, 2 * Math.PI);
+      ctx.fillStyle = i === sel ? k.neg : k.pt; ctx.fill();
+      if (i === sel) { ctx.lineWidth = 2; ctx.strokeStyle = k.panel; ctx.stroke(); }
+    });
+    ctx.font = "12px " + k.font; ctx.textAlign = "right"; ctx.textBaseline = "alphabetic";
+    halo(ctx, "x", s.W - geo.pad.r - 2, s.H - geo.pad.b - 6, k.muted, k.panel);
+    ctx.textAlign = "left"; halo(ctx, "y", geo.pad.l + 6, geo.pad.t + 12, k.muted, k.panel);
+    cv.setAttribute("aria-label", m
+      ? "Діаграма розсіювання: " + pts.length + " точок, пряма y = " + fmt(m.a, 2) + " + " + fmt(m.b, 3) + "·x, R² = " + fmt(m.r2 === null ? 0 : m.r2, 3)
+      : "Діаграма розсіювання: " + pts.length + " точок, пряму не побудовано");
+  }
+
+  function drawResid() {
+    var cv = $("c2"), s = setup(cv), ctx = s.ctx, k = K(), pad = { l: 40, r: 12, t: 10, b: 28 };
+    ctx.fillStyle = k.panel; ctx.fillRect(0, 0, s.W, s.H);
+    var m = Reg.fit(pts);
+    var emax = 1;
+    if (m) m.res.forEach(function (e) { emax = Math.max(emax, Math.abs(e)); });
+    var lim = emax * 1.1, tk = Stat.ticksFor(-lim, lim, 4);
+    function xf(x) { return pad.l + (x - LO) / (HI - LO) * (s.W - pad.l - pad.r); }
+    function yf(e) { return s.H - pad.b - (e + lim) / (2 * lim) * (s.H - pad.t - pad.b); }
+    axes(ctx, k, s.W, s.H, pad, [0, 20, 40, 60, 80, 100], tk.major, xf, yf, yf(0));
+    if (m) {
+      pts.forEach(function (p, i) {
+        ctx.beginPath(); ctx.arc(xf(p.x), yf(m.res[i]), i === sel ? 6 : 4, 0, 2 * Math.PI);
+        ctx.fillStyle = i === sel ? k.neg : k.pt; ctx.fill();
+      });
+    }
+    ctx.font = "12px " + k.font; ctx.textAlign = "right"; ctx.textBaseline = "alphabetic";
+    halo(ctx, "x", s.W - pad.r - 2, s.H - pad.b - 6, k.muted, k.panel);
+    ctx.textAlign = "left"; halo(ctx, "e", pad.l + 6, pad.t + 12, k.muted, k.panel);
+    cv.setAttribute("aria-label", m ? "Графік залишків для " + pts.length + " точок" : "Графік залишків недоступний");
+  }
+  function draw() { drawMain(); drawResid(); }
+
+  /* ---------- Текстові результати ---------- */
+  function dl(host, rows) {
+    host.textContent = "";
+    rows.forEach(function (r) {
+      var d = document.createElement("div"), t = document.createElement("dt"), v = document.createElement("dd");
+      t.textContent = r[0]; v.textContent = r[1]; d.appendChild(t); d.appendChild(v); host.appendChild(d);
+    });
+  }
+  function f4(v) { return v === null || v === undefined || !isFinite(v) ? "—" : fmt(v, 4); }
+  function eqText(m) { return "y = " + fmt(m.a, 2) + " " + (m.b < 0 ? "−" : "+") + " " + fmt(Math.abs(m.b), 4) + "·x"; }
+
+  function updateResult(m) {
+    var n = pts.length;
+    if (!m) {
+      $("eq").textContent = "—"; $("stats").textContent = "";
+      $("rNote").textContent = n < 2 ? "Потрібно щонайменше дві точки." : "Потрібні точки з різними x.";
+      $("rsNote").textContent = "";
+      return;
+    }
+    $("eq").textContent = eqText(m);
+    var ci = Reg.slopeCI(m, 0.95);
+    dl($("stats"), [
+      ["Кількість точок, n", String(n)],
+      ["Коефіцієнт детермінації R²", m.r2 === null ? "—" : f4(m.r2)],
+      ["Нахил, b", f4(m.b)],
+      ["Вільний член, a", f4(m.a)],
+      ["Стандартна похибка залишків, s", m.s === null ? "—" : f4(m.s)],
+      ["95 % довірчий інтервал для b", ci ? "[" + fmt(ci[0], 3) + "; " + fmt(ci[1], 3) + "]" : "—"]
+    ]);
+    $("rNote").textContent = m.r2 === null ? "Усі y однакові: R² не визначено." : (n < 3 ? "Через дві точки проходить рівно одна пряма: s і інтервал недоступні." : "");
+    $("rsNote").textContent = "Залишок eᵢ = yᵢ − ŷᵢ. Точки під нулем лежать нижче прямої, над нулем — вище.";
+  }
+
+  function updatePoint(m) {
+    var host = $("pBody"); host.textContent = "";
+    function p(text, cls) { var e = document.createElement("p"); e.className = cls || "cmsg"; e.textContent = text; host.appendChild(e); return e; }
+    if (sel < 0 || sel >= pts.length) { p("Клацніть по точці на діаграмі або виберіть рядок у таблиці."); return; }
+    var q = pts[sel];
+    var d = document.createElement("dl"); d.className = "stats"; host.appendChild(d);
+    var rows = [["Координати", "(" + fmt(q.x, 1) + "; " + fmt(q.y, 1) + ")"]];
+    if (m) rows.push(["Залишок e", fmtSigned(m.res[sel], 2)], ["Важіль h", f4(m.h[sel])],
+      ["Стандартизований залишок", m.stdres[sel] === null ? "—" : fmtSigned(m.stdres[sel], 2)],
+      ["Відстань Кука D", m.cook[sel] === null ? "—" : f4(m.cook[sel])]);
+    dl(d, rows);
+    if (m) {
+      var notes = [];
+      if (m.h[sel] > 4 / m.n) notes.push("Важіль вищий за орієнтир 4/n = " + fmt(4 / m.n, 3) + ": точка далека від x̄.");
+      if (m.cook[sel] !== null && m.cook[sel] > 1) notes.push("D > 1: точка сильно впливає на пряму.");
+      if (notes.length) p(notes.join(" "), "verdict");
+      var w = Reg.without(pts, sel);
+      var t = document.createElement("table"); t.className = "cmp";
+      var head = "<tr><th></th><th>З точкою</th><th>Без неї</th></tr>";
+      t.innerHTML = head;
+      [["a", m.a, w && w.a], ["b", m.b, w && w.b], ["R²", m.r2, w && w.r2]].forEach(function (r) {
+        var tr = document.createElement("tr"), c0 = document.createElement("td"), c1 = document.createElement("td"), c2 = document.createElement("td");
+        c0.textContent = r[0]; c1.textContent = f4(r[1]); c2.textContent = w ? f4(r[2]) : "—";
+        tr.appendChild(c0); tr.appendChild(c1); tr.appendChild(c2); t.appendChild(tr);
+      });
+      host.appendChild(t);
+    }
+    var b = document.createElement("div"); b.className = "pbtns";
+    var del = document.createElement("button"); del.type = "button"; del.className = "btn"; del.textContent = "Видалити точку";
+    del.addEventListener("click", removeSel); b.appendChild(del); host.appendChild(b);
+  }
+
+  function updateTable(m) {
+    var t = $("tbl"); t.textContent = "";
+    var thead = document.createElement("thead"), hr = document.createElement("tr");
+    ["№", "x", "y", "ŷ", "e", "h", "D"].forEach(function (h) { var th = document.createElement("th"); th.textContent = h; hr.appendChild(th); });
+    thead.appendChild(hr); t.appendChild(thead);
+    var tb = document.createElement("tbody");
+    pts.forEach(function (q, i) {
+      var tr = document.createElement("tr"); if (i === sel) tr.className = "sel";
+      var vals = [null, fmt(q.x, 1), fmt(q.y, 1), m ? fmt(m.fitted[i], 2) : "—", m ? fmtSigned(m.res[i], 2) : "—", m ? fmt(m.h[i], 3) : "—",
+                  m && m.cook[i] !== null ? fmt(m.cook[i], 3) : "—"];
+      vals.forEach(function (v, j) {
+        var td = document.createElement("td");
+        if (j === 0) { var b = document.createElement("button"); b.type = "button"; b.className = "btn"; b.textContent = String(i + 1); b.setAttribute("aria-label", "Виділити точку " + (i + 1)); b.setAttribute("aria-pressed", i === sel ? "true" : "false");
+          b.addEventListener("click", function () { sel = i; update(); }); td.appendChild(b); } else td.textContent = v;
+        tr.appendChild(td);
+      });
+      tb.appendChild(tr);
+    });
+    t.appendChild(tb);
+  }
+
+  var srTimer = null;
+  function update() {
+    var m = Reg.fit(pts);
+    updateResult(m); updatePoint(m); updateTable(m); draw();
+    clearTimeout(srTimer);
+    srTimer = setTimeout(function () {
+      $("sr").textContent = m ? "Пряма " + eqText(m) + ", R² " + (m.r2 === null ? "не визначено" : fmt(m.r2, 3)) + ", точок " + pts.length : "Пряму не побудовано, точок " + pts.length;
+    }, 400);
+  }
+
+  /* ---------- Дії ---------- */
+  function removeSel() {
+    if (sel < 0 || sel >= pts.length) return;
+    pushUndo(); pts.splice(sel, 1); sel = -1; update();
+  }
+  function loadPreset(i) {
+    activePreset = i; var p = PRESETS[i];
+    pts = fromPreset(p); sel = p.sel; undoStack = []; $("undoBtn").disabled = true;
+    $("srcNote").textContent = p.note; markChips(); update();
+  }
+  function markChips() {
+    var b = $("chips").children;
+    for (var i = 0; i < b.length; i++) b[i].setAttribute("aria-pressed", i === activePreset ? "true" : "false");
+  }
+  function custom() { activePreset = -1; $("srcNote").textContent = ""; markChips(); }
+
+  PRESETS.forEach(function (p, i) {
+    var b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.textContent = p.name;
+    b.addEventListener("click", function () { loadPreset(i); }); $("chips").appendChild(b);
+  });
+  $("undoBtn").addEventListener("click", function () {
+    var s = undoStack.pop(); if (!s) return;
+    pts = s.pts; sel = s.sel; $("undoBtn").disabled = undoStack.length === 0; custom(); update();
+  });
+  $("clearBtn").addEventListener("click", function () { if (!pts.length) return; pushUndo(); pts = []; sel = -1; custom(); update(); });
+  $("showRes").addEventListener("change", draw);
+  $("showWithout").addEventListener("change", draw);
+
+  /* ---------- Мишка, дотик і клавіатура ---------- */
+  var c1 = $("c1");
+  function pos(ev) { var r = c1.getBoundingClientRect(); return { x: ev.clientX - r.left, y: ev.clientY - r.top }; }
+  function hit(px, py) {
+    var best = -1, bd = 14 * 14;
+    pts.forEach(function (p, i) { var dx = X(p.x) - px, dy = Y(p.y) - py, d = dx * dx + dy * dy; if (d <= bd) { bd = d; best = i; } });
+    return best;
+  }
+  c1.addEventListener("pointerdown", function (ev) {
+    var q = pos(ev), i = hit(q.x, q.y);
+    if (i < 0) {
+      if (q.x < geo.pad.l || q.x > geo.W - geo.pad.r || q.y < geo.pad.t || q.y > geo.H - geo.pad.b) return;
+      if (pts.length >= MAXN) { $("chNote").textContent = "Не більше " + MAXN + " точок."; return; }
+      pushUndo(); pts.push({ x: clamp(invX(q.x)), y: clamp(invY(q.y)) }); i = pts.length - 1; custom();
+    } else pushUndo();
+    sel = i; drag = i; c1.setPointerCapture(ev.pointerId); c1.focus({ preventScroll: true }); update();
+    ev.preventDefault();
+  });
+  c1.addEventListener("pointermove", function (ev) {
+    if (drag === null) return;
+    var q = pos(ev); pts[drag].x = clamp(invX(q.x)); pts[drag].y = clamp(invY(q.y)); custom(); update();
+  });
+  function endDrag() { drag = null; }
+  c1.addEventListener("pointerup", endDrag); c1.addEventListener("pointercancel", endDrag);
+  c1.addEventListener("keydown", function (ev) {
+    var key = ev.key, step = ev.shiftKey ? 5 : 1;
+    if (key === "[" || key === "]") {
+      if (!pts.length) return; sel = sel < 0 ? 0 : (sel + (key === "]" ? 1 : -1) + pts.length) % pts.length; update(); ev.preventDefault();
+    } else if (sel >= 0 && sel < pts.length && /^Arrow/.test(key)) {
+      pushUndo(); var p = pts[sel];
+      if (key === "ArrowLeft") p.x = clamp(p.x - step); if (key === "ArrowRight") p.x = clamp(p.x + step);
+      if (key === "ArrowUp") p.y = clamp(p.y + step); if (key === "ArrowDown") p.y = clamp(p.y - step);
+      custom(); update(); ev.preventDefault();
+    } else if (key === "Delete" || key === "Backspace") { removeSel(); custom(); ev.preventDefault(); }
+    else if (key === "Escape") { sel = -1; update(); }
+  });
+
+  if (window.ResizeObserver) { var ro = new ResizeObserver(draw); ro.observe(c1); ro.observe($("c2")); } else window.addEventListener("resize", draw);
+  new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  if (window.matchMedia) { var mq = window.matchMedia("(prefers-color-scheme: dark)"); if (mq.addEventListener) mq.addEventListener("change", draw); }
+
+  loadPreset(2);
+})();
+</script>
+</body>
+</html>

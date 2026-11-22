@@ -15,6 +15,17 @@
      Імовірність помилки II роду β = 1 − потужність (якщо μ належить H₁). При μ = μ₀ потужність дорівнює α.
      Обсяг вибірки для потужності 1 − β (одностороння альтернатива): n ≥ ((z₁₋α + z₁₋β)·σ/(μ − μ₀))²;
      для двосторонньої це наближення (не враховує протилежний хвіст), тому sampleSize шукає n точно.
+   Критерії для часток (класична схема, див. Гмурман, Moore–McCabe, Agresti):
+     Одна частка, H₀: p = p₀. Статистика z = (p̂ − p₀) / √(p₀(1 − p₀)/n), p̂ = x/n; за H₀ і великого n
+     наближено N(0; 1) (теорема Муавра–Лапласа). Стандартну похибку рахуємо за p₀, бо H₀ задає p.
+     Орієнтир застосовності: n·p₀·(1 − p₀) ≥ 10 (орієнтир, не теорема).
+     Точний біноміальний критерій для p₀ (propExactP): right: P(X ≥ x); left: P(X ≤ x); two: сума
+     P(X = j) за всіма j, для яких P(X = j) ≤ P(X = x)·(1 + 10⁻⁷) (як у scipy.stats.binomtest).
+     Дві частки, H₀: p₁ = p₂. Загальна частка p̂ = (x₁ + x₂)/(n₁ + n₂),
+     z = (p̂₁ − p̂₂) / √(p̂(1 − p̂)(1/n₁ + 1/n₂)); за H₀ наближено N(0; 1).
+     Довірчий інтервал для p₁ − p₂ (Вальд, окремі p̂ᵢ): (p̂₁ − p̂₂) ± z₁₋α/₂ · √(p̂₁(1 − p̂₁)/n₁ + p̂₂(1 − p̂₂)/n₂).
+     Орієнтир для двох часток: у кожній групі не менше 10 успіхів і 10 невдач (x₁, n₁ − x₁, x₂, n₂ − x₂ ≥ 10; Penn State STAT 200, §9.1).
+     p-значення тієї ж форми, що й для середнього: pValue(z, tail).
    Для односторонньої альтернативи H₀ розуміємо як μ ≤ μ₀ (μ ≥ μ₀): inAlternative(μ) = false.
    ============================================================ */
 (function (root) {
@@ -232,12 +243,50 @@
     return null;
   }
 
+  /* ---------- Критерії для часток ---------- */
+  /** Один z-критерій для частки: x успіхів із n, H₀: p = p0. null, якщо n < 1, x поза [0; n] або p0 ∉ (0; 1). */
+  function propZ(x, n, p0, tail) {
+    if (!(n >= 1) || x < 0 || x > n || !(p0 > 0 && p0 < 1)) return null;
+    var phat = x / n, se = Math.sqrt(p0 * (1 - p0) / n), z = (phat - p0) / se;
+    return { phat: phat, se: se, z: z, p: pValue(z, tail) };
+  }
+  /** Орієнтир застосовності нормального наближення: n·p0·(1 − p0) ≥ 10. */
+  function propRuleOk(n, p0) { return n * p0 * (1 - p0) >= 10; }
+  /** Орієнтир для двох часток: у кожній групі щонайменше 10 успіхів і 10 невдач. */
+  function twoPropRuleOk(x1, n1, x2, n2) { return Math.min(x1, n1 - x1, x2, n2 - x2) >= 10; }
+  /** Точний біноміальний критерій для p0; alt: "right", "left" або "two". */
+  function propExactP(x, n, p0, alt) {
+    var P = { n: n, p: p0 }, j, s = 0;
+    if (alt === "right") { for (j = x; j <= n; j++) s += D.binomial.pmf(j, P); return Math.min(1, s); }
+    if (alt === "left") { for (j = 0; j <= x; j++) s += D.binomial.pmf(j, P); return Math.min(1, s); }
+    var px = D.binomial.pmf(x, P) * (1 + 1e-7);
+    for (j = 0; j <= n; j++) { var q = D.binomial.pmf(j, P); if (q <= px) s += q; }
+    return Math.min(1, s);
+  }
+  /** Критерій H₀: p₁ = p₂ (загальна частка в стандартній похибці). null, якщо вхід недопустимий. */
+  function twoPropZ(x1, n1, x2, n2, tail) {
+    if (!(n1 >= 1 && n2 >= 1) || x1 < 0 || x1 > n1 || x2 < 0 || x2 > n2) return null;
+    var p1 = x1 / n1, p2 = x2 / n2, pool = (x1 + x2) / (n1 + n2);
+    var se = Math.sqrt(pool * (1 - pool) * (1 / n1 + 1 / n2));
+    if (!(se > 0)) return { p1: p1, p2: p2, diff: p1 - p2, pooled: pool, se: se, z: null, p: null };
+    var z = (p1 - p2) / se;
+    return { p1: p1, p2: p2, diff: p1 - p2, pooled: pool, se: se, z: z, p: pValue(z, tail) };
+  }
+  /** Довірчий інтервал Вальда для p₁ − p₂ (рівень level, окремі p̂ᵢ); null при недопустимому вході. */
+  function twoPropCI(x1, n1, x2, n2, level) {
+    if (!(n1 >= 1 && n2 >= 1) || x1 < 0 || x1 > n1 || x2 < 0 || x2 > n2) return null;
+    var p1 = x1 / n1, p2 = x2 / n2, se = Math.sqrt(p1 * (1 - p1) / n1 + p2 * (1 - p2) / n2);
+    var z = D.quantile(D.normal, STD, 1 - (1 - level) / 2);
+    return [p1 - p2 - z * se, p1 - p2 + z * se];
+  }
+
   var api = { zStat: zStat, critical: critical, criticalMean: criticalMean, reject: reject,
               pValue: pValue, power: power, sampleSize: sampleSize, inAlternative: inAlternative,
               pValueNull: pValueNull, criticalNull: criticalNull, meanBound: meanBound,
               twoMeans: twoMeans, pValueDf: pValueDf, criticalDf: criticalDf, diffBound: diffBound,
               pValueDf: pValueDf, criticalDf: criticalDf, twoMeans: twoMeans, diffBound: diffBound,
-              binomPmf: binomPmf, binomPValue: binomPValue, binomExtreme: binomExtreme, binomCritical: binomCritical };
+              binomPmf: binomPmf, binomPValue: binomPValue, binomExtreme: binomExtreme, binomCritical: binomCritical,
+              propZ: propZ, propRuleOk: propRuleOk, twoPropRuleOk: twoPropRuleOk, propExactP: propExactP, twoPropZ: twoPropZ, twoPropCI: twoPropCI };
   root.Hyp = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })(typeof window !== "undefined" ? window : globalThis);

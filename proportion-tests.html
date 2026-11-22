@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Перевірка гіпотез про частки</title>
+<meta name="description" content="Z-критерій для однієї частки й для різниці двох часток: статистика, p-значення, рішення, довірчий інтервал і точний біноміальний критерій.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="common.css">
+<style>
+/* Розкладка: телефон — одна колонка; від 900 px графіки зліва, показники й пояснення справа. */
+.app {
+  max-width: 1100px; margin: 0 auto; display: grid; gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "head" "choose" "charts" "readout" "explain";
+}
+.head { grid-area: head; }
+.backlink { display: inline-block; margin-bottom: 10px; font-size: 13px; }
+.choose { grid-area: choose; }
+.charts { grid-area: charts; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.side { display: contents; }
+.readout { grid-area: readout; }
+.explain { grid-area: explain; }
+
+.statement { margin: 10px 0 0; font-size: 15px; max-width: 72ch; text-wrap: pretty; }
+.hyp { margin: 8px 0 0; font-size: 15px; font-weight: 500; }
+.cfg { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-top: 14px; align-items: end; }
+.fld { display: grid; gap: 4px; min-width: 150px; flex: 1 1 150px; max-width: 340px; }
+.fld label, .fld .lab { font-size: 13.5px; }
+.fld .row { display: grid; grid-template-columns: minmax(0, 1fr) 64px; gap: 10px; align-items: center; }
+.fld input[type="range"] { width: 100%; margin: 0; accent-color: var(--pos); }
+.fld output {
+  font-family: var(--font-data); font-size: 13.5px; font-variant-numeric: tabular-nums; text-align: right;
+  color: var(--ink); background: var(--bg); border: 1px solid var(--grid-strong); border-radius: 4px; padding: 5px 7px;
+}
+.fld input[type="number"] {
+  font-family: var(--font-data); font-size: 15px; font-variant-numeric: tabular-nums; min-height: 40px; width: 100%;
+  color: var(--ink); background: var(--panel); border: 1px solid var(--grid-strong); border-radius: 6px; padding: 6px 10px;
+}
+.fld input[aria-invalid="true"] { border-color: var(--neg); }
+.fld .seg { display: flex; flex-wrap: wrap; }
+.fld .seg button { flex: 1 1 auto; min-height: 40px; }
+.note { margin: 12px 0 0; font-size: 13.5px; color: var(--muted); max-width: 72ch; text-wrap: pretty; }
+.err { margin: 10px 0 0; font-size: 14px; color: var(--neg); font-weight: 500; }
+[hidden] { display: none !important; }
+
+.chart h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; text-wrap: balance; }
+.chart canvas { display: block; width: 100%; background: var(--panel); border: 1px solid var(--grid-strong); border-radius: 6px; }
+#c1 { aspect-ratio: 16 / 9; max-height: 52vh; }
+#c2 { aspect-ratio: 16 / 7; max-height: 34vh; min-height: 150px; }
+.legend { margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; }
+.legend .sw { display: inline-block; width: 14px; height: 12px; border-radius: 2px; vertical-align: -1px; margin-right: 6px; }
+.legend .sw.tail { background: var(--neg); opacity: .8; }
+.legend .sw.line { width: 22px; height: 0; border-radius: 0; border-top: 2px dashed var(--neg); vertical-align: middle; }
+.legend .sw.obs { width: 0; height: 14px; border-radius: 0; border-left: 2.5px solid var(--ink); vertical-align: middle; }
+.legend .sw.bar { background: var(--pos); }
+.legend .sw.ref { width: 22px; height: 0; border-radius: 0; border-top: 2px dashed var(--ink); vertical-align: middle; }
+.cmsg { margin: 8px 0 0; font-size: 13.5px; color: var(--muted); max-width: 72ch; text-wrap: pretty; }
+
+.readout dl { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; margin: 10px 0 0; }
+.readout dt { font-size: 12px; color: var(--muted); }
+.readout dd { margin: 0; font-family: var(--font-data); font-size: 18px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.readout .big { grid-column: 1 / -1; }
+.readout .big dd { font-size: clamp(30px, 8vw, 40px); line-height: 1.1; letter-spacing: -0.02em; color: var(--neg); }
+.readout .wide { grid-column: 1 / -1; }
+.readout .wide dd { font-size: 16px; }
+.verdict { margin: 12px 0 0; font-size: 15px; font-weight: 500; text-wrap: pretty; }
+.warn { margin: 10px 0 0; font-size: 13.5px; color: var(--muted); text-wrap: pretty; }
+
+.explain h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
+.explain p { margin: 8px 0 0; font-size: 14.5px; max-width: 68ch; text-wrap: pretty; }
+.explain p.key { margin-top: 0; }
+
+@media (min-width: 900px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr) 340px; column-gap: 24px;
+    grid-template-areas: "head head" "choose choose" "charts side";
+  }
+  .side { grid-area: side; display: flex; flex-direction: column; gap: 16px; align-self: start; min-width: 0; }
+}
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="head g6">
+    <a class="backlink" href="index.html">← Усі сторінки</a>
+    <p class="kicker">Перевірка гіпотез</p>
+    <div class="titlerow">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="7" cy="7" r="2.4"/><circle cx="17" cy="17" r="2.4"/><path d="M18 5 6 19"/></svg>
+      <h1>Перевірка гіпотез про частки</h1>
+    </div>
+    <p class="lead">Чи відрізняється частка успіхів від заданого значення? Чи відрізняються частки у двох групах? Оберіть приклад, змініть числа й дивіться, як зміняться статистика z, p-значення та рішення.</p>
+  </header>
+
+  <section class="choose panel" aria-label="Задача і параметри">
+    <p class="eyebrow">Задача</p>
+    <div class="fld" style="max-width:none">
+      <div class="seg" id="modeSeg" role="group" aria-label="Задача"></div>
+    </div>
+    <p class="eyebrow" style="margin-top:12px">Приклади</p>
+    <div class="chips" id="chips" role="group" aria-label="Приклади"></div>
+    <p class="statement" id="statement"></p>
+    <p class="hyp" id="hyp"></p>
+    <div class="cfg">
+      <div class="fld" data-mode="one"><label for="n0">Обсяг вибірки n</label><input type="number" id="n0" min="1" max="100000" step="1" inputmode="numeric"></div>
+      <div class="fld" data-mode="one"><label for="x0">Кількість успіхів x</label><input type="number" id="x0" min="0" step="1" inputmode="numeric"></div>
+      <div class="fld" data-mode="one">
+        <label for="p0Range">Частка за H₀, p₀</label>
+        <div class="row"><input type="range" id="p0Range" min="0.01" max="0.99" step="0.01" value="0.5"><output id="p0Out" for="p0Range">0,5</output></div>
+      </div>
+      <div class="fld" data-mode="two"><label for="n1">Обсяг першої вибірки n₁</label><input type="number" id="n1" min="1" max="100000" step="1" inputmode="numeric"></div>
+      <div class="fld" data-mode="two"><label for="x1">Успіхи в першій, x₁</label><input type="number" id="x1" min="0" step="1" inputmode="numeric"></div>
+      <div class="fld" data-mode="two"><label for="n2">Обсяг другої вибірки n₂</label><input type="number" id="n2" min="1" max="100000" step="1" inputmode="numeric"></div>
+      <div class="fld" data-mode="two"><label for="x2">Успіхи в другій, x₂</label><input type="number" id="x2" min="0" step="1" inputmode="numeric"></div>
+      <div class="fld"><span class="lab" id="altLab">Альтернатива</span><div class="seg" id="altSeg" role="group" aria-labelledby="altLab"></div></div>
+      <div class="fld"><span class="lab" id="alphaLab">Рівень значущості α</span><div class="seg" id="alphaSeg" role="group" aria-labelledby="alphaLab"></div></div>
+    </div>
+    <p class="err" id="err" role="alert" hidden></p>
+    <p class="note" id="srcNote"></p>
+    <p class="note">Альтернативу обирають до експерименту, виходячи з постановки задачі, а не після того, як побачили дані.</p>
+  </section>
+
+  <div class="charts">
+    <section class="chart" aria-labelledby="h1">
+      <h2 id="h1">Нульовий розподіл статистики z</h2>
+      <canvas id="c1" role="img" aria-label="Нульовий розподіл статистики"></canvas>
+      <p class="legend" id="legend1"></p>
+      <p class="cmsg" id="critMsg"></p>
+    </section>
+    <section class="chart" aria-labelledby="h2">
+      <h2 id="h2">Частки у вибірці</h2>
+      <canvas id="c2" role="img" aria-label="Частки у вибірці"></canvas>
+      <p class="legend" id="legend2"></p>
+    </section>
+  </div>
+
+  <div class="side">
+    <section class="readout panel" aria-labelledby="rTitle">
+      <p class="eyebrow" id="rTitle">Результат</p>
+      <dl id="dl"></dl>
+      <p class="verdict" id="verdict"></p>
+      <p class="warn" id="warn"></p>
+    </section>
+
+    <section class="explain panel" aria-labelledby="eTitle">
+      <h2 id="eTitle">Що тут відбувається</h2>
+      <p class="key" data-modes="one"><strong>Z-критерій для частки.</strong> Статистика <span class="tex">z</span>&#8288; показує, на скільки стандартних похибок вибіркова частка <span class="tex" data-tex="\hat p">p̂</span>&#8288; відхиляється від <span class="tex" data-tex="p_0">p₀</span>&#8288;. Якщо H₀ правильна, <span class="tex">z</span>&#8288; наближено має розподіл <span class="tex" data-tex="N(0;1)">N(0; 1)</span>&#8288;. p-значення — це ймовірність отримати таке чи ще більше відхилення за умови, що H₀ правильна.</p>
+      <p class="key" data-modes="two"><strong>Порівняння двох часток.</strong> Статистика <span class="tex">z</span>&#8288; показує, на скільки стандартних похибок різниця <span class="tex" data-tex="\hat p_1-\hat p_2">p̂₁ − p̂₂</span>&#8288; відхиляється від нуля. Якщо H₀ правильна, <span class="tex">z</span>&#8288; наближено має розподіл <span class="tex" data-tex="N(0;1)">N(0; 1)</span>&#8288;. p-значення — це ймовірність отримати таку чи ще більшу різницю за умови, що H₀ правильна.</p>
+      <details>
+        <summary>Докладніше: формули й пояснення</summary>
+        <p data-modes="one"><strong>Статистика.</strong> <span class="tex" data-tex="z=\dfrac{\hat p-p_0}{\sqrt{p_0(1-p_0)/n}}">z = (p̂ − p₀) / √(p₀(1 − p₀)/n)</span>&#8288;, де <span class="tex" data-tex="\hat p=x/n">p̂ = x/n</span>&#8288;. Стандартну похибку рахують за <span class="tex" data-tex="p_0">p₀</span>&#8288;, бо H₀ задає значення частки.</p>
+        <p data-modes="two"><strong>Статистика.</strong> <span class="tex" data-tex="z=\dfrac{\hat p_1-\hat p_2}{\sqrt{\hat p(1-\hat p)\left(\frac1{n_1}+\frac1{n_2}\right)}}">z = (p̂₁ − p̂₂) / √(p̂(1 − p̂)(1/n₁ + 1/n₂))</span>&#8288;, де <span class="tex" data-tex="\hat p=\dfrac{x_1+x_2}{n_1+n_2}">p̂ = (x₁ + x₂)/(n₁ + n₂)</span>&#8288; — загальна частка. Її використовують, бо H₀ стверджує, що частки однакові.</p>
+        <p><strong>p-значення й рішення.</strong> Для альтернативи «більше» <span class="tex" data-tex="p=1-\Phi(z)">p = 1 − Φ(z)</span>&#8288;, для «менше» <span class="tex" data-tex="p=\Phi(z)">p = Φ(z)</span>&#8288;, для «не дорівнює» <span class="tex" data-tex="p=2(1-\Phi(|z|))">p = 2(1 − Φ(|z|))</span>&#8288;. Якщо <span class="tex" data-tex="p\le\alpha">p ≤ α</span>&#8288;, H₀ відхиляють. Інакше немає підстав її відхилити, але це не доводить, що H₀ правильна. p-значення не є ймовірністю H₀.</p>
+        <p data-modes="one"><strong>Коли можна довіряти наближенню.</strong> Орієнтир: <span class="tex" data-tex="np_0(1-p_0)\ge 10">np₀(1 − p₀) ≥ 10</span>&#8288;. Якщо його не виконано, порівняйте з точним біноміальним критерієм: він рахує p-значення за біноміальним розподілом без наближення. Для двосторонньої альтернативи ми додаємо ймовірності всіх значень, не більших за ймовірність спостереженого (так рахує scipy.stats.binomtest).</p>
+        <p data-modes="two"><strong>Коли можна довіряти наближенню.</strong> Орієнтир: у кожній групі не менше 10 успіхів і 10 невдач (<span class="tex" data-tex="x_1,\ n_1-x_1,\ x_2,\ n_2-x_2\ge 10">x₁, n₁ − x₁, x₂, n₂ − x₂ ≥ 10</span>&#8288;).</p>
+        <p data-modes="two"><strong>Довірчий інтервал для різниці.</strong> <span class="tex" data-tex="(\hat p_1-\hat p_2)\pm z_{1-\alpha/2}\sqrt{\dfrac{\hat p_1(1-\hat p_1)}{n_1}+\dfrac{\hat p_2(1-\hat p_2)}{n_2}}">(p̂₁ − p̂₂) ± z₁₋α/₂·√(p̂₁(1 − p̂₁)/n₁ + p̂₂(1 − p̂₂)/n₂)</span>&#8288;. Тут стандартна похибка складається з окремих часток, а не із загальної. Тому інтервал і критерій не завжди дають однаковий висновок.</p>
+        <p><strong>Альтернатива.</strong> Односторонню альтернативу обирають до перевірки. «Не дорівнює» використовують, коли важливе відхилення в будь-який бік.</p>
+      </details>
+    </section>
+  </div>
+</main>
+
+<div class="sr-only" id="sr" role="status" aria-live="polite"></div>
+
+<script src="common.js"></script>
+<script src="formulas.js"></script>
+<script src="distributions.js"></script>
+<script src="hypotheses.js"></script>
+<script>
+(function () {
+  "use strict";
+  var S = Stat, fmt = S.fmt;
+  function $(id) { return document.getElementById(id); }
+  function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
+  function fmtP(p) { return p < 0.0001 ? "< 0,0001" : fmt(p, 4); }
+  function pct(v) { return fmt(v * 100, 1) + " %"; }
+
+  var MODES = [{ id: "one", name: "Одна частка" }, { id: "two", name: "Дві частки" }];
+  var ALTS = [{ id: "two", name: "p ≠" }, { id: "right", name: "p >" }, { id: "left", name: "p <" }];
+  var ALPHAS = [0.1, 0.05, 0.01];
+  var NMAX = 100000;
+
+  var SCENARIOS = [
+    { mode: "one", name: "Монета", text: "Монету підкинули 100 разів, орел випав 60 разів. Чи чесна монета?", n: 100, x: 60, p0: 0.5, alt: "two" },
+    { mode: "one", name: "Опитування", text: "З 400 опитаних 212 підтримують пропозицію. Чи підтримує її більшість?", n: 400, x: 212, p0: 0.5, alt: "right" },
+    { mode: "one", name: "Брак", text: "Виробник заявляє, що частка браку становить 5 %. У партії з 200 виробів знайшли 18 бракованих. Чи частка браку більша за заявлену?", n: 200, x: 18, p0: 0.05, alt: "right" },
+    { mode: "two", name: "A/B-тест", text: "Варіант A кнопки отримав 120 кліків із 1000 показів, варіант B — 160 із 1000. Чи відрізняються частки кліків?", n1: 1000, x1: 120, n2: 1000, x2: 160, alt: "two" },
+    { mode: "two", name: "Нове лікування", text: "У групі з новим лікуванням одужали 45 зі 120 пацієнтів, у контрольній — 30 зі 100. Чи вища частка одужань у першій групі?", n1: 120, x1: 45, n2: 100, x2: 30, alt: "right" },
+    { mode: "two", name: "Малі групи", text: "У першій групі 9 успіхів із 35, у другій — 5 із 40. Чи вища частка в першій групі?", n1: 35, x1: 9, n2: 40, x2: 5, alt: "right" }
+  ];
+
+  var state = { mode: "one", sc: 0, n: 100, x: 60, p0: 0.5, n1: 1000, x1: 120, n2: 1000, x2: 160, alt: "two", alpha: 0.05 };
+  var modeEls = [], chipEls = [], altEls = [], alphaEls = [];
+
+  /* ---------- Обчислення ---------- */
+  function compute() {
+    var s = state, ok, r = { ok: false, msg: "" };
+    function isInt(v) { return typeof v === "number" && isFinite(v) && Math.floor(v) === v; }
+    if (s.mode === "one") {
+      ok = isInt(s.n) && s.n >= 1 && s.n <= NMAX && isInt(s.x) && s.x >= 0 && s.x <= s.n;
+      if (!ok) { r.msg = "Введіть цілі числа: 1 ≤ n ≤ 100 000 і 0 ≤ x ≤ n."; return r; }
+      var a = Hyp.propZ(s.x, s.n, s.p0, s.alt);
+      r = { ok: true, phat: a.phat, se: a.se, z: a.z, p: a.p, exact: Hyp.propExactP(s.x, s.n, s.p0, s.alt), rule: Hyp.propRuleOk(s.n, s.p0) };
+    } else {
+      ok = isInt(s.n1) && isInt(s.n2) && s.n1 >= 1 && s.n2 >= 1 && s.n1 <= NMAX && s.n2 <= NMAX &&
+           isInt(s.x1) && isInt(s.x2) && s.x1 >= 0 && s.x1 <= s.n1 && s.x2 >= 0 && s.x2 <= s.n2;
+      if (!ok) { r.msg = "Введіть цілі числа: 1 ≤ n ≤ 100 000 і 0 ≤ x ≤ n в кожній вибірці."; return r; }
+      var b = Hyp.twoPropZ(s.x1, s.n1, s.x2, s.n2, s.alt);
+      r = { ok: true, p1: b.p1, p2: b.p2, diff: b.diff, pooled: b.pooled, se: b.se, z: b.z, p: b.p,
+            ci: Hyp.twoPropCI(s.x1, s.n1, s.x2, s.n2, 1 - s.alpha), rule: Hyp.twoPropRuleOk(s.x1, s.n1, s.x2, s.n2) };
+      if (b.z === null) { r.ok = false; r.msg = "В обох групах усі спостереження однакові (усі успіхи чи всі невдачі): стандартна похибка дорівнює нулю, z не визначено."; }
+    }
+    return r;
+  }
+
+  /* ---------- Тексти ---------- */
+  var LAB = { two: "≠", right: ">", left: "<" };
+  function hypText() {
+    var s = state;
+    if (s.mode === "one") return "H₀: p = " + fmt(s.p0, 2) + ";  H₁: p " + LAB[s.alt] + " " + fmt(s.p0, 2);
+    return "H₀: p₁ = p₂;  H₁: p₁ " + LAB[s.alt] + " p₂";
+  }
+  function row(dl, label, value, cls) {
+    var d = document.createElement("div"); if (cls) d.className = cls;
+    var t = document.createElement("dt"), v = document.createElement("dd"); t.textContent = label; v.textContent = value;
+    d.appendChild(t); d.appendChild(v); dl.appendChild(d);
+  }
+
+  var srTimer = null;
+  function say(text) { clearTimeout(srTimer); srTimer = setTimeout(function () { $("sr").textContent = ""; $("sr").textContent = text; }, 400); }
+
+  function update() {
+    var s = state, r = compute();
+    $("hyp").textContent = hypText();
+    $("err").hidden = !r.msg; $("err").textContent = r.msg || "";
+    ["n0", "x0", "n1", "x1", "n2", "x2"].forEach(function (id) {
+      var bad = !!r.msg;
+      $(id).setAttribute("aria-invalid", bad ? "true" : "false");
+    });
+    var dl = $("dl"); dl.textContent = "";
+    $("verdict").textContent = ""; $("warn").textContent = ""; $("critMsg").textContent = "";
+    if (!r.ok) {
+      row(dl, "p-значення", "—", "big"); draw(null); $("legend1").textContent = ""; $("legend2").textContent = "";
+      say(r.msg); return;
+    }
+    row(dl, "p-значення", fmtP(r.p), "big");
+    if (s.mode === "one") {
+      row(dl, "Вибіркова частка p̂", fmt(r.phat, 4)); row(dl, "Статистика z", fmt(r.z, 3));
+      row(dl, "Точний біноміальний p", fmtP(r.exact), "wide");
+    } else {
+      row(dl, "Статистика z", fmt(r.z, 3), "wide"); row(dl, "Вибіркові частки p̂₁ і p̂₂", fmt(r.p1, 4) + " і " + fmt(r.p2, 4), "wide");
+      row(dl, "Різниця p̂₁ − p̂₂", S.fmtSigned(r.diff, 4), "wide");
+      row(dl, fmt((1 - s.alpha) * 100, 0) + " % довірчий інтервал для p₁ − p₂", "[" + S.fmtSigned(r.ci[0], 4) + "; " + S.fmtSigned(r.ci[1], 4) + "]", "wide");
+    }
+    var rej = r.p <= s.alpha;
+    $("verdict").textContent = rej
+      ? "p ≤ α (" + fmtP(r.p) + " ≤ " + fmt(s.alpha, 2) + "): відхиляємо H₀ на рівні α = " + fmt(s.alpha, 2) + "."
+      : "p > α (" + fmtP(r.p) + " > " + fmt(s.alpha, 2) + "): немає підстав відхилити H₀.";
+    var w = "";
+    if (!r.rule) {
+      w = s.mode === "one"
+        ? "Орієнтир np₀(1 − p₀) ≥ 10 не виконано: нормальне наближення може бути неточним. Порівняйте з точним біноміальним p."
+        : "В одній із груп менше 10 успіхів або 10 невдач: нормальне наближення може бути неточним.";
+    }
+    $("warn").textContent = w;
+    var cr = Hyp.critical(s.alpha, s.alt);
+    var cm = s.alt === "two" ? "Критичні межі: z = " + S.fmtSigned(cr.lo, 3) + " і z = " + S.fmtSigned(cr.hi, 3) + "."
+      : (s.alt === "right" ? "Критична межа: z = " + fmt(cr.hi, 3) + "." : "Критична межа: z = " + S.fmtSigned(cr.lo, 3) + ".");
+    $("critMsg").textContent = cm + " H₀ відхиляємо, коли z заходить у критичну область.";
+        legend("legend1", [["tail", "Зафарбована частина — p-значення"], ["line", "Критичні межі"], ["obs", "Спостережене z"]]);
+    legend("legend2", s.mode === "one" ? [["bar", "Вибіркова частка p̂"], ["ref", "Частка p₀ за H₀"]] : [["bar", "Вибіркові частки p̂₁ і p̂₂"]]);
+    draw(r);
+    say("p-значення " + fmtP(r.p) + ", z " + fmt(r.z, 2) + ". " + (rej ? "H₀ відхиляємо." : "Немає підстав відхилити H₀."));
+  }
+  function legend(id, items) {
+    var host = $(id); host.textContent = "";
+    items.forEach(function (it) {
+      var sp = document.createElement("span"), sw = document.createElement("span");
+      sw.className = "sw " + it[0]; sp.appendChild(sw); sp.appendChild(document.createTextNode(it[1])); host.appendChild(sp);
+    });
+  }
+
+  /* ---------- Керування ---------- */
+  function seg(parent, list, els, onPick) {
+    list.forEach(function (it, i) {
+      var b = document.createElement("button"); b.type = "button"; b.textContent = it.name || String(it);
+      b.addEventListener("click", function () { onPick(it, i); }); parent.appendChild(b); els.push(b);
+    });
+  }
+  function scenariosOf(mode) { return SCENARIOS.map(function (sc, i) { return { sc: sc, i: i }; }).filter(function (o) { return o.sc.mode === mode; }); }
+  function buildChips() {
+    var host = $("chips"); host.textContent = ""; chipEls = [];
+    scenariosOf(state.mode).forEach(function (o) {
+      var b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.textContent = o.sc.name;
+      b.addEventListener("click", function () { loadScenario(o.i); }); host.appendChild(b); chipEls.push({ el: b, i: o.i });
+    });
+  }
+  function loadScenario(i) {
+    var sc = SCENARIOS[i]; state.sc = i; state.mode = sc.mode; state.alt = sc.alt;
+    if (sc.mode === "one") { state.n = sc.n; state.x = sc.x; state.p0 = sc.p0; }
+    else { state.n1 = sc.n1; state.x1 = sc.x1; state.n2 = sc.n2; state.x2 = sc.x2; }
+    $("statement").textContent = sc.text;
+    $("srcNote").textContent = "Дані умовні (навчальний приклад).";
+    sync(); update();
+  }
+  function sync() {
+    var s = state;
+    Array.prototype.forEach.call(document.querySelectorAll("[data-mode]"), function (e) { e.hidden = e.getAttribute("data-mode") !== s.mode; });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-modes]"), function (e) { e.hidden = e.getAttribute("data-modes") !== s.mode; });
+    modeEls.forEach(function (b, i) { b.setAttribute("aria-pressed", String(MODES[i].id === s.mode)); });
+    if (chipEls.length === 0 || chipEls.some(function (c) { return SCENARIOS[c.i].mode !== s.mode; })) buildChips();
+    chipEls.forEach(function (c) { c.el.setAttribute("aria-pressed", String(c.i === s.sc)); });
+    altEls.forEach(function (b, i) { b.setAttribute("aria-pressed", String(ALTS[i].id === s.alt)); b.textContent = s.mode === "one" ? ALTS[i].name + " p₀" : ALTS[i].name.replace("p", "p₁") + " p₂"; });
+    alphaEls.forEach(function (b, i) { b.setAttribute("aria-pressed", String(ALPHAS[i] === s.alpha)); });
+    $("n0").value = s.n; $("x0").value = s.x; $("p0Range").value = s.p0; $("p0Out").textContent = fmt(s.p0, 2);
+    $("n1").value = s.n1; $("x1").value = s.x1; $("n2").value = s.n2; $("x2").value = s.x2;
+  }
+  seg($("modeSeg"), MODES, modeEls, function (m) {
+    if (m.id === state.mode) return;
+    loadScenario(scenariosOf(m.id)[0].i);
+  });
+  seg($("altSeg"), ALTS, altEls, function (a) { state.alt = a.id; sync(); update(); });
+  ALPHAS.forEach(function (v) {
+    var b = document.createElement("button"); b.type = "button"; b.textContent = fmt(v, 2);
+    b.addEventListener("click", function () { state.alpha = v; sync(); update(); }); $("alphaSeg").appendChild(b); alphaEls.push(b);
+  });
+  [["n0", "n"], ["x0", "x"], ["n1", "n1"], ["x1", "x1"], ["n2", "n2"], ["x2", "x2"]].forEach(function (p) {
+    $(p[0]).addEventListener("input", function () {
+      var v = this.value === "" ? NaN : Number(this.value);
+      state[p[1]] = v; $("statement").textContent = "Свої числа."; $("srcNote").textContent = ""; chipEls.forEach(function (c) { c.el.setAttribute("aria-pressed", "false"); });
+      update();
+    });
+  });
+  $("p0Range").addEventListener("input", function () {
+    state.p0 = Number(this.value); $("p0Out").textContent = fmt(state.p0, 2); $("statement").textContent = "Свої числа."; $("srcNote").textContent = "";
+    chipEls.forEach(function (c) { c.el.setAttribute("aria-pressed", "false"); });
+    update();
+  });
+
+  /* ---------- Малювання ---------- */
+  function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  function colors() {
+    return { panel: cssVar("--panel"), grid: cssVar("--grid"), strong: cssVar("--grid-strong"), muted: cssVar("--muted"), ink: cssVar("--ink"),
+             pos: cssVar("--pos"), neg: cssVar("--neg"), data: cssVar("--font-data"), body: cssVar("--font-body") };
+  }
+  function setup(cv) {
+    var r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    cv.width = Math.max(1, Math.round(r.width * dpr)); cv.height = Math.max(1, Math.round(r.height * dpr));
+    var ctx = cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx: ctx, W: r.width, H: r.height };
+  }
+  function halo(ctx, k, text, x, y) { ctx.lineWidth = 3; ctx.strokeStyle = k.panel; ctx.lineJoin = "round"; ctx.strokeText(text, x, y); ctx.fillText(text, x, y); }
+  var last = null;
+  function draw(r) { if (r !== undefined) last = r; drawNull(last); drawBars(last); }
+
+  function drawNull(r) {
+    var c = setup($("c1")), ctx = c.ctx, W = c.W, H = c.H, k = colors(), M = { l: 46, r: 14, t: 24, b: 34 };
+    var pw = W - M.l - M.r, ph = H - M.t - M.b, i, x;
+    ctx.fillStyle = k.panel; ctx.fillRect(0, 0, W, H);
+    var st = r ? r.z : 0, R = clamp(Math.max(4, Math.abs(st) * 1.1 + 0.3), 4, 8), ymax = 0.44;
+    function px(v) { return M.l + (v + R) / (2 * R) * pw; }
+    function py(v) { return M.t + (1 - v / ymax) * ph; }
+    function f(v) { return Dist.normal.pdf(v, { mu: 0, sigma: 1 }); }
+    var ty = S.ticksFor(0, ymax, clamp(ph / 42, 3, 6)), steps = Math.max(60, Math.round(pw / 3));
+    ctx.lineWidth = 1; ctx.strokeStyle = k.grid; ctx.beginPath();
+    ty.major.forEach(function (v) { var y = Math.round(py(v)) + 0.5; ctx.moveTo(M.l, y); ctx.lineTo(M.l + pw, y); }); ctx.stroke();
+    function fillRange(a, b) {
+      if (b <= a) return;
+      ctx.beginPath(); ctx.moveTo(px(a), py(0));
+      for (i = 0; i <= steps; i++) { x = a + (b - a) * i / steps; ctx.lineTo(px(x), py(f(x))); }
+      ctx.lineTo(px(b), py(0)); ctx.closePath(); ctx.fill();
+    }
+    var sc = clamp(st, -R, R);
+    if (r) {
+      ctx.fillStyle = k.neg; ctx.globalAlpha = 0.55;
+      if (state.alt === "right") fillRange(sc, R); else if (state.alt === "left") fillRange(-R, sc);
+      else { fillRange(Math.abs(sc), R); fillRange(-R, -Math.abs(sc)); }
+      ctx.globalAlpha = 1;
+    }
+    ctx.strokeStyle = k.pos; ctx.lineWidth = 2.4; ctx.lineJoin = "round"; ctx.beginPath();
+    for (i = 0; i <= steps; i++) { x = -R + 2 * R * i / steps; var y = py(f(x)); if (i === 0) ctx.moveTo(px(x), y); else ctx.lineTo(px(x), y); }
+    ctx.stroke();
+    ctx.strokeStyle = k.ink; ctx.lineWidth = 1.2; ctx.beginPath();
+    ctx.moveTo(M.l + 0.5, M.t); ctx.lineTo(M.l + 0.5, M.t + ph + 0.5); ctx.lineTo(M.l + pw, M.t + ph + 0.5); ctx.stroke();
+    ctx.fillStyle = k.muted; ctx.font = "11px " + k.data; ctx.textBaseline = "top"; ctx.textAlign = "center";
+    var tx = S.ticksFor(-R, R, clamp(pw / 60, 4, 10));
+    tx.major.forEach(function (v) { if (v >= -R && v <= R) ctx.fillText(fmt(v, tx.decimals), px(v), M.t + ph + 6); });
+    ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    ty.major.forEach(function (v) { ctx.fillText(fmt(v, ty.decimals), M.l - 6, py(v)); });
+    ctx.fillStyle = k.ink; ctx.font = "500 12px " + k.body; ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.fillText("щільність", 4, 2);
+    ctx.textAlign = "right"; ctx.textBaseline = "bottom"; ctx.fillText("z", M.l + pw, H - 3);
+    if (!r) { $("c1").setAttribute("aria-label", "Нульовий розподіл статистики: немає результату"); return; }
+    var cr = Hyp.critical(state.alpha, state.alt);
+    ctx.setLineDash([6, 4]); ctx.strokeStyle = k.neg; ctx.lineWidth = 1.5;
+    [cr.lo, cr.hi].forEach(function (cc) {
+      if (cc === -Infinity || cc === Infinity || Math.abs(cc) > R) return;
+      ctx.beginPath(); ctx.moveTo(px(cc), M.t); ctx.lineTo(px(cc), M.t + ph); ctx.stroke();
+    });
+    ctx.setLineDash([]);
+    ctx.strokeStyle = k.ink; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(px(sc), M.t + ph); ctx.lineTo(px(sc), M.t + 6); ctx.stroke();
+    ctx.fillStyle = k.ink; ctx.font = "500 11px " + k.body; ctx.textBaseline = "top";
+    ctx.textAlign = px(sc) > W - 100 ? "right" : "left";
+    halo(ctx, k, "z = " + fmt(st, 2) + (Math.abs(st) > R ? " (за межами графіка)" : ""), px(sc) + (px(sc) > W - 100 ? -5 : 5), M.t + 4);
+    $("c1").setAttribute("aria-label", "Нульовий розподіл статистики z, спостережене z = " + fmt(st, 2) + ", p-значення " + fmtP(r.p));
+  }
+
+  function drawBars(r) {
+    var c = setup($("c2")), ctx = c.ctx, W = c.W, H = c.H, k = colors(), M = { l: 46, r: 14, t: 16, b: 30 };
+    var pw = W - M.l - M.r, ph = H - M.t - M.b;
+    ctx.fillStyle = k.panel; ctx.fillRect(0, 0, W, H);
+    var vals = !r ? [] : (state.mode === "one" ? [{ n: "p̂", v: r.phat }] : [{ n: "p̂₁", v: r.p1 }, { n: "p̂₂", v: r.p2 }]);
+    var mx = 0.1; vals.forEach(function (o) { mx = Math.max(mx, o.v); }); if (r && state.mode === "one") mx = Math.max(mx, state.p0);
+    var ty = S.ticksFor(0, mx * 1.15, clamp(ph / 40, 3, 6)), top = mx * 1.15;
+    function py(v) { return M.t + (1 - v / top) * ph; }
+    ctx.lineWidth = 1; ctx.strokeStyle = k.grid; ctx.beginPath();
+    ty.major.forEach(function (v) { var y = Math.round(py(v)) + 0.5; ctx.moveTo(M.l, y); ctx.lineTo(M.l + pw, y); }); ctx.stroke();
+    ctx.fillStyle = k.muted; ctx.font = "11px " + k.data; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    ty.major.forEach(function (v) { ctx.fillText(fmt(v, ty.decimals), M.l - 6, py(v)); });
+    ctx.strokeStyle = k.ink; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(M.l + 0.5, M.t); ctx.lineTo(M.l + 0.5, M.t + ph + 0.5); ctx.lineTo(M.l + pw, M.t + ph + 0.5); ctx.stroke();
+    if (!r) { $("c2").setAttribute("aria-label", "Частки у вибірці: немає результату"); return; }
+    var bw = Math.min(90, pw / (vals.length * 2 + 1));
+    vals.forEach(function (o, i) {
+      var cx = M.l + pw * (i + 1) / (vals.length + 1);
+      ctx.fillStyle = k.pos; ctx.fillRect(cx - bw / 2, py(o.v), bw, py(0) - py(o.v));
+      ctx.fillStyle = k.ink; ctx.font = "500 12px " + k.body; ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+      halo(ctx, k, fmt(o.v, 3), cx, py(o.v) - 3);
+      ctx.textBaseline = "top"; ctx.fillStyle = k.muted; ctx.fillText(o.n, cx, M.t + ph + 6);
+    });
+    if (state.mode === "one") {
+      ctx.setLineDash([6, 4]); ctx.strokeStyle = k.ink; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.moveTo(M.l, py(state.p0)); ctx.lineTo(M.l + pw, py(state.p0)); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = k.ink; ctx.font = "500 11px " + k.body; ctx.textAlign = "right"; ctx.textBaseline = "bottom"; halo(ctx, k, "p₀ = " + fmt(state.p0, 2), M.l + pw - 4, py(state.p0) - 3);
+    }
+    $("c2").setAttribute("aria-label", state.mode === "one" ? "Вибіркова частка " + fmt(r.phat, 3) + ", частка за H₀ " + fmt(state.p0, 2)
+      : "Вибіркові частки: " + fmt(r.p1, 3) + " і " + fmt(r.p2, 3));
+  }
+
+  if (window.ResizeObserver) { var ro = new ResizeObserver(function () { draw(); }); ro.observe($("c1")); ro.observe($("c2")); } else window.addEventListener("resize", function () { draw(); });
+  new MutationObserver(function () { draw(); }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  if (window.matchMedia) { var mq = window.matchMedia("(prefers-color-scheme: dark)"); if (mq.addEventListener) mq.addEventListener("change", function () { draw(); }); }
+
+  loadScenario(0);
+})();
+</script>
+</body>
+</html>

@@ -119,6 +119,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus
 .tex { overflow-wrap: normal; }
 .formula { max-width: 100%; overflow-x: auto; }
 .formula .tex + .tex { margin-left: .25em; }
+/* У блоці «Що тут відбувається» формула в реченні не розривається посередині, а розділовий знак після неї
+   не переходить на новий рядок: перед знаком у тексті стоїть U+2060 («склеювач слів», у HTML &#8288;). Дуже довга формула все одно переноситься всередині свого блока. */
+.explain .tex .katex { display: inline-block; max-width: 100%; }
 
 /* ---------- Шапка сторінки: група, значок, колір (ті самі, що на головній) ---------- */
 .g1 { --c: var(--h1); }

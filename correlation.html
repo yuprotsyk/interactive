@@ -18,12 +18,16 @@
   display: grid;
   gap: 16px;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-areas: "head" "readout" "plot" "tools" "presets" "mydata" "table" "details";
+  grid-template-areas: "head" "readout" "plot" "tools" "presets" "mydata" "table" "details" "explain";
 }
 .head { grid-area: head; }
 .backlink { display: inline-block; margin-bottom: 10px; font-size: 13px; }
 .readout { grid-area: readout; }
 .details { grid-area: details; }
+.explain { grid-area: explain; }
+.explain h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
+.explain p { margin: 8px 0 0; font-size: 14.5px; max-width: 68ch; text-wrap: pretty; }
+.explain p.key { margin-top: 0; }
 .presets { grid-area: presets; }
 .mydata { grid-area: mydata; }
 .tablebox { grid-area: table; }
@@ -108,15 +112,17 @@ td input {
 .stats dt { font-size: 12px; color: var(--muted); }
 .stats dd { margin: 0; font-family: var(--font-data); font-size: 17px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .eq { margin: 14px 0 0; font-family: var(--font-data); font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
-.foot { margin: 10px 0 0; font-size: 12.5px; color: var(--muted); text-wrap: pretty; }
 
 @media (min-width: 900px) {
   .app {
     grid-template-columns: minmax(0, 1fr) 340px;
     column-gap: 24px;
-    grid-template-areas: "head head" "plot side" "tools side" "presets side" "mydata side" "table side";
+    grid-template-areas: "head head" "plot side" "tools side" "presets side" "mydata side" "table side" ". side";
+    grid-template-rows: auto auto auto auto auto auto 1fr;
+    align-items: start;
   }
-  .side { grid-area: side; display: flex; flex-direction: column; gap: 16px; align-self: start; position: sticky; top: 16px; min-width: 0; }
+  .app > :not(.side) { align-self: start; }
+  .side { grid-area: side; display: flex; flex-direction: column; gap: 16px; align-self: start; min-width: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .fill, .knob { transition: none; } }
 </style>
@@ -170,9 +176,24 @@ td input {
         <div class="wide"><dt>95 % довірчий інтервал для r</dt><dd id="sCI">—</dd></div>
       </dl>
       <p class="eq" id="eq">Пряма регресії y на x: y = a + b·x</p>
-      <p class="foot">r вимірює лише лінійний зв'язок. p-значення й довірчий інтервал припускають приблизно нормальний розподіл даних. Кореляція не доводить причинність: показники можуть рухатися разом через третій чинник або випадково.</p>
+    </section>
+
+
+  <section class="explain panel" aria-labelledby="eTitle">
+      <h2 id="eTitle">Що тут відбувається</h2>
+      <p class="key"><strong>Що вимірює <span class="tex">r</span>&#8288;.</strong> Коефіцієнт кореляції Пірсона <span class="tex">r</span> показує силу лінійного зв'язку між <span class="tex">x</span> і <span class="tex">y</span>&#8288;. Значення <span class="tex">−1</span> означає, що всі точки лежать на спадній прямій, <span class="tex">0</span> — що лінійного зв'язку немає, <span class="tex">+1</span> — що точки лежать на висхідній прямій. Знак показує напрям зв'язку, модуль — його тісноту.</p>
+      <details>
+        <summary>Докладніше: формули й пояснення</summary>
+        <p><strong>Формула.</strong> <span class="tex" data-tex="r=\dfrac{\sum (x_i-\bar x)(y_i-\bar y)}{\sqrt{\sum (x_i-\bar x)^2\,\sum (y_i-\bar y)^2}}">r = Σ(xᵢ − x̄)(yᵢ − ȳ) / √(Σ(xᵢ − x̄)² · Σ(yᵢ − ȳ)²)</span>&#8288;. Якщо всі <span class="tex">x</span> або всі <span class="tex">y</span> однакові, знаменник дорівнює нулю й <span class="tex">r</span> не визначений.</p>
+        <p><strong>Регресія й <span class="tex">r²</span>&#8288;.</strong> Пряма <span class="tex" data-tex="y=a+bx">y = a + b·x</span> найкраще наближає точки за методом найменших квадратів: <span class="tex" data-tex="b=\dfrac{\sum (x_i-\bar x)(y_i-\bar y)}{\sum (x_i-\bar x)^2}">b = Σ(xᵢ − x̄)(yᵢ − ȳ) / Σ(xᵢ − x̄)²</span>&#8288;, <span class="tex" data-tex="a=\bar y-b\bar x">a = ȳ − b·x̄</span>&#8288;. Коефіцієнт детермінації <span class="tex">r²</span> — частка розкиду <span class="tex">y</span>&#8288;, яку пояснює ця пряма.</p>
+        <p><strong>Ранговий <span class="tex">ρ</span> Спірмена.</strong> Це коефіцієнт Пірсона, обчислений для рангів значень. Він помічає будь-який монотонний зв'язок, не лише лінійний, і слабше реагує на викиди.</p>
+        <p><strong><span class="tex">p</span>-значення й довірчий інтервал.</strong> Для <span class="tex" data-tex="H_0:\ \rho=0">H₀: ρ = 0</span> статистика <span class="tex" data-tex="t=\dfrac{r\sqrt{n-2}}{\sqrt{1-r^2}}">t = r√(n − 2) / √(1 − r²)</span> має розподіл Стьюдента з <span class="tex" data-tex="n-2">n − 2</span> ступенями свободи. Довірчий інтервал для <span class="tex">ρ</span> будують за перетворенням Фішера: <span class="tex" data-tex="\tanh\!\left(\operatorname{artanh} r\pm\dfrac{1{,}96}{\sqrt{n-3}}\right)">tanh(artanh r ± 1,96/√(n − 3))</span>&#8288;. Обидва результати припускають приблизно нормальний розподіл даних.</p>
+        <p><strong>Пастки.</strong> Набори з групи «Пастки та винятки» показують, що однакове <span class="tex">r</span> може мати дуже різні дані. Парабола й коло мають зв'язок, але <span class="tex" data-tex="r\approx 0">r ≈ 0</span>&#8288;, бо зв'язок не лінійний. Один викид може створити або спотворити кореляцію. У парадоксі Сімпсона зв'язок у кожній групі має інший знак, ніж у змішаних даних. Квартет Анскомба має майже однакові <span class="tex">r</span>&#8288;, середні й пряму регресії при зовсім різних діаграмах. Тому спершу дивіться на діаграму, а потім на <span class="tex">r</span>&#8288;.</p>
+        <p><strong>Кореляція й причинність.</strong> Високе <span class="tex">r</span> не доводить, що одна величина спричиняє іншу: вони можуть залежати від третьої або збігтися випадково.</p>
+      </details>
     </section>
   </div>
+
 
   <section class="plotwrap">
     <canvas id="plot" tabindex="0" role="application" aria-describedby="keysHelp" aria-label="Діаграма розсіювання"></canvas>
@@ -233,6 +254,7 @@ td input {
     </div>
     <button type="button" class="btn" id="addRow">Додати точку</button>
   </details>
+
 </main>
 
 <div class="sr-only" id="sr" role="status" aria-live="polite"></div>

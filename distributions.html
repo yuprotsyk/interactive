@@ -18,7 +18,7 @@
   display: grid;
   gap: 16px;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-areas: "head" "choose" "plot" "params" "calc" "stats" "table";
+  grid-template-areas: "head" "choose" "plot" "params" "calc" "stats" "table" "explain";
 }
 .head { grid-area: head; }
 .backlink { display: inline-block; margin-bottom: 10px; font-size: 13px; }
@@ -28,6 +28,10 @@
 .calc { grid-area: calc; }
 .stats { grid-area: stats; }
 .tablebox { grid-area: table; }
+.explain { grid-area: explain; }
+.explain h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
+.explain p { margin: 8px 0 0; font-size: 14.5px; max-width: 68ch; text-wrap: pretty; }
+.explain p.key { margin-top: 0; }
 .side { display: contents; }
 
 .group + .group { margin-top: 14px; }
@@ -81,8 +85,11 @@ thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500;
   .app {
     grid-template-columns: minmax(0, 1fr) 360px;
     column-gap: 24px;
-    grid-template-areas: "head head" "choose choose" "plot side" "table side";
+    grid-template-areas: "head head" "choose choose" "plot side" "table side" ". side";
+    grid-template-rows: auto auto auto auto 1fr;
+    align-items: start;
   }
+  .app > :not(.side) { align-self: start; }
   .side { grid-area: side; display: flex; flex-direction: column; gap: 16px; align-self: start; min-width: 0; }
 }
 </style>
@@ -168,7 +175,21 @@ thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500;
       </dl>
       <p class="note" id="sNote"></p>
     </section>
+
+
+    <section class="explain panel" aria-labelledby="eTitle">
+      <h2 id="eTitle">Що тут відбувається</h2>
+      <p class="key"><strong>Дискретні й неперервні розподіли.</strong> Дискретний розподіл задає функція ймовірності <span class="tex">P(X = k)</span>&#8288;: висота стовпчика — ймовірність значення <span class="tex">k</span>&#8288;. Неперервний розподіл задає щільність <span class="tex">f(x)</span>&#8288;: ймовірність проміжку — площа під кривою, а ймовірність одного значення дорівнює нулю. Функція розподілу <span class="tex" data-tex="F(x)=P(X\le x)">F(x) = P(X ≤ x)</span> є в обох випадках.</p>
+      <details>
+        <summary>Докладніше: формули й пояснення</summary>
+        <p><strong>Ймовірність проміжку.</strong> Для неперервного розподілу <span class="tex" data-tex="P(a\le X\le b)=F(b)-F(a)">P(a ≤ X ≤ b) = F(b) − F(a)</span>&#8288;. Для дискретного з цілими значеннями <span class="tex" data-tex="P(a\le X\le b)=F(b)-F(a-1)">P(a ≤ X ≤ b) = F(b) − F(a − 1)</span>&#8288;, бо значення <span class="tex">a</span> теж входить у проміжок. Калькулятор рахує саме так. Зафарбована частина графіка — вибрана ймовірність.</p>
+        <p><strong>Математичне сподівання й дисперсія.</strong> Блок «Про розподіл» показує <span class="tex">E(X)</span>&#8288;, <span class="tex">D(X)</span> і стандартне відхилення. Для розподілу Стьюдента при <span class="tex" data-tex="\nu\le 1">ν ≤ 1</span> (<span class="tex" data-tex="\nu=1">ν = 1</span> — розподіл Коші) <span class="tex">E(X)</span>&#8288; не існує, а при <span class="tex" data-tex="1&lt;\nu\le 2">1 &lt; ν ≤ 2</span> дисперсія нескінченна. Для розподілу Фішера <span class="tex">E(X)</span>&#8288; нескінченне при <span class="tex" data-tex="d_2\le 2">d₂ ≤ 2</span>&#8288;, а <span class="tex">D(X)</span>&#8288; — при <span class="tex" data-tex="d_2\le 4">d₂ ≤ 4</span>&#8288;. Сторінка показує це в блоці «Про розподіл».</p>
+        <p><strong>Нормальна крива.</strong> Для частини розподілів можна накласти нормальну криву з тими самими <span class="tex">E(X)</span> і <span class="tex">D(X)</span>&#8288;. Для розподілу Стьюдента накладається стандартна нормальна. Так видно, наскільки розподіли схожі й за яких параметрів схожість зникає. Докладніше про наближення біноміального розподілу: сторінка <a href="binomial-approximations.html">«Наближення біноміального розподілу»</a>.</p>
+        <p><strong>Таблиця значень.</strong> Під графіком лежить згорнута таблиця значень функції ймовірності чи щільності й функції розподілу для вибраних параметрів.</p>
+      </details>
+    </section>
   </div>
+
 
   <details class="tablebox panel" id="tableBox">
     <summary>Таблиця значень</summary>
@@ -181,6 +202,7 @@ thead th { position: sticky; top: 0; background: var(--panel); font-weight: 500;
       </table>
     </div>
   </details>
+
 </main>
 
 <div class="sr-only" id="sr" role="status" aria-live="polite"></div>

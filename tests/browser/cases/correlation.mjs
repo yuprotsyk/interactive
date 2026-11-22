@@ -14,6 +14,7 @@ export default async function (h) {
   page.on('pageerror', e => errors.push('pageerror: ' + e.message));
   page.on('console', m => { if (m.type() === 'error' && !/fonts|ERR_|Failed to load resource/i.test(m.text())) errors.push('console: ' + m.text()); });
   await page.goto(PAGE);
+  assert.equal(await page.locator('#eTitle ~ details').count(), 1); assert(!(await page.locator('#eTitle ~ details').evaluate(d => d.open)), 'докладне пояснення згорнуте');
   await page.waitForTimeout(400);
 
   const n = async () => parseInt(await page.textContent('#sN'));

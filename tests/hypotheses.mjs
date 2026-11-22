@@ -125,3 +125,26 @@ test("два середні: t Велча, t Стьюдента й z звіре�
     }
   }
 });
+
+test("обсяг вибірки для заданої потужності (еталон: перебір за формулою потужності, scipy.stats.norm)", () => {
+  const cases = [
+    { mu: 105, mu0: 100, sigma: 10, alpha: 0.05, tail: "right", target: 0.8, n: 25 },
+    { mu: 95, mu0: 100, sigma: 10, alpha: 0.05, tail: "left", target: 0.8, n: 25 },
+    { mu: 105, mu0: 100, sigma: 10, alpha: 0.05, tail: "two", target: 0.8, n: 32 },
+    { mu: 103, mu0: 100, sigma: 15, alpha: 0.01, tail: "two", target: 0.9, n: 372 },
+    { mu: 110, mu0: 100, sigma: 15, alpha: 0.05, tail: "right", target: 0.95, n: 25 },
+    { mu: 100.2, mu0: 100, sigma: 1, alpha: 0.05, tail: "two", target: 0.8, n: 197 }
+  ];
+  for (const c of cases) {
+    const n = Hyp.sampleSize(c.mu, c.mu0, c.sigma, c.alpha, c.tail, c.target);
+    assert.equal(n, c.n, `${c.tail} α=${c.alpha}`);
+    assert.ok(Hyp.power(c.mu, c.mu0, c.sigma, n, c.alpha, c.tail) >= c.target);
+    if (n > 1) assert.ok(Hyp.power(c.mu, c.mu0, c.sigma, n - 1, c.alpha, c.tail) < c.target);
+  }
+  // Формула для односторонньої альтернативи: n = ((z₁₋α + z₁₋β)·σ/(μ − μ₀))², округлено вгору.
+  const z = (p) => Dist.quantile(Dist.normal, { mu: 0, sigma: 1 }, p);
+  assert.equal(Hyp.sampleSize(105, 100, 10, 0.05, "right", 0.8), Math.ceil(((z(0.95) + z(0.8)) * 10 / 5) ** 2));
+  // μ = μ₀ або μ поза альтернативою: помилки II роду немає, обсягу немає
+  assert.equal(Hyp.sampleSize(100, 100, 10, 0.05, "two", 0.8), null);
+  assert.equal(Hyp.sampleSize(95, 100, 10, 0.05, "right", 0.8), null);
+});

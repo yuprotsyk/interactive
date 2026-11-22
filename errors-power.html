@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Помилки I і II роду та потужність</title>
+<meta name="description" content="Змінюйте істинне математичне сподівання, обсяг вибірки й рівень значущості та дивіться, як змінюються ймовірності помилок I і II роду та потужність z-критерію.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="common.css">
+<style>
+.app {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "head" "controls" "charts" "side";
+}
+.head { grid-area: head; }
+.backlink { display: inline-block; margin-bottom: 10px; font-size: 13px; }
+.controls { grid-area: controls; }
+.charts { grid-area: charts; min-width: 0; display: grid; gap: 16px; align-content: start; }
+.side { grid-area: side; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+.cfgrow { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin-top: 12px; }
+.cfgrow .lbl { font-size: 13.5px; }
+.sliders { display: grid; gap: 4px 24px; grid-template-columns: minmax(0, 1fr); }
+.fld { display: grid; gap: 3px; min-width: 0; margin-top: 12px; }
+.fld label { font-size: 13px; color: var(--muted); }
+.fld .row { display: grid; grid-template-columns: minmax(0, 1fr) 64px; gap: 10px; align-items: center; }
+.fld input[type="range"] { width: 100%; margin: 0; }
+.fld output {
+  font-family: var(--font-data); font-size: 13.5px; font-variant-numeric: tabular-nums; text-align: right;
+  color: var(--ink); background: var(--panel); border: 1px solid var(--grid-strong); border-radius: 4px; padding: 5px 7px;
+}
+.btnrow { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.srcnote, .cmsg { margin: 8px 0 0; font-size: 13.5px; color: var(--muted); max-width: 72ch; text-wrap: pretty; }
+
+.chartbox h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
+.chartbox canvas {
+  display: block; width: 100%; aspect-ratio: 16 / 10; background: var(--panel);
+  border: 1px solid var(--grid-strong); border-radius: 6px;
+}
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 8px 0 0; font-size: 12.5px; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 14px; height: 10px; margin-right: 6px; vertical-align: middle; border-radius: 2px; background: var(--sw); opacity: .8; }
+.legend span.line::before { height: 3px; border-radius: 0; opacity: 1; }
+.viewbar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-bottom: 8px; }
+.viewbar h2 { margin: 0 8px 0 0; font-size: 16px; font-weight: 700; }
+
+.result .big { margin: 6px 0 0; }
+.result .big dt { font-size: 12px; color: var(--muted); }
+.result .big dd { margin: 0; font-family: var(--font-data); font-size: clamp(30px, 8vw, 40px); line-height: 1.1; letter-spacing: -0.02em; color: var(--pos); font-variant-numeric: tabular-nums; }
+.rd { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; margin: 14px 0 0; }
+.rd dt { font-size: 12px; color: var(--muted); }
+.rd dd { margin: 0; font-family: var(--font-data); font-size: 16px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.rd .wide { grid-column: 1 / -1; }
+
+.dec { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; table-layout: fixed; }
+.dec th, .dec td { border: 1px solid var(--grid-strong); padding: 7px 8px; vertical-align: top; text-align: left; }
+.dec thead th { background: var(--panel); font-weight: 500; color: var(--muted); }
+.dec tbody th { font-weight: 500; background: var(--panel); }
+.dec td b { display: block; font-family: var(--font-data); font-size: 15px; font-variant-numeric: tabular-nums; margin-top: 2px; }
+.dec td small { color: var(--muted); }
+.dec tr.cur td, .dec tr.cur th { box-shadow: inset 0 0 0 2px var(--ink); }
+.dec td.err1 { background: color-mix(in srgb, var(--neg) 16%, transparent); }
+.dec td.err2 { background: color-mix(in srgb, var(--h4) 16%, transparent); }
+
+.explain h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
+.explain p { margin: 8px 0 0; font-size: 14.5px; max-width: 68ch; text-wrap: pretty; }
+.explain p.key { margin-top: 0; }
+.explain details { margin-top: 12px; }
+.explain summary { cursor: pointer; font-size: 14.5px; font-weight: 700; min-height: 32px; }
+.explain details[open] > summary { margin-bottom: 2px; }
+
+@media (min-width: 700px) {
+  .sliders { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (min-width: 900px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr) 380px;
+    column-gap: 24px;
+    grid-template-areas: "head head" "controls controls" "charts side";
+  }
+  .side { align-self: start; }
+}
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="head g6">
+    <a class="backlink" href="index.html">← Усі сторінки</a>
+    <p class="kicker">Перевірка гіпотез</p>
+    <div class="titlerow">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 19h20"/><path d="M2 19c2 0 3-11 5-11s3 11 5 11"/><path d="M10 19c2 0 3-11 5-11s3 11 5 11" stroke-dasharray="2 2.2"/><path d="M16 4v15"/></svg>
+      <h1>Помилки I і II роду та потужність</h1>
+    </div>
+    <p class="lead">Критерій інколи помиляється: відхиляє справедливу H₀ або не помічає хибну. Змініть істинне μ, обсяг вибірки й α. Дивіться, як змінюються ймовірності помилок і потужність.</p>
+  </header>
+
+  <section class="controls panel" aria-label="Параметри">
+    <p class="eyebrow">Ситуація</p>
+    <div class="chips" id="chips"></div>
+    <p class="srcnote" id="srcNote"></p>
+    <div class="cfgrow">
+      <span class="lbl" id="altLbl">Альтернатива H₁</span>
+      <div class="seg" role="group" aria-labelledby="altLbl">
+        <button type="button" data-alt="two" aria-pressed="false">μ ≠ μ₀</button>
+        <button type="button" data-alt="right" aria-pressed="true">μ &gt; μ₀</button>
+        <button type="button" data-alt="left" aria-pressed="false">μ &lt; μ₀</button>
+      </div>
+      <span class="lbl" id="aLbl">Рівень значущості α</span>
+      <div class="seg" role="group" aria-labelledby="aLbl">
+        <button type="button" data-a="0.01" aria-pressed="false">0,01</button>
+        <button type="button" data-a="0.05" aria-pressed="true">0,05</button>
+        <button type="button" data-a="0.1" aria-pressed="false">0,10</button>
+      </div>
+    </div>
+    <div class="sliders">
+      <div class="fld">
+        <label for="muRange">Істинне математичне сподівання μ (μ₀ = 100)</label>
+        <div class="row"><input type="range" id="muRange" min="80" max="120" step="0.5" value="106"><output id="muOut" for="muRange">106</output></div>
+      </div>
+      <div class="fld">
+        <label for="nRange">Обсяг вибірки n</label>
+        <div class="row"><input type="range" id="nRange" min="1" max="200" step="1" value="25"><output id="nOut" for="nRange">25</output></div>
+      </div>
+      <div class="fld">
+        <label for="sRange">Стандартне відхилення σ</label>
+        <div class="row"><input type="range" id="sRange" min="5" max="30" step="1" value="15"><output id="sOut" for="sRange">15</output></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="charts">
+    <section class="chartbox" aria-labelledby="c1Title">
+      <h2 id="c1Title">Розподіл вибіркового середнього</h2>
+      <canvas id="c1" role="img" aria-label="Розподіл вибіркового середнього за H₀ та за істинного μ, критична область, ймовірності помилок"></canvas>
+      <p class="legend" id="legend1">
+        <span class="line" style="--sw: var(--muted)">розподіл x̄ за H₀</span>
+        <span class="line" style="--sw: var(--h1)">розподіл x̄ за істинного μ</span>
+        <span style="--sw: var(--neg)">α: відхилили справедливу H₀</span>
+        <span style="--sw: var(--h4)">β: не відхилили хибну H₀</span>
+        <span style="--sw: var(--h1)">потужність 1 − β</span>
+      </p>
+      <p class="cmsg" id="c1Note"></p>
+    </section>
+    <section class="chartbox" aria-labelledby="c2Title">
+      <div class="viewbar">
+        <h2 id="c2Title">Потужність</h2>
+        <div class="seg" role="group" aria-label="Від чого залежить потужність">
+          <button type="button" id="vMu" aria-pressed="true">Від μ</button>
+          <button type="button" id="vN" aria-pressed="false">Від n</button>
+        </div>
+      </div>
+      <canvas id="c2" role="img" aria-label="Потужність критерію"></canvas>
+      <p class="cmsg" id="c2Note"></p>
+    </section>
+  </div>
+
+  <div class="side">
+    <section class="result panel" aria-labelledby="rTitle">
+      <p class="eyebrow" id="rTitle">Результат</p>
+      <dl style="margin:0"><div class="big"><dt id="rLbl">Потужність 1 − β</dt><dd id="rVal">—</dd></div></dl>
+      <dl class="rd" id="rd"></dl>
+      <p class="cmsg" id="rNote"></p>
+      <table class="dec">
+        <caption class="sr-only">Рішення критерію й ймовірності для поточного μ</caption>
+        <thead><tr><th scope="col"></th><th scope="col">Не відхиляємо H₀</th><th scope="col">Відхиляємо H₀</th></tr></thead>
+        <tbody id="dec"></tbody>
+      </table>
+    </section>
+
+    <section class="panel" aria-labelledby="xTitle">
+      <p class="eyebrow" id="xTitle">Експеримент</p>
+      <p class="cmsg" style="margin-top:0">Комп'ютер багато разів бере вибірку з істинним μ і застосовує критерій. Частота відхилень має наближатися до теорії.</p>
+      <div class="btnrow">
+        <button type="button" class="btn primary" id="run1">Один експеримент</button>
+        <button type="button" class="btn" id="run1k">+1 000 експериментів</button>
+        <button type="button" class="btn" id="runReset">Скинути</button>
+      </div>
+      <dl class="rd" id="xd"></dl>
+      <p class="cmsg" id="xNote"></p>
+    </section>
+
+    <section class="explain panel" aria-labelledby="eTitle">
+      <h2 id="eTitle">Що тут відбувається</h2>
+      <p class="key"><strong>Дві помилки.</strong> <b>Помилка I роду</b> — відхилити справедливу <span class="tex">H₀</span>&#8288;. Її ймовірність <span class="tex">α</span> ми задаємо самі. <b>Помилка II роду</b> — не відхилити хибну <span class="tex">H₀</span>&#8288;. Її ймовірність <span class="tex">β</span> залежить від істинного <span class="tex">μ</span>&#8288;. <b>Потужність</b> <span class="tex" data-tex="1-\beta">1 − β</span> — ймовірність помітити справжній ефект.</p>
+      <details>
+        <summary>Докладніше: формули й пояснення</summary>
+        <p><strong>Постановка.</strong> Вибірка з нормального розподілу <span class="tex" data-tex="N(\mu,\sigma^2)">N(μ, σ²)</span>&#8288;, <span class="tex">σ</span> відома. Нульова гіпотеза <span class="tex" data-tex="H_0:\ \mu=\mu_0">H₀: μ = μ₀</span>&#8288;. Альтернатива <span class="tex" data-tex="\mu\ne\mu_0">μ ≠ μ₀</span>&#8288;, <span class="tex" data-tex="\mu>\mu_0">μ &gt; μ₀</span> або <span class="tex" data-tex="\mu<\mu_0">μ &lt; μ₀</span>&#8288;. Статистика <span class="tex" data-tex="Z=\dfrac{\bar X-\mu_0}{\sigma/\sqrt n}">Z = (x̄ − μ₀)/(σ/√n)</span>&#8288;. За <span class="tex">H₀</span> вона має розподіл <span class="tex" data-tex="N(0,1)">N(0, 1)</span>&#8288;. Це z-критерій зі сторінки <a href="mean-test.html">«Z- і t-критерій для середнього»</a>.</p>
+        <p><strong>Помилка I роду.</strong> Критична область підібрана так, щоб за <span class="tex">H₀</span> вона мала ймовірність <span class="tex">α</span>&#8288;. Тому <span class="tex" data-tex="P(\text{відхилити }H_0\mid H_0)=\alpha">P(відхилити H₀ | H₀) = α</span>&#8288;. На графіку це оранжева площа під сірою кривою.</p>
+        <p><strong>Помилка II роду й потужність.</strong> Нехай істинне математичне сподівання дорівнює <span class="tex">μ</span>&#8288;, а <span class="tex" data-tex="\lambda=\dfrac{\mu-\mu_0}{\sigma/\sqrt n}">λ = (μ − μ₀)/(σ/√n)</span>&#8288;. Тоді <span class="tex">Z</span> має розподіл <span class="tex" data-tex="N(\lambda,1)">N(λ, 1)</span>&#8288;. Потужність <span class="tex" data-tex="1-\beta(\mu)">1 − β(μ)</span> — це ймовірність потрапити в критичну область. Для <span class="tex" data-tex="\mu>\mu_0">μ &gt; μ₀</span>&#8288;: <span class="tex" data-tex="1-\Phi(z_{1-\alpha}-\lambda)">1 − Φ(z₁₋α − λ)</span>&#8288;. Для <span class="tex" data-tex="\mu<\mu_0">μ &lt; μ₀</span>&#8288;: <span class="tex" data-tex="\Phi(-z_{1-\alpha}-\lambda)">Φ(−z₁₋α − λ)</span>&#8288;. Для <span class="tex" data-tex="\mu\ne\mu_0">μ ≠ μ₀</span>&#8288;: <span class="tex" data-tex="1-\Phi(z_{1-\alpha/2}-\lambda)+\Phi(-z_{1-\alpha/2}-\lambda)">1 − Φ(z₁₋α/₂ − λ) + Φ(−z₁₋α/₂ − λ)</span>&#8288;. При <span class="tex" data-tex="\mu=\mu_0">μ = μ₀</span> потужність дорівнює <span class="tex">α</span>&#8288;.</p>
+        <p><strong>Що збільшує потужність.</strong> Більший ефект <span class="tex" data-tex="|\mu-\mu_0|">|μ − μ₀|</span>&#8288;, більший обсяг вибірки <span class="tex">n</span>&#8288;, менше <span class="tex">σ</span> і більший <span class="tex">α</span>&#8288;. Зменшення <span class="tex">α</span> зсуває критичне значення вбік, тому <span class="tex">β</span> зростає. При фіксованих <span class="tex">n</span> і <span class="tex">σ</span> обидві помилки разом не зменшити. Зменшити їх одночасно можна лише збільшенням <span class="tex">n</span>&#8288;.</p>
+        <p><strong>Обсяг вибірки.</strong> Щоб потужність була не менша за <span class="tex" data-tex="1-\beta">1 − β</span>&#8288;, при односторонній альтернативі потрібно <span class="tex" data-tex="n\ge\left(\dfrac{(z_{1-\alpha}+z_{1-\beta})\,\sigma}{\mu-\mu_0}\right)^2">n ≥ ((z₁₋α + z₁₋β)·σ/(μ − μ₀))²</span>&#8288;. Для двосторонньої альтернативи ця формула — наближення, бо не враховує протилежний хвіст. Тому сторінка шукає найменше ціле <span class="tex">n</span> точним перебором.</p>
+        <p><strong>μ не в альтернативі.</strong> Якщо вибрано, наприклад, <span class="tex" data-tex="\mu>\mu_0">μ &gt; μ₀</span>&#8288;, а істинне <span class="tex">μ</span> менше за <span class="tex">μ₀</span>&#8288;, то <span class="tex">H₀</span> «не хибна» в тому сенсі, що ефекту в обраному напрямку немає. Помилки II роду тоді немає. Ймовірність відхилити <span class="tex">H₀</span> тут не перевищує <span class="tex">α</span>&#8288;.</p>
+        <p><strong>Що означає «не відхиляємо».</strong> Це не доводить <span class="tex">H₀</span>&#8288;. За малого <span class="tex">n</span> потужність низька, і справжній ефект легко пропустити. За дуже великого <span class="tex">n</span> критерій помічає й крихітні відхилення, які на практиці нічого не змінюють. Тому <span class="tex">n</span> вибирають до експерименту: за бажаною потужністю й найменшим ефектом, який цікавий.</p>
+        <p><strong>Обмеження.</strong> Сторінка показує z-критерій (σ відома). Для t-критерію потужність обчислюють за нецентральним розподілом Стьюдента. Тут його немає.</p>
+      </details>
+    </section>
+  </div>
+</main>
+
+<div class="sr-only" id="sr" role="status" aria-live="polite"></div>
+
+<script src="common.js"></script>
+<script src="formulas.js"></script>
+<script src="distributions.js"></script>
+<script src="random.js"></script>
+<script src="hypotheses.js"></script>
+<script>
+(function () {
+  "use strict";
+  var fmt = Stat.fmt;
+  var MU0 = 100;
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+  function f4(v) { return fmt(v, 4); }
+  function fx(v) { return fmt(v, Math.abs(v) >= 100 ? 2 : 3); }
+
+  /* ---------- Ситуації ----------
+     Кожна задає істинне μ, n, σ, α і альтернативу. Щоб додати ситуацію, скопіюйте запис і змініть. */
+  var PRESETS = [
+    { id: "big", name: "Великий ефект", mu: 112, n: 25, s: 15, a: 0.05, alt: "right",
+      note: "Істинне μ = 112 далеко від μ₀ = 100. Критерій майже завжди це помічає." },
+    { id: "small", name: "Малий ефект", mu: 103, n: 25, s: 15, a: 0.05, alt: "right",
+      note: "Ефект малий порівняно з розкидом середнього. Потужність низька: хибну H₀ часто не відхиляємо. Збільшіть n." },
+    { id: "none", name: "Ефекту немає", mu: 100, n: 25, s: 15, a: 0.05, alt: "two",
+      note: "H₀ справедлива. Відхилення — це помилка I роду, і її частота наближається до α." },
+    { id: "wrong", name: "Інший бік", mu: 94, n: 25, s: 15, a: 0.05, alt: "right",
+      note: "Істинне μ менше за μ₀, а альтернатива μ > μ₀. Помилки II роду немає, а відхилення H₀ трапляються рідше за α." }
+  ];
+
+  var state = { alt: "right", a: 0.05, mu: 106, n: 25, s: 15, view: "mu", target: 0.8, preset: "" };
+  var sim = null, rng = null;
+
+  /* ---------- Обчислення ---------- */
+  function se() { return state.s / Math.sqrt(state.n); }
+  function inAlt() { return Hyp.inAlternative(state.mu, MU0, state.alt); }
+  function pw() { return Hyp.power(state.mu, MU0, state.s, state.n, state.a, state.alt); }
+  function crit() { return Hyp.criticalMean(MU0, state.s, state.n, state.a, state.alt); }
+  function nFor(target) { return Hyp.sampleSize(state.mu, MU0, state.s, state.a, state.alt, target); }
+
+  /* ---------- Побудова інтерфейсу ---------- */
+  var chips = $("chips");
+  PRESETS.forEach(function (pr) {
+    var b = el("button", "chip", pr.name); b.type = "button"; b.setAttribute("data-id", pr.id); b.setAttribute("aria-pressed", "false");
+    b.addEventListener("click", function () { choose(pr.id); });
+    chips.appendChild(b);
+  });
+  function choose(id) {
+    var pr = PRESETS.filter(function (x) { return x.id === id; })[0];
+    state.preset = id; state.mu = pr.mu; state.n = pr.n; state.s = pr.s; state.a = pr.a; state.alt = pr.alt;
+    $("srcNote").textContent = pr.note;
+    syncControls(); refresh(true);
+  }
+  function syncControls() {
+    $("muRange").value = String(state.mu); $("nRange").value = String(state.n); $("sRange").value = String(state.s);
+    $("muOut").textContent = fmt(state.mu, state.mu % 1 ? 1 : 0); $("nOut").textContent = String(state.n); $("sOut").textContent = String(state.s);
+    Array.prototype.forEach.call(chips.children, function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-id") === state.preset)); });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-alt]"), function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-alt") === state.alt)); });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-a]"), function (b) { b.setAttribute("aria-pressed", String(+b.getAttribute("data-a") === state.a)); });
+    $("vMu").setAttribute("aria-pressed", String(state.view === "mu")); $("vN").setAttribute("aria-pressed", String(state.view === "n"));
+  }
+  function custom() { state.preset = ""; $("srcNote").textContent = ""; }
+  $("muRange").addEventListener("input", function () { state.mu = +this.value; custom(); syncControls(); refresh(true); });
+  $("nRange").addEventListener("input", function () { state.n = +this.value; custom(); syncControls(); refresh(true); });
+  $("sRange").addEventListener("input", function () { state.s = +this.value; custom(); syncControls(); refresh(true); });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-alt]"), function (b) {
+    b.addEventListener("click", function () { state.alt = b.getAttribute("data-alt"); custom(); syncControls(); refresh(true); });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-a]"), function (b) {
+    b.addEventListener("click", function () { state.a = +b.getAttribute("data-a"); custom(); syncControls(); refresh(true); });
+  });
+  $("vMu").addEventListener("click", function () { state.view = "mu"; syncControls(); drawPower(); });
+  $("vN").addEventListener("click", function () { state.view = "n"; syncControls(); drawPower(); });
+
+  /* ---------- Експеримент ---------- */
+  function resetSim() { sim = { N: 0, R: 0, last: [] }; rng = Rand.create((Math.random() * 4294967296) >>> 0); }
+  function runSim(k) {
+    var s = se(), i, xbar, z, rej;
+    for (i = 0; i < k; i++) {
+      xbar = state.mu + s * rng.normal();
+      z = Hyp.zStat(xbar, MU0, state.s, state.n);
+      rej = Hyp.reject(z, state.a, state.alt);
+      sim.N++; if (rej) sim.R++;
+      sim.last.push({ x: xbar, r: rej }); if (sim.last.length > 60) sim.last.shift();
+    }
+    refresh(false);
+  }
+  $("run1").addEventListener("click", function () { runSim(1); });
+  $("run1k").addEventListener("click", function () { runSim(1000); });
+  $("runReset").addEventListener("click", function () { resetSim(); refresh(false); });
+
+  /* ---------- Показники ---------- */
+  function row(dl, label, value, wide) {
+    var d = el("div", wide ? "wide" : ""); d.appendChild(el("dt", "", label)); d.appendChild(el("dd", "", value)); dl.appendChild(d);
+  }
+  function critText(c) {
+    if (c.lo === -Infinity) return "x̄ > " + fx(c.hi);
+    if (c.hi === Infinity) return "x̄ < " + fx(c.lo);
+    return "x̄ < " + fx(c.lo) + " або x̄ > " + fx(c.hi);
+  }
+  function updateResult() {
+    var p = pw(), alt = inAlt(), c = crit(), lam = (state.mu - MU0) / se();
+    $("rLbl").textContent = alt ? "Потужність 1 − β" : (state.mu === MU0 ? "P(помилка I роду) = α" : "P(відхилити H₀)");
+    $("rVal").textContent = f4(p);
+    var dl = $("rd"); dl.textContent = "";
+    row(dl, "Рівень значущості α", f4(state.a));
+    row(dl, "Помилка II роду β", alt ? f4(1 - p) : "—");
+    row(dl, "Стандартна похибка σ/√n", fx(se()));
+    row(dl, "Ефект λ = (μ − μ₀)/(σ/√n)", fmt(lam, 2));
+    row(dl, "Відхиляємо H₀, якщо", critText(c), true);
+    var nn = nFor(state.target);
+    row(dl, "Потрібне n для потужності " + fmt(state.target, 2), nn === null ? "—" : String(nn), true);
+    var note = "";
+    if (state.mu === MU0) note = "H₀ справедлива: відхилити її — помилка I роду. Ймовірність дорівнює α.";
+    else if (!alt) note = "μ не належить H₁: помилки II роду немає. Ймовірність відхилити H₀ не перевищує α.";
+    else if (p < 0.8) note = "Потужність менша за 0,8: хибну H₀ часто не відхиляємо.";
+    else note = "Потужність не менша за 0,8: ефект зазвичай помічаємо.";
+    $("rNote").textContent = note;
+    $("sr").textContent = $("rLbl").textContent + ": " + $("rVal").textContent;
+    // таблиця рішень
+    var tb = $("dec"); tb.textContent = "";
+    var h0true = !alt, tr1 = el("tr", h0true ? "cur" : ""), tr2 = el("tr", alt ? "cur" : "");
+    var th1 = el("th", "", "H₀ справедлива"); th1.scope = "row"; tr1.appendChild(th1);
+    var th2 = el("th", "", "H₀ хибна (μ у H₁)"); th2.scope = "row"; tr2.appendChild(th2);
+    function cell(tr, cls, title, val) { var td = el("td", cls); td.appendChild(el("small", "", title)); td.appendChild(el("b", "", val)); tr.appendChild(td); }
+    cell(tr1, "", "Правильне рішення", h0true ? f4(1 - p) : "—");
+    cell(tr1, "err1", "Помилка I роду", h0true ? f4(p) : "—");
+    cell(tr2, "err2", "Помилка II роду", alt ? f4(1 - p) : "—");
+    cell(tr2, "", "Правильне рішення (потужність)", alt ? f4(p) : "—");
+    tb.appendChild(tr1); tb.appendChild(tr2);
+  }
+  function updateSim() {
+    var dl = $("xd"); dl.textContent = "";
+    var alt = inAlt(), p = pw();
+    row(dl, "Експериментів", String(sim.N));
+    if (sim.N === 0) { $("xNote").textContent = "Натисніть «Один експеримент» або «+1 000 експериментів»."; return; }
+    var frac = sim.R / sim.N, theory = alt ? 1 - p : p, got = alt ? 1 - frac : frac;
+    var sd = Math.sqrt(theory * (1 - theory) / sim.N);
+    row(dl, "Відхилили H₀", sim.R + " (" + f4(frac) + ")");
+    row(dl, alt ? "Помилок II роду: частка" : "Помилок I роду: частка", f4(got));
+    row(dl, alt ? "Теорія: β" : "Теорія: ймовірність відхилити", f4(theory));
+    row(dl, "Стандартне відхилення частки", f4(sd));
+    $("xNote").textContent = "Точки під віссю на верхньому графіку: останні x̄. Оранжеві точки лежать у критичній області, сірі — ні.";
+  }
+
+  /* ---------- Малювання ---------- */
+  function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  function colors() {
+    return { panel: cssVar("--panel"), grid: cssVar("--grid"), strong: cssVar("--grid-strong"), muted: cssVar("--muted"), ink: cssVar("--ink"),
+      neg: cssVar("--neg"), h1: cssVar("--h1"), h4: cssVar("--h4"), data: cssVar("--font-data") };
+  }
+  function Canvas(id) {
+    var cv = $(id), ctx = cv.getContext("2d"), o = { cv: cv, ctx: ctx, W: 0, H: 0, draw: null };
+    function resize() {
+      var r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+      o.W = r.width; o.H = r.height; cv.width = Math.max(1, Math.round(o.W * dpr)); cv.height = Math.max(1, Math.round(o.H * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); if (o.draw) o.draw();
+    }
+    if (window.ResizeObserver) new ResizeObserver(resize).observe(cv); else window.addEventListener("resize", resize);
+    o.resize = resize; return o;
+  }
+  var C1 = Canvas("c1"), C2 = Canvas("c2");
+
+  function drawMain() {
+    var o = C1, ctx = o.ctx, W = o.W, H = o.H, K = colors();
+    ctx.clearRect(0, 0, W, H); ctx.fillStyle = K.panel; ctx.fillRect(0, 0, W, H);
+    if (W < 10) return;
+    var s = se(), c = crit(), mu = state.mu;
+    var lo = Math.min(MU0, mu) - 3.6 * s, hi = Math.max(MU0, mu) + 3.6 * s;
+    var padL = 12, padR = 12, padT = 18, padB = 40, w = W - padL - padR, h = H - padT - padB;
+    var ymax = 1 / (s * Math.sqrt(2 * Math.PI)) * 1.15;
+    function X(v) { return padL + (v - lo) / (hi - lo) * w; }
+    function Y(d) { return padT + h - d / ymax * h; }
+    function pdf(x, m) { return Dist.normal.pdf(x, { mu: m, sigma: s }); }
+    function fill(m, a, b, color, alpha) {
+      a = Math.max(a, lo); b = Math.min(b, hi); if (!(b > a)) return;
+      var steps = Math.max(8, Math.round((b - a) / (hi - lo) * 240)), i, x;
+      ctx.beginPath(); ctx.moveTo(X(a), Y(0));
+      for (i = 0; i <= steps; i++) { x = a + (b - a) * i / steps; ctx.lineTo(X(x), Y(pdf(x, m))); }
+      ctx.lineTo(X(b), Y(0)); ctx.closePath();
+      ctx.globalAlpha = alpha; ctx.fillStyle = color; ctx.fill(); ctx.globalAlpha = 1;
+    }
+    // області
+    fill(mu, c.lo, c.hi, K.h4, 0.45);
+    fill(mu, -Infinity, c.lo, K.h1, 0.4); fill(mu, c.hi, Infinity, K.h1, 0.4);
+    fill(MU0, -Infinity, c.lo, K.neg, 0.85); fill(MU0, c.hi, Infinity, K.neg, 0.85);   // α зверху, щоб не губилась під потужністю
+    // осі
+    ctx.strokeStyle = K.strong; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(padL, Y(0)); ctx.lineTo(padL + w, Y(0)); ctx.stroke();
+    ctx.fillStyle = K.muted; ctx.font = "12px " + K.data; ctx.textAlign = "center";
+    var t = Stat.ticksFor(lo, hi, 6), i;
+    for (i = 0; i < t.major.length; i++) {
+      var tx = X(t.major[i]); ctx.beginPath(); ctx.moveTo(tx, Y(0)); ctx.lineTo(tx, Y(0) + 4); ctx.stroke();
+      ctx.fillText(fmt(t.major[i], t.decimals), tx, Y(0) + 17);
+    }
+    // криві
+    function curve(m, color, wd) {
+      ctx.beginPath(); var j, x;
+      for (j = 0; j <= 300; j++) { x = lo + (hi - lo) * j / 300; if (j) ctx.lineTo(X(x), Y(pdf(x, m))); else ctx.moveTo(X(x), Y(pdf(x, m))); }
+      ctx.strokeStyle = color; ctx.lineWidth = wd; ctx.stroke();
+    }
+    curve(MU0, K.muted, 2); if (mu !== MU0) curve(mu, K.h1, 2);
+    // критичні лінії
+    ctx.setLineDash([5, 4]); ctx.strokeStyle = K.ink; ctx.lineWidth = 1.2;
+    [c.lo, c.hi].forEach(function (v) {
+      if (!isFinite(v) || v < lo || v > hi) return;
+      ctx.beginPath(); ctx.moveTo(X(v), padT); ctx.lineTo(X(v), Y(0)); ctx.stroke();
+    });
+    ctx.setLineDash([]);
+    // підписи μ₀ і μ
+    ctx.fillStyle = K.ink; ctx.textAlign = "center"; ctx.font = "12px " + K.data;
+    ctx.fillText("μ₀", X(MU0), padT - 4);
+    if (mu !== MU0) ctx.fillText("μ", X(mu), padT - 4);
+    // точки експерименту
+    if (sim) sim.last.forEach(function (p, k) {
+      var x = Math.min(hi, Math.max(lo, p.x));
+      ctx.beginPath(); ctx.arc(X(x), Y(0) + 29 + (k % 3) * 3.5 - 3.5, 2.6, 0, 2 * Math.PI);
+      ctx.fillStyle = p.r ? K.neg : K.muted; ctx.globalAlpha = 0.85; ctx.fill(); ctx.globalAlpha = 1;
+    });
+  }
+  C1.draw = drawMain;
+
+  function drawPower() {
+    var o = C2, ctx = o.ctx, W = o.W, H = o.H, K = colors();
+    ctx.clearRect(0, 0, W, H); ctx.fillStyle = K.panel; ctx.fillRect(0, 0, W, H);
+    if (W < 10) return;
+    var padL = 44, padR = 14, padT = 12, padB = 36, w = W - padL - padR, h = H - padT - padB;
+    var byMu = state.view === "mu", lo, hi, f, cur;
+    if (byMu) { lo = 80; hi = 120; f = function (m) { return Hyp.power(m, MU0, state.s, state.n, state.a, state.alt); }; cur = state.mu; }
+    else {
+      var need = nFor(0.99); lo = 1; hi = need ? Math.min(2000, Math.max(40, Math.round(need * 1.1))) : 100;
+      hi = Math.max(hi, state.n + 5);
+      f = function (n) { return Hyp.power(state.mu, MU0, state.s, Math.max(1, Math.round(n)), state.a, state.alt); }; cur = state.n;
+    }
+    function X(v) { return padL + (v - lo) / (hi - lo) * w; }
+    function Y(v) { return padT + h - v * h; }
+    ctx.strokeStyle = K.grid; ctx.lineWidth = 1; ctx.fillStyle = K.muted; ctx.font = "12px " + K.data; ctx.textAlign = "right";
+    [0, 0.2, 0.4, 0.6, 0.8, 1].forEach(function (v) {
+      ctx.beginPath(); ctx.moveTo(padL, Y(v)); ctx.lineTo(padL + w, Y(v)); ctx.stroke(); ctx.fillText(fmt(v, 1), padL - 6, Y(v) + 4);
+    });
+    ctx.textAlign = "center"; ctx.strokeStyle = K.strong;
+    var t = Stat.ticksFor(lo, hi, 6), i;
+    for (i = 0; i < t.major.length; i++) { ctx.fillText(fmt(t.major[i], t.decimals), X(t.major[i]), padT + h + 16); }
+    ctx.fillText(byMu ? "істинне μ" : "обсяг вибірки n", padL + w / 2, padT + h + 31);
+    // цільова потужність
+    ctx.setLineDash([5, 4]); ctx.strokeStyle = K.muted; ctx.beginPath(); ctx.moveTo(padL, Y(state.target)); ctx.lineTo(padL + w, Y(state.target)); ctx.stroke();
+    // α
+    ctx.strokeStyle = K.neg; ctx.beginPath(); ctx.moveTo(padL, Y(state.a)); ctx.lineTo(padL + w, Y(state.a)); ctx.stroke(); ctx.setLineDash([]);
+    if (byMu) { ctx.strokeStyle = K.strong; ctx.beginPath(); ctx.moveTo(X(MU0), padT); ctx.lineTo(X(MU0), padT + h); ctx.stroke(); }
+    // крива
+    ctx.beginPath(); var steps = 240, j, x;
+    for (j = 0; j <= steps; j++) { x = lo + (hi - lo) * j / steps; if (j) ctx.lineTo(X(x), Y(f(x))); else ctx.moveTo(X(x), Y(f(x))); }
+    ctx.strokeStyle = K.h1; ctx.lineWidth = 2.2; ctx.stroke();
+    // поточна точка
+    var cx = Math.min(hi, Math.max(lo, cur)), py = f(cur);
+    ctx.fillStyle = K.ink; ctx.beginPath(); ctx.arc(X(cx), Y(py), 5, 0, 2 * Math.PI); ctx.fill();
+    ctx.textAlign = X(cx) > padL + w * 0.7 ? "right" : "left";
+    ctx.fillText(f4(py), X(cx) + (X(cx) > padL + w * 0.7 ? -9 : 9), Y(py) + (py > 0.9 ? 16 : -8));
+    $("c2Note").textContent = byMu
+      ? "Синя крива — потужність при різних істинних μ (n, σ і α поточні). Оранжева лінія — α, сіра пунктирна — цільова потужність " + fmt(state.target, 2) + ". У точці μ = μ₀ потужність дорівнює α."
+      : "Синя крива — потужність при різних n (μ, σ і α поточні). Оранжева лінія — α, сіра пунктирна — цільова потужність " + fmt(state.target, 2) + ".";
+  }
+  C2.draw = drawPower;
+
+  function refresh(resetSimulation) {
+    if (resetSimulation) resetSim();
+    updateResult(); updateSim();
+    $("c1Note").textContent = "Пунктир — межа критичної області. Площа під сірою кривою праворуч від межі (чи ліворуч) — α. Площа під синьою кривою по інший бік — β.";
+    drawMain(); drawPower();
+  }
+
+  new MutationObserver(function () { drawMain(); drawPower(); }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  if (window.matchMedia) {
+    var mq = window.matchMedia("(prefers-color-scheme: dark)");
+    if (mq.addEventListener) mq.addEventListener("change", function () { drawMain(); drawPower(); });
+  }
+
+  choose("small");
+  C1.resize(); C2.resize();
+})();
+</script>
+</body>
+</html>

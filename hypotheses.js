@@ -12,7 +12,9 @@
      Потужність при істинному μ, λ = (μ − μ₀)/(σ/√n):
        right: 1 − Φ(z₁₋α − λ);  left: Φ(−z₁₋α − λ);
        two:   1 − Φ(z₁₋α/₂ − λ) + Φ(−z₁₋α/₂ − λ).
-     Імовірність помилки II роду β = 1 − потужність. При μ = μ₀ потужність дорівнює α.
+     Імовірність помилки II роду β = 1 − потужність (якщо μ належить H₁). При μ = μ₀ потужність дорівнює α.
+     Обсяг вибірки для потужності 1 − β (одностороння альтернатива): n ≥ ((z₁₋α + z₁₋β)·σ/(μ − μ₀))²;
+     для двосторонньої це наближення (не враховує протилежний хвіст), тому sampleSize шукає n точно.
    Для односторонньої альтернативи H₀ розуміємо як μ ≤ μ₀ (μ ≥ μ₀): inAlternative(μ) = false.
    ============================================================ */
 (function (root) {
@@ -61,6 +63,22 @@
     if (c.hi !== Infinity) p += 1 - Phi(c.hi - lam);
     if (c.lo !== -Infinity) p += Phi(c.lo - lam);
     return p;
+  }
+
+  /** Найменший цілий обсяг вибірки n ≥ 1, при якому потужність при істинному mu не менша за target
+      (точний пошук за формулою потужності; потужність зростає з n). Повертає null, якщо mu = μ₀
+      або потужність не досягає target при n ≤ 10⁷. */
+  function sampleSize(mu, mu0, sigma, alpha, tail, target) {
+    if (mu === mu0 || !inAlternative(mu, mu0, tail)) return null;
+    var LIM = 10000000, hi = 1;
+    while (power(mu, mu0, sigma, hi, alpha, tail) < target) { hi *= 2; if (hi > LIM) return null; }
+    var lo = Math.floor(hi / 2) + 1;
+    if (hi === 1) return 1;
+    while (lo < hi) {
+      var mid = Math.floor((lo + hi) / 2);
+      if (power(mu, mu0, sigma, mid, alpha, tail) >= target) hi = mid; else lo = mid + 1;
+    }
+    return lo;
   }
 
   /** Чи істинне μ належить альтернативі H₁ (інакше вважаємо, що H₀ істинна). */
@@ -215,7 +233,7 @@
   }
 
   var api = { zStat: zStat, critical: critical, criticalMean: criticalMean, reject: reject,
-              pValue: pValue, power: power, inAlternative: inAlternative,
+              pValue: pValue, power: power, sampleSize: sampleSize, inAlternative: inAlternative,
               pValueNull: pValueNull, criticalNull: criticalNull, meanBound: meanBound,
               twoMeans: twoMeans, pValueDf: pValueDf, criticalDf: criticalDf, diffBound: diffBound,
               pValueDf: pValueDf, criticalDf: criticalDf, twoMeans: twoMeans, diffBound: diffBound,

@@ -1,0 +1,209 @@
+<!doctype html>
+<!--
+  ШАБЛОН НОВОЇ СТОРІНКИ (стандарт 5а з CLAUDE.md).
+  Як користуватись:
+  1. Скопіюйте цей файл у корінь проєкту під назвою <тема>.html.
+  2. У скопійованому файлі замініть "../common.css" на "common.css" і "../common.js" на "common.js"
+     (шаблон лежить у папці templates/, тому шляхи тут із "../").
+  3. Замініть усі місця, позначені ЗАМІНІТЬ: title, description, група (g1–g6), kicker, значок, h1, lead,
+     елементи керування, підписи, ключовий абзац, «Докладніше».
+  4. Математику не пишіть тут: додайте її у спільний *.js з тестами (розділ 6 CLAUDE.md).
+  5. Додайте картку на index.html і оновіть README.md та ROADMAP.md.
+  Не лишайте слів "ЗАМІНІТЬ" у готовій сторінці.
+-->
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ЗАМІНІТЬ: назва сторінки</title>
+<meta name="description" content="ЗАМІНІТЬ: одне речення про те, що можна робити на сторінці.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="../common.css">
+<style>
+/* Розмітка: телефон — одна колонка; від 900 px графік зліва, результати й пояснення справа. */
+.app {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "head" "controls" "chart" "result" "explain";
+}
+.head { grid-area: head; }
+.backlink { display: inline-block; margin-bottom: 10px; font-size: 13px; }
+.controls { grid-area: controls; }
+.chart { grid-area: chart; min-width: 0; }
+.result { grid-area: result; }
+.explain { grid-area: explain; }
+.side { display: contents; }
+
+.fld { display: grid; gap: 3px; min-width: 0; margin-top: 14px; }
+.fld label { font-size: 13px; color: var(--muted); }
+.fld .row { display: grid; grid-template-columns: minmax(0, 1fr) 64px; gap: 10px; align-items: center; }
+.fld input[type="range"] { width: 100%; margin: 0; }
+.fld output {
+  font-family: var(--font-data); font-size: 13.5px; font-variant-numeric: tabular-nums; text-align: right;
+  color: var(--ink); background: var(--panel); border: 1px solid var(--grid-strong); border-radius: 4px; padding: 5px 7px;
+}
+.btnrow { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.srcnote, .cmsg { margin: 8px 0 0; font-size: 13.5px; color: var(--muted); max-width: 72ch; text-wrap: pretty; }
+
+.chart h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
+.chart canvas {
+  display: block; width: 100%; aspect-ratio: 4 / 3; background: var(--panel);
+  border: 1px solid var(--grid-strong); border-radius: 6px;
+}
+
+.result .big { margin: 6px 0 0; }
+.result .big dt { font-size: 12px; color: var(--muted); }
+.result .big dd { margin: 0; font-family: var(--font-data); font-size: clamp(30px, 8vw, 40px); line-height: 1.1; letter-spacing: -0.02em; color: var(--pos); font-variant-numeric: tabular-nums; }
+
+.explain h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
+.explain p { margin: 8px 0 0; font-size: 14.5px; max-width: 68ch; text-wrap: pretty; }
+.explain p.key { margin-top: 0; }
+
+@media (min-width: 900px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr) 360px;
+    column-gap: 24px;
+    grid-template-areas: "head head" "controls controls" "chart side";
+  }
+  .side { grid-area: side; display: flex; flex-direction: column; gap: 16px; align-self: start; min-width: 0; }
+  .chart canvas { aspect-ratio: 16 / 11; }
+}
+</style>
+</head>
+<body>
+<main class="app">
+  <!-- Шапка: група задає колір (g1–g6, див. index.html); значок SVG у стилі сусідніх сторінок. -->
+  <header class="head g1">
+    <a class="backlink" href="../index.html">← Усі сторінки</a>
+    <p class="kicker">ЗАМІНІТЬ: назва групи</p>
+    <div class="titlerow">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="1"/><path d="M8 16V12M12 16V8M16 16v-6"/></svg>
+      <h1>ЗАМІНІТЬ: назва сторінки</h1>
+    </div>
+    <!-- Вступ: 2–3 короткі речення. Що робить сторінка і що зробити першим. Без теорії. -->
+    <p class="lead">ЗАМІНІТЬ: що показує сторінка. Змініть параметри й дивіться на результат.</p>
+  </header>
+
+  <!-- Керування: приклади (chips), повзунки, кнопки. Підписи кнопок — наказовий спосіб. -->
+  <section class="controls panel" aria-label="Параметри">
+    <p class="eyebrow">Приклад</p>
+    <div class="chips" id="chips"></div>
+    <p class="srcnote" id="srcNote"></p>
+    <div class="fld">
+      <label for="nRange">Кількість n</label>
+      <div class="row">
+        <input type="range" id="nRange" min="1" max="20" step="1" value="8">
+        <output id="nOut" for="nRange">8</output>
+      </div>
+    </div>
+    <div class="fld">
+      <label for="pRange">Частка p</label>
+      <div class="row">
+        <input type="range" id="pRange" min="0" max="1" step="0.05" value="0.5">
+        <output id="pOut" for="pRange">0,5</output>
+      </div>
+    </div>
+    <div class="btnrow">
+      <button type="button" class="btn" id="resetBtn">Скинути</button>
+    </div>
+  </section>
+
+  <!-- Графік: canvas із role="img" і підписом; нижче одне речення про те, що на ньому. -->
+  <section class="chart" aria-labelledby="chTitle">
+    <h2 id="chTitle">ЗАМІНІТЬ: назва графіка</h2>
+    <canvas id="cv" role="img" aria-label="ЗАМІНІТЬ: короткий опис графіка"></canvas>
+    <p class="cmsg" id="chNote">ЗАМІНІТЬ: що означають стовпчики, лінії й кольори (одне речення на елемент).</p>
+  </section>
+
+  <div class="side">
+    <!-- Результати: головне число великим шрифтом; усі числа через Stat.fmt (десяткова кома). -->
+    <section class="result panel" aria-labelledby="rTitle">
+      <p class="eyebrow" id="rTitle">Результат</p>
+      <dl style="margin:0"><div class="big"><dt id="rLbl">ЗАМІНІТЬ: назва величини</dt><dd id="rVal">—</dd></div></dl>
+    </section>
+
+    <!-- Пояснення: ключовий абзац видно завжди, решта в згорнутому «Докладніше».
+         Формули: <span class="tex" data-tex="LaTeX">простий запис</span>; підключіть formulas.js (див. total-probability.html).
+         Якщо є режими, додайте до абзаців data-modes і показуйте лише поточний (див. random-walk.html). -->
+    <section class="explain panel" aria-labelledby="eTitle">
+      <h2 id="eTitle">Що тут відбувається</h2>
+      <p class="key"><strong>ЗАМІНІТЬ: головна думка.</strong> Одне–два речення, без яких решту не зрозуміти.</p>
+      <details>
+        <summary>Докладніше: формули й пояснення</summary>
+        <p><strong>ЗАМІНІТЬ: тема.</strong> Одне речення — одна думка. Дія в наказовому способі. «X — це Y», а не «X це Y».</p>
+      </details>
+    </section>
+  </div>
+</main>
+
+<!-- Повідомлення для скрінрідерів: оновлюйте після кожної зміни результату. -->
+<div class="sr-only" id="sr" role="status" aria-live="polite"></div>
+
+<script src="../common.js"></script>
+<script>
+(function () {
+  "use strict";
+  var fmt = Stat.fmt;
+  function $(id) { return document.getElementById(id); }
+
+  var state = { n: 8, p: 0.5 };
+  var cv = $("cv"), ctx = cv.getContext("2d"), W = 0, H = 0;
+
+  /* ---------- Малювання: розмір canvas із devicePixelRatio, кольори зі змінних теми ---------- */
+  function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  function resize() {
+    var rect = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    W = rect.width; H = rect.height;
+    cv.width = Math.max(1, Math.round(W * dpr)); cv.height = Math.max(1, Math.round(H * dpr));
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    draw();
+  }
+  function draw() {
+    var panel = cssVar("--panel"), grid = cssVar("--grid-strong"), muted = cssVar("--muted"), c1 = cssVar("--h1");
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = panel; ctx.fillRect(0, 0, W, H);
+    var padL = 36, padR = 12, padT = 12, padB = 28, w = W - padL - padR, h = H - padT - padB;
+    ctx.strokeStyle = grid; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, padT + h); ctx.lineTo(padL + w, padT + h); ctx.stroke();
+    // ЗАМІНІТЬ: тут малюється вміст графіка. Демонстрація: n стовпчиків висоти p.
+    var n = state.n, bw = w / n;
+    ctx.fillStyle = c1;
+    for (var i = 0; i < n; i++) ctx.fillRect(padL + i * bw + 2, padT + h * (1 - state.p), Math.max(1, bw - 4), h * state.p);
+    ctx.fillStyle = muted; ctx.font = "12px " + cssVar("--font-data"); ctx.textAlign = "right";
+    ctx.fillText("1", padL - 6, padT + 10); ctx.fillText("0", padL - 6, padT + h);
+  }
+
+  /* ---------- Оновлення ---------- */
+  function update() {
+    $("nOut").textContent = String(state.n);
+    $("pOut").textContent = fmt(state.p, 2);
+    $("rLbl").textContent = "Сума висот стовпчиків";      // ЗАМІНІТЬ
+    $("rVal").textContent = fmt(state.n * state.p, 2);       // ЗАМІНІТЬ: значення з спільного модуля
+    $("sr").textContent = "Результат: " + $("rVal").textContent;
+    draw();
+  }
+  $("nRange").addEventListener("input", function () { state.n = +this.value; update(); });
+  $("pRange").addEventListener("input", function () { state.p = +this.value; update(); });
+  $("resetBtn").addEventListener("click", function () {
+    state.n = 8; state.p = 0.5; $("nRange").value = "8"; $("pRange").value = "0.5"; update();
+  });
+
+  /* Перемальовуємо при зміні розміру й теми (обов'язково, інакше канвас лишається зі старими кольорами). */
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(cv); else window.addEventListener("resize", resize);
+  new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  if (window.matchMedia) {
+    var mq = window.matchMedia("(prefers-color-scheme: dark)");
+    if (mq.addEventListener) mq.addEventListener("change", draw);
+  }
+
+  update();
+  resize();
+})();
+</script>
+</body>
+</html>

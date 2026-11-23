@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Метод Монте-Карло</title>
+<meta name="description" content="Метод Монте-Карло для визначених інтегралів: середнє значення й влучання, похибка 1/√n, довірчий інтервал і випадок нескінченної дисперсії.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="common.css">
+<style>
+.app {
+  max-width: 1100px; margin: 0 auto; display: grid; gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "head" "choose" "charts" "readout" "explain";
+}
+.head { grid-area: head; }
+.backlink { display: inline-block; margin-bottom: 10px; font-size: 13px; }
+.choose { grid-area: choose; }
+.charts { grid-area: charts; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.side { display: contents; }
+.readout { grid-area: readout; }
+.explain { grid-area: explain; }
+
+.statement { margin: 10px 0 0; font-size: 15px; max-width: 72ch; text-wrap: pretty; }
+.cfg { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-top: 14px; align-items: end; }
+.fld { display: grid; gap: 4px; min-width: 150px; flex: 1 1 150px; max-width: 360px; }
+.fld .lab { font-size: 13.5px; }
+.fld .seg { display: flex; flex-wrap: wrap; }
+.fld .seg button { flex: 1 1 auto; min-height: 40px; }
+.fld .seg button:disabled { opacity: .45; cursor: not-allowed; }
+.btnrow { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.btnrow button { min-height: 40px; }
+.note { margin: 10px 0 0; font-size: 13.5px; color: var(--muted); max-width: 72ch; text-wrap: pretty; }
+[hidden] { display: none !important; }
+
+.chart h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; text-wrap: balance; }
+.chart canvas { display: block; width: 100%; background: var(--panel); border: 1px solid var(--grid-strong); border-radius: 6px; }
+#c1 { aspect-ratio: 16 / 9; max-height: 46vh; }
+#c2, #c3 { aspect-ratio: 16 / 8; max-height: 38vh; min-height: 170px; }
+.legend { margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; }
+.legend .sw { display: inline-block; width: 14px; height: 12px; border-radius: 2px; vertical-align: -1px; margin-right: 6px; }
+.legend .sw.hit { background: var(--pos); }
+.legend .sw.miss { background: var(--neg); }
+.legend .sw.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--pos); }
+.legend .sw.line { width: 22px; height: 0; border-radius: 0; border-top: 2px solid var(--ink); vertical-align: middle; }
+.legend .sw.dash { width: 22px; height: 0; border-radius: 0; border-top: 2px dashed var(--neg); vertical-align: middle; }
+.legend .sw.band { background: var(--pos); opacity: .25; }
+.legend .sw.gray { width: 22px; height: 0; border-radius: 0; border-top: 2px solid var(--muted); vertical-align: middle; }
+.cmsg { margin: 8px 0 0; font-size: 13.5px; color: var(--muted); max-width: 72ch; text-wrap: pretty; }
+
+.readout dl { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; margin: 10px 0 0; }
+.readout dt { font-size: 12px; color: var(--muted); }
+.readout dd { margin: 0; font-family: var(--font-data); font-size: 17px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.readout .wide { grid-column: 1 / -1; }
+.readout .big dd { font-size: clamp(22px, 6vw, 28px); color: var(--neg); }
+.warn { margin: 10px 0 0; font-size: 13.5px; color: var(--muted); text-wrap: pretty; }
+
+.explain h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
+.explain p { margin: 8px 0 0; font-size: 14.5px; max-width: 68ch; text-wrap: pretty; }
+.explain p.key { margin-top: 0; }
+
+@media (min-width: 900px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr) 340px; column-gap: 24px;
+    grid-template-areas: "head head" "choose choose" "charts side";
+  }
+  .side { grid-area: side; display: flex; flex-direction: column; gap: 16px; align-self: start; min-width: 0; }
+}
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="head g5">
+    <a class="backlink" href="index.html">← Усі сторінки</a>
+    <p class="kicker">Геометрична ймовірність</p>
+    <div class="titlerow">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M5 18c4-1 6-6 9-9 2-2 4-2 6-2"/><circle cx="8" cy="9" r="1.2" fill="currentColor"/><circle cx="12" cy="15" r="1.2" fill="currentColor"/><circle cx="16" cy="12" r="1.2" fill="currentColor"/><circle cx="18" cy="17" r="1.2" fill="currentColor"/></svg>
+      <h1>Метод Монте-Карло</h1>
+    </div>
+    <p class="lead">Метод Монте-Карло оцінює інтеграл за випадковими точками. Оберіть функцію й метод, додайте точки та стежте, як оцінка наближається до точного значення, а стандартна похибка (за скінченної дисперсії) спадає пропорційно 1/√n.</p>
+  </header>
+
+  <section class="choose panel" aria-label="Функція та параметри">
+    <p class="eyebrow">Інтеграл</p>
+    <div class="chips" id="chips" role="group" aria-label="Функції"></div>
+    <p class="statement" id="statement"></p>
+    <div class="cfg">
+      <div class="fld"><span class="lab" id="mLab">Метод</span><div class="seg" id="mSeg" role="group" aria-labelledby="mLab"></div></div>
+      <div class="fld"><span class="lab" id="lLab">Рівень довіри</span><div class="seg" id="lSeg" role="group" aria-labelledby="lLab"></div></div>
+    </div>
+    <div class="btnrow">
+      <button type="button" class="btn" id="b10">+10</button>
+      <button type="button" class="btn" id="b100">+100</button>
+      <button type="button" class="btn" id="b1000">+1000</button>
+      <button type="button" class="btn" id="b10000">+10 000</button>
+      <button type="button" class="btn" id="b100000">+100 000</button>
+      <button type="button" class="btn" id="reset">Скинути</button>
+    </div>
+  </section>
+
+  <div class="charts">
+    <section class="chart" aria-labelledby="h1">
+      <h2 id="h1">Випадкові точки</h2>
+      <canvas id="c1" role="img" aria-label="Функція та випадкові точки"></canvas>
+      <p class="legend" id="legend1"></p>
+      <p class="cmsg" id="c1msg"></p>
+    </section>
+    <section class="chart" aria-labelledby="h2">
+      <h2 id="h2">Оцінка інтеграла</h2>
+      <canvas id="c2" role="img" aria-label="Оцінка інтеграла залежно від кількості точок"></canvas>
+      <p class="legend" id="legend2"></p>
+    </section>
+    <section class="chart" aria-labelledby="h3">
+      <h2 id="h3">Похибка залежно від n</h2>
+      <canvas id="c3" role="img" aria-label="Похибка залежно від кількості точок у логарифмічному масштабі"></canvas>
+      <p class="legend" id="legend3"></p>
+    </section>
+  </div>
+
+  <div class="side">
+    <section class="readout panel" aria-labelledby="rTitle">
+      <p class="eyebrow" id="rTitle">Результат</p>
+      <dl id="dl"></dl>
+      <p class="warn" id="warn"></p>
+    </section>
+
+    <section class="explain panel" aria-labelledby="eTitle">
+      <h2 id="eTitle">Що тут відбувається</h2>
+      <p class="key"><strong>Метод Монте-Карло.</strong> Інтеграл є математичним сподіванням: <span class="tex" data-tex="\int_a^b f(x)\,dx=(b-a)\,\mathrm{E}f(U)">∫ₐᵇ f(x)dx = (b − a)·E f(U)</span>&#8288;, де <span class="tex">U</span>&#8288; рівномірно розподілена на <span class="tex" data-tex="[a;b]">[a; b]</span>&#8288;. Тому середнє значення <span class="tex" data-tex="(b-a)f">(b − a)f</span>&#8288; у випадкових точках оцінює інтеграл. Похибка спадає як <span class="tex" data-tex="1/\sqrt n">1/√n</span>&#8288;.</p>
+      <details>
+        <summary>Докладніше: формули й пояснення</summary>
+        <p><strong>Метод середнього значення.</strong> Візьміть незалежні <span class="tex" data-tex="U_1,\dots,U_n">U₁, …, Uₙ</span>&#8288; рівномірні на <span class="tex" data-tex="[a;b]">[a; b]</span>&#8288;. Оцінка <span class="tex" data-tex="\hat I=\dfrac{b-a}{n}\sum_{i=1}^n f(U_i)">Î = (b − a)/n · Σ f(Uᵢ)</span>&#8288; незміщена: <span class="tex" data-tex="\mathrm{E}\hat I=I">E Î = I</span>&#8288;. Її стандартну похибку оцінюють як <span class="tex" data-tex="s/\sqrt n">s/√n</span>&#8288;, де <span class="tex">s</span>&#8288; — вибіркове стандартне відхилення доданків <span class="tex" data-tex="v_i=(b-a)f(U_i)">vᵢ = (b − a)f(Uᵢ)</span>&#8288;.</p>
+        <p><strong>Метод влучання.</strong> Нехай <span class="tex" data-tex="0\le f\le M">0 ≤ f ≤ M</span>&#8288;. Кидайте точки рівномірно в прямокутник <span class="tex" data-tex="[a;b]\times[0;M]">[a; b] × [0; M]</span>&#8288;. Імовірність влучити під криву дорівнює <span class="tex" data-tex="p=\dfrac{I}{(b-a)M}">p = I/((b − a)M)</span>&#8288;. Тому <span class="tex" data-tex="\hat I=(b-a)M\,\hat p">Î = (b − a)M·p̂</span>&#8288;, де <span class="tex" data-tex="\hat p">p̂</span>&#8288; — частка влучань.</p>
+        <p><strong>Яка оцінка точніша.</strong> Дисперсія одного доданка: для середнього значення <span class="tex" data-tex="\sigma^2=(b-a)\int_a^b f^2\,dx-I^2">σ² = (b − a)∫f² dx − I²</span>&#8288;, для влучання <span class="tex" data-tex="\sigma^2=I\,\bigl((b-a)M-I\bigr)">σ² = I((b − a)M − I)</span>&#8288;. Для <span class="tex" data-tex="0\le f\le M">0 ≤ f ≤ M</span>&#8288; маємо <span class="tex" data-tex="\int f^2\le M\int f">∫f² ≤ M∫f</span>&#8288;, тому дисперсія методу середнього значення не більша, ніж методу влучання. Дисперсія оцінки за <span class="tex">n</span>&#8288; точок дорівнює <span class="tex" data-tex="\sigma^2/n">σ²/n</span>&#8288;.</p>
+        <p><strong>Швидкість збіжності.</strong> Стандартна похибка дорівнює <span class="tex" data-tex="\sigma/\sqrt n">σ/√n</span>&#8288;. Щоб зменшити її вдесятеро, треба у 100 разів більше точок. На графіку в логарифмічному масштабі це пряма з нахилом −½.</p>
+        <p><strong>Довірчий інтервал.</strong> <span class="tex" data-tex="\hat I\pm z_{1-\alpha/2}\,s/\sqrt n">Î ± z₁₋α/₂·s/√n</span>&#8288; — наближений: він спирається на центральну граничну теорему й вимагає скінченної дисперсії доданка. Для малого <span class="tex">n</span>&#8288; фактичне покриття може відрізнятися від заданого рівня.</p>
+        <p><strong>Нескінченна дисперсія.</strong> Для <span class="tex" data-tex="f(x)=1/\sqrt x">f(x) = 1/√x</span>&#8288; на <span class="tex" data-tex="(0;1]">(0; 1]</span>&#8288; інтеграл <span class="tex" data-tex="I=2">I = 2</span>&#8288; скінченний, а <span class="tex" data-tex="\int_0^1 f^2\,dx=\int_0^1 dx/x">∫f² dx = ∫dx/x</span>&#8288; розбігається. Дисперсія доданка нескінченна. Оцінка <span class="tex" data-tex="\hat I">Î</span>&#8288; збігається до <span class="tex">I</span>&#8288; за законом великих чисел, але формули <span class="tex" data-tex="\sigma/\sqrt n">σ/√n</span>&#8288; та інтервал не застосовні.</p>
+        <p><strong>Оцінка числа π.</strong> Для <span class="tex" data-tex="\sqrt{1-x^2}">√(1 − x²)</span>&#8288; і <span class="tex" data-tex="1/(1+x^2)">1/(1 + x²)</span>&#8288; на <span class="tex" data-tex="[0;1]">[0; 1]</span>&#8288; інтеграл дорівнює <span class="tex" data-tex="\pi/4">π/4</span>&#8288;, тому <span class="tex" data-tex="\pi\approx 4\hat I">π ≈ 4Î</span>&#8288;.</p>
+      </details>
+    </section>
+  </div>
+</main>
+
+<div class="sr-only" id="sr" role="status" aria-live="polite"></div>
+
+<script src="common.js"></script>
+<script src="formulas.js"></script>
+<script src="distributions.js"></script>
+<script src="random.js"></script>
+<script src="montecarlo.js"></script>
+<script>
+(function () {
+  "use strict";
+  var S = Stat, fmt = S.fmt, sig = S.fmtSig;
+  function $(id) { return document.getElementById(id); }
+  function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
+
+  var NMAX = 1000000, KEEP = 300;
+  var TEXTS = {
+    sin: "Інтеграл від sin x на [0; π] дорівнює 2. Функція гладка й обмежена.",
+    sq: "Інтеграл від x² на [0; 1] дорівнює 1/3. Функція проста й обмежена.",
+    gauss: "Інтеграл від e^(−x²) на [0; 1] приблизно дорівнює 0,7468. Первісної в елементарних функціях немає.",
+    circle: "Інтеграл від √(1 − x²) на [0; 1] дорівнює π/4: це площа чверті одиничного круга. Тому π ≈ 4Î.",
+    atan: "Інтеграл від 1/(1 + x²) на [0; 1] дорівнює π/4. Тому π ≈ 4Î.",
+    invsqrt: "Інтеграл від 1/√x на (0; 1] дорівнює 2, але функція необмежена, а дисперсія доданка нескінченна. Метод влучання тут неможливий."
+  };
+  var METHODS = [{ id: "mean", name: "Середнє значення" }, { id: "hit", name: "Влучання" }];
+  var LEVELS = [0.9, 0.95, 0.99];
+
+  var st = { fn: Mc.FUNCS[0], method: "mean", level: 0.95 };
+  var run = { rng: null, acc: null, hits: 0, pts: [], cp: [], nextCp: 1 };
+  var chipEls = [], mEls = [], lEls = [];
+
+  function reset() {
+    run.rng = Rand.create(5); run.acc = Mc.acc(); run.hits = 0; run.pts = []; run.cp = []; run.nextCp = 1;
+  }
+  function checkpoint() {
+    var a = run.acc, s = Mc.se(a);
+    run.cp.push({ n: a.n, mean: a.mean, se: s });
+    run.nextCp = a.n < 30 ? a.n + 1 : Math.ceil(a.n * 1.03);
+  }
+  function add(k) {
+    var room = NMAX - run.acc.n; k = Math.min(k, room); if (k <= 0) return;
+    for (var i = 0; i < k; i++) {
+      var d = Mc.draw(st.fn, st.method, run.rng);
+      Mc.add(run.acc, d.v); if (d.hit) run.hits++;
+      if (k - i <= KEEP) { run.pts.push(d); if (run.pts.length > KEEP) run.pts.shift(); }
+      if (run.acc.n >= run.nextCp) checkpoint();
+    }
+    if (!run.cp.length || run.cp[run.cp.length - 1].n !== run.acc.n) { var a = run.acc; run.cp.push({ n: a.n, mean: a.mean, se: Mc.se(a) }); }
+  }
+
+  function row(dl, label, value, cls) {
+    var d = document.createElement("div"); if (cls) d.className = cls;
+    var t = document.createElement("dt"), v = document.createElement("dd"); t.textContent = label; v.textContent = value;
+    d.appendChild(t); d.appendChild(v); dl.appendChild(d);
+  }
+  var srTimer = null;
+  function say(t) { clearTimeout(srTimer); srTimer = setTimeout(function () { $("sr").textContent = ""; $("sr").textContent = t; }, 400); }
+
+  function update() {
+    var a = run.acc, fn = st.fn, n = a.n, dl = $("dl"), lev = Math.round(st.level * 100); dl.textContent = "";
+    var se = Mc.se(a), ci = Mc.ci(a, st.level), ex = Mc.seExact(fn, st.method, n);
+    row(dl, "Кількість точок n", n.toLocaleString("uk-UA")); row(dl, "Оцінка Î", n ? fmt(a.mean, 5) : "—");
+    row(dl, "Точне значення I", fmt(fn.I, 5)); row(dl, "Похибка Î − I", n ? S.fmtSigned(a.mean - fn.I, 5) : "—");
+    row(dl, "Оцінка стандартної похибки s/√n", se === null ? "—" : fmt(se, 5));
+    row(dl, "Точна стандартна похибка σ/√n", ex === null ? "не існує" : fmt(ex, 5));
+    if (st.method === "hit" && n) row(dl, "Частка влучань p̂", fmt(run.hits / n, 4), "wide");
+    var inside = ci ? (ci[0] <= fn.I && fn.I <= ci[1]) : null;
+    row(dl, lev + " % довірчий інтервал", ci ? "[" + fmt(ci[0], 5) + "; " + fmt(ci[1], 5) + "]" : "—", "wide big");
+    row(dl, "Інтервал містить I", inside === null ? "—" : (inside ? "так" : "ні"), "wide");
+    var w = "";
+    if (!isFinite(Mc.varMean(fn))) w = "Дисперсія доданка нескінченна: ЦГТ не застосовна, тому інтервал і оцінка похибки ненадійні. Оцінка Î збігається до I за законом великих чисел, але формули σ/√n не діють.";
+    else w = "Інтервал наближений (ЦГТ): для малого n він може накривати I рідше, ніж заданий рівень.";
+    if (st.method === "hit" && n && (run.hits === 0 || run.hits === n)) w += " Усі точки влучили або схибили: оцінка похибки дорівнює нулю й не відображає невизначеності.";
+    if (n >= NMAX) w += " Досягнуто межі " + NMAX.toLocaleString("uk-UA") + " точок. Натисніть «Скинути».";
+    $("warn").textContent = w;
+    drawAll();
+    say("Точок " + n + ", оцінка " + (n ? fmt(a.mean, 4) : "немає") + ", точне значення " + fmt(fn.I, 4));
+  }
+
+  /* ---------- Керування ---------- */
+  function sync() {
+    chipEls.forEach(function (b, i) { b.setAttribute("aria-pressed", String(Mc.FUNCS[i] === st.fn)); });
+    mEls.forEach(function (b, i) { b.setAttribute("aria-pressed", String(METHODS[i].id === st.method)); if (METHODS[i].id === "hit") b.disabled = st.fn.M === null; });
+    lEls.forEach(function (b, i) { b.setAttribute("aria-pressed", String(LEVELS[i] === st.level)); });
+    $("statement").textContent = TEXTS[st.fn.id];
+  }
+  function restart(n0) { reset(); add(n0 === undefined ? 100 : n0); sync(); update(); }
+  Mc.FUNCS.forEach(function (fn) {
+    var b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.textContent = fn.name;
+    b.addEventListener("click", function () { st.fn = fn; if (fn.M === null) st.method = "mean"; restart(); }); $("chips").appendChild(b); chipEls.push(b);
+  });
+  METHODS.forEach(function (m) {
+    var b = document.createElement("button"); b.type = "button"; b.textContent = m.name;
+    b.addEventListener("click", function () { if (b.disabled) return; st.method = m.id; restart(); }); $("mSeg").appendChild(b); mEls.push(b);
+  });
+  LEVELS.forEach(function (v) {
+    var b = document.createElement("button"); b.type = "button"; b.textContent = Math.round(v * 100) + " %";
+    b.addEventListener("click", function () { st.level = v; sync(); update(); }); $("lSeg").appendChild(b); lEls.push(b);
+  });
+  [["b10", 10], ["b100", 100], ["b1000", 1000], ["b10000", 10000], ["b100000", 100000]].forEach(function (p) {
+    $(p[0]).addEventListener("click", function () { add(p[1]); update(); });
+  });
+  $("reset").addEventListener("click", function () { restart(); });
+
+  /* ---------- Малювання ---------- */
+  function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+  function colors() {
+    return { panel: cssVar("--panel"), grid: cssVar("--grid"), muted: cssVar("--muted"), ink: cssVar("--ink"), pos: cssVar("--pos"), neg: cssVar("--neg"),
+             data: cssVar("--font-data"), body: cssVar("--font-body") };
+  }
+  function setup(cv) {
+    var r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    cv.width = Math.max(1, Math.round(r.width * dpr)); cv.height = Math.max(1, Math.round(r.height * dpr));
+    var ctx = cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx: ctx, W: r.width, H: r.height };
+  }
+  function halo(ctx, k, text, x, y) { ctx.lineWidth = 3; ctx.strokeStyle = k.panel; ctx.lineJoin = "round"; ctx.strokeText(text, x, y); ctx.fillText(text, x, y); }
+  function legend(id, items) {
+    var h = $(id); h.textContent = "";
+    items.forEach(function (it) {
+      var sp = document.createElement("span"), sw = document.createElement("span"); sw.className = "sw " + it[0]; sp.appendChild(sw); sp.appendChild(document.createTextNode(it[1])); h.appendChild(sp);
+    });
+  }
+  var SUP = { "-": "⁻", "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴", "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹" };
+  function pow10(k) { return "10" + String(k).split("").map(function (c) { return SUP[c] || c; }).join("").replace(/−/g, "⁻"); }
+  function axisBox(ctx, k, M, pw, ph) {
+    ctx.strokeStyle = k.ink; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(M.l + 0.5, M.t); ctx.lineTo(M.l + 0.5, M.t + ph + 0.5); ctx.lineTo(M.l + pw, M.t + ph + 0.5); ctx.stroke();
+  }
+  /* Логарифмічна вісь n: позиція за lg n; підписи — степені десяти. */
+  function lgx(M, pw, nmax) { var hi = Math.log10(Math.max(10, nmax)); return { f: function (n) { return M.l + Math.log10(Math.max(1, n)) / hi * pw; }, hi: hi }; }
+  function xTicks(ctx, k, M, ph, ax) {
+    ctx.fillStyle = k.muted; ctx.font = "11px " + k.data; ctx.textAlign = "center"; ctx.textBaseline = "top";
+    for (var e = 0; e <= Math.floor(ax.hi); e++) { ctx.strokeStyle = k.grid; ctx.beginPath(); ctx.moveTo(Math.round(ax.f(Math.pow(10, e))) + 0.5, M.t); ctx.lineTo(Math.round(ax.f(Math.pow(10, e))) + 0.5, M.t + ph); ctx.stroke();
+      ctx.fillText(e === 0 ? "1" : pow10(e), ax.f(Math.pow(10, e)), M.t + ph + 6); }
+    ctx.fillStyle = k.ink; ctx.font = "500 12px " + k.body; ctx.textAlign = "right"; ctx.textBaseline = "bottom"; ctx.fillText("n", M.l + (ctx.canvas.width ? 0 : 0) + (ax.f(Math.pow(10, ax.hi)) - M.l), ctx.canvas.height / (window.devicePixelRatio || 1) - 3);
+  }
+
+  function drawAll() { drawPoints(); drawEstimate(); drawError(); }
+
+  function drawPoints() {
+    var c = setup($("c1")), ctx = c.ctx, W = c.W, H = c.H, k = colors(), M = { l: 40, r: 12, t: 12, b: 26 }, fn = st.fn;
+    var pw = W - M.l - M.r, ph = H - M.t - M.b;
+    ctx.fillStyle = k.panel; ctx.fillRect(0, 0, W, H);
+    var top = fn.M === null ? 6 : Math.max(fn.M, 1), ty = S.ticksFor(0, top, clamp(ph / 40, 3, 6)); top = Math.max(top, ty.major[ty.major.length - 1]);
+    function px(x) { return M.l + (x - fn.a) / (fn.b - fn.a) * pw; }
+    function py(y) { return M.t + (1 - y / top) * ph; }
+    ctx.strokeStyle = k.grid; ctx.lineWidth = 1; ctx.beginPath();
+    ty.major.forEach(function (v) { var y = Math.round(py(v)) + 0.5; ctx.moveTo(M.l, y); ctx.lineTo(M.l + pw, y); }); ctx.stroke();
+    ctx.save(); ctx.beginPath(); ctx.rect(M.l, M.t, pw, ph); ctx.clip();
+    var pts = run.pts;
+    if (st.method === "hit") {
+      pts.forEach(function (d) { ctx.fillStyle = d.hit ? k.pos : k.neg; ctx.globalAlpha = 0.75; ctx.beginPath(); ctx.arc(px(d.x), py(d.y), 2.6, 0, 2 * Math.PI); ctx.fill(); });
+    } else {
+      ctx.strokeStyle = k.pos; ctx.globalAlpha = 0.4; ctx.lineWidth = 1.2;
+      pts.forEach(function (d) { ctx.beginPath(); ctx.moveTo(px(d.x), py(0)); ctx.lineTo(px(d.x), py(Math.min(d.y, top * 1.2))); ctx.stroke(); });
+      ctx.fillStyle = k.pos; ctx.globalAlpha = 0.9;
+      pts.forEach(function (d) { ctx.beginPath(); ctx.arc(px(d.x), py(Math.min(d.y, top * 1.2)), 2.4, 0, 2 * Math.PI); ctx.fill(); });
+    }
+    ctx.globalAlpha = 1; ctx.strokeStyle = k.ink; ctx.lineWidth = 2.2; ctx.beginPath();
+    var N = Math.max(80, Math.round(pw / 3)), i, x;
+    for (i = 0; i <= N; i++) { x = fn.a + (fn.b - fn.a) * Math.max(i, fn.f(fn.a) === Infinity ? 0.2 : 0) / N; if (i === 0 && !isFinite(fn.f(x))) x = fn.a + (fn.b - fn.a) / (4 * N); var y = fn.f(x); if (i === 0) ctx.moveTo(px(x), py(Math.min(y, top * 1.5))); else ctx.lineTo(px(x), py(Math.min(y, top * 1.5))); }
+    ctx.stroke(); ctx.restore();
+    axisBox(ctx, k, M, pw, ph);
+    ctx.fillStyle = k.muted; ctx.font = "11px " + k.data; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    ty.major.forEach(function (v) { ctx.fillText(fmt(v, ty.decimals), M.l - 6, py(v)); });
+    var tx = S.ticksFor(fn.a, fn.b, clamp(pw / 60, 3, 8)); ctx.textAlign = "center"; ctx.textBaseline = "top";
+    tx.major.forEach(function (v) { ctx.fillText(fmt(v, tx.decimals), px(v), M.t + ph + 6); });
+    legend("legend1", st.method === "hit" ? [["hit", "Влучила під криву"], ["miss", "Схибила"], ["line", "f(x)"]] : [["dot", "Точка (U, f(U))"], ["line", "f(x)"]]);
+    $("c1msg").textContent = pts.length ? "Показано останні " + pts.length + " з " + run.acc.n.toLocaleString("uk-UA") + " точок." + (fn.M === null ? " Вертикальну вісь обрізано." : "") : "";
+    $("c1").setAttribute("aria-label", "Функція " + fn.name + " і " + pts.length + " останніх випадкових точок");
+  }
+
+  function drawEstimate() {
+    var c = setup($("c2")), ctx = c.ctx, W = c.W, H = c.H, k = colors(), M = { l: 50, r: 12, t: 12, b: 28 }, fn = st.fn;
+    var pw = W - M.l - M.r, ph = H - M.t - M.b, cp = run.cp, nmax = run.acc.n;
+    ctx.fillStyle = k.panel; ctx.fillRect(0, 0, W, H);
+    var ax = lgx(M, pw, nmax), ref = Mc.seExact(fn, st.method, 10), half = ref === null ? 1.5 : 3 * ref;
+    var lo = fn.I - half, hi = fn.I + half, ty = S.ticksFor(lo, hi, clamp(ph / 40, 3, 6));
+    function py(y) { return M.t + (1 - (y - lo) / (hi - lo)) * ph; }
+    ctx.strokeStyle = k.grid; ctx.lineWidth = 1; ctx.beginPath();
+    ty.major.forEach(function (v) { var y = Math.round(py(v)) + 0.5; ctx.moveTo(M.l, y); ctx.lineTo(M.l + pw, y); }); ctx.stroke();
+    xTicks(ctx, k, M, ph, ax);
+    ctx.save(); ctx.beginPath(); ctx.rect(M.l, M.t, pw, ph); ctx.clip();
+    var z = Dist.critical("z", st.level), pts = cp.filter(function (q) { return q.se !== null; });
+    if (pts.length > 1) {
+      ctx.fillStyle = k.pos; ctx.globalAlpha = 0.2; ctx.beginPath();
+      pts.forEach(function (q, i) { var x = ax.f(q.n), y = py(q.mean + z * q.se); if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
+      for (var i = pts.length - 1; i >= 0; i--) ctx.lineTo(ax.f(pts[i].n), py(pts[i].mean - z * pts[i].se));
+      ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+    }
+    ctx.strokeStyle = k.ink; ctx.lineWidth = 2; ctx.beginPath();
+    cp.forEach(function (q, j) { var x = ax.f(q.n), y = py(q.mean); if (j === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }); ctx.stroke();
+    ctx.setLineDash([6, 4]); ctx.strokeStyle = k.neg; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.moveTo(M.l, py(fn.I)); ctx.lineTo(M.l + pw, py(fn.I)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.restore(); axisBox(ctx, k, M, pw, ph);
+    ctx.fillStyle = k.muted; ctx.font = "11px " + k.data; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    ty.major.forEach(function (v) { ctx.fillText(fmt(v, ty.decimals), M.l - 6, py(v)); });
+    legend("legend2", [["line", "Оцінка Î"], ["band", Math.round(st.level * 100) + " % довірчий інтервал"], ["dash", "Точне значення I"]]);
+    $("c2").setAttribute("aria-label", "Оцінка інтеграла для " + nmax + " точок: " + (nmax ? fmt(run.acc.mean, 4) : "немає") + ", точне значення " + fmt(fn.I, 4));
+  }
+
+  function drawError() {
+    var c = setup($("c3")), ctx = c.ctx, W = c.W, H = c.H, k = colors(), M = { l: 50, r: 12, t: 12, b: 28 }, fn = st.fn;
+    var pw = W - M.l - M.r, ph = H - M.t - M.b, cp = run.cp, nmax = run.acc.n;
+    ctx.fillStyle = k.panel; ctx.fillRect(0, 0, W, H);
+    var ax = lgx(M, pw, nmax), ex = Mc.seExact(fn, st.method, 1);
+    var errs = cp.filter(function (q) { return Math.abs(q.mean - fn.I) > 0; }).map(function (q) { return { n: q.n, e: Math.abs(q.mean - fn.I) }; });
+    var emin = Infinity, emax = 0;
+    errs.forEach(function (q) { if (q.n >= 5) { emin = Math.min(emin, q.e); emax = Math.max(emax, q.e); } });
+    if (ex !== null) { emax = Math.max(emax, ex); emin = Math.min(emin, ex / Math.sqrt(Math.max(10, nmax))); }
+    if (!isFinite(emin) || emax <= 0) { emin = 1e-3; emax = 1; }
+    var lo = Math.floor(Math.log10(emin)) - 0, hi = Math.ceil(Math.log10(emax)); if (hi <= lo) hi = lo + 1;
+    function py(e) { return M.t + (1 - (Math.log10(e) - lo) / (hi - lo)) * ph; }
+    ctx.lineWidth = 1; ctx.fillStyle = k.muted; ctx.font = "11px " + k.data; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    for (var e = lo; e <= hi; e++) { var y = Math.round(py(Math.pow(10, e))) + 0.5; ctx.strokeStyle = k.grid; ctx.beginPath(); ctx.moveTo(M.l, y); ctx.lineTo(M.l + pw, y); ctx.stroke(); ctx.fillText(e === 0 ? "1" : pow10(e), M.l - 6, y); }
+    xTicks(ctx, k, M, ph, ax);
+    ctx.save(); ctx.beginPath(); ctx.rect(M.l, M.t, pw, ph); ctx.clip();
+    ctx.strokeStyle = k.muted; ctx.lineWidth = 1.6; ctx.beginPath(); var started = false;
+    errs.forEach(function (q) { var x = ax.f(q.n), yy = py(q.e); if (!started) { ctx.moveTo(x, yy); started = true; } else ctx.lineTo(x, yy); }); ctx.stroke();
+    if (ex !== null) {
+      ctx.setLineDash([6, 4]); ctx.strokeStyle = k.neg; ctx.lineWidth = 2; ctx.beginPath();
+      ctx.moveTo(ax.f(1), py(ex)); ctx.lineTo(ax.f(Math.pow(10, ax.hi)), py(ex / Math.pow(10, ax.hi / 2))); ctx.stroke(); ctx.setLineDash([]);
+    }
+    ctx.restore(); axisBox(ctx, k, M, pw, ph);
+    legend("legend3", [["gray", "Похибка |Î − I|"]].concat(ex !== null ? [["dash", "Стандартна похибка σ/√n"]] : []));
+    $("c3").setAttribute("aria-label", "Похибка оцінки залежно від n у логарифмічному масштабі" + (ex !== null ? "; пунктир — σ/√n" : "; для цієї функції σ/√n не існує"));
+  }
+
+  if (window.ResizeObserver) { var ro = new ResizeObserver(function () { drawAll(); }); ["c1", "c2", "c3"].forEach(function (id) { ro.observe($(id)); }); } else window.addEventListener("resize", drawAll);
+  new MutationObserver(drawAll).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  if (window.matchMedia) { var mq = window.matchMedia("(prefers-color-scheme: dark)"); if (mq.addEventListener) mq.addEventListener("change", drawAll); }
+
+  restart(100);
+})();
+</script>
+</body>
+</html>

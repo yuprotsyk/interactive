@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Бутстреп</title>
+<meta name="description" content="Бутстреп: бутстреп-вибірки з поверненням, розподіл середнього й медіани, стандартна похибка та процентильний інтервал.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="common.css">
+<style>
+.app {
+  max-width: 1100px; margin: 0 auto; display: grid; gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "head" "choose" "charts" "readout" "dv" "explain";
+}
+.head { grid-area: head; }
+.backlink { display: inline-block; margin-bottom: 10px; font-size: 13px; }
+.choose { grid-area: choose; }
+.charts { grid-area: charts; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.side { display: contents; }
+.readout { grid-area: readout; }
+#dv { grid-area: dv; min-width: 0; }
+.explain { grid-area: explain; }
+
+.statement { margin: 10px 0 0; font-size: 15px; max-width: 72ch; text-wrap: pretty; }
+.cfg { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-top: 14px; align-items: end; }
+.fld { display: grid; gap: 4px; min-width: 150px; flex: 1 1 150px; max-width: 340px; }
+.fld .lab { font-size: 13.5px; }
+.fld .seg { display: flex; flex-wrap: wrap; }
+.fld .seg button { flex: 1 1 auto; min-height: 40px; }
+.btnrow { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.btnrow button { min-height: 40px; }
+.custom { margin-top: 12px; }
+.custom textarea {
+  width: 100%; min-height: 72px; resize: vertical; font-family: var(--font-data); font-size: 14px; color: var(--ink);
+  background: var(--panel); border: 1px solid var(--grid-strong); border-radius: 6px; padding: 8px 10px;
+}
+.err { margin: 8px 0 0; font-size: 14px; color: var(--neg); font-weight: 500; }
+.note { margin: 10px 0 0; font-size: 13.5px; color: var(--muted); max-width: 72ch; text-wrap: pretty; }
+[hidden] { display: none !important; }
+
+.chart h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; text-wrap: balance; }
+.chart canvas { display: block; width: 100%; background: var(--panel); border: 1px solid var(--grid-strong); border-radius: 6px; }
+#c1 { aspect-ratio: 16 / 7; min-height: 150px; max-height: 34vh; }
+#c2 { aspect-ratio: 16 / 9; max-height: 50vh; }
+.legend { margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; }
+.legend .sw { display: inline-block; width: 14px; height: 12px; border-radius: 2px; vertical-align: -1px; margin-right: 6px; }
+.legend .sw.bar { background: var(--pos); }
+.legend .sw.obs { width: 0; height: 14px; border-radius: 0; border-left: 2.5px solid var(--ink); vertical-align: middle; }
+.legend .sw.ci { width: 22px; height: 0; border-radius: 0; border-top: 2px dashed var(--neg); vertical-align: middle; }
+.legend .sw.cl { width: 22px; height: 0; border-radius: 0; border-top: 3px solid var(--muted); vertical-align: middle; }
+.cmsg { margin: 8px 0 0; font-size: 13.5px; color: var(--muted); max-width: 72ch; text-wrap: pretty; }
+
+.readout dl { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; margin: 10px 0 0; }
+.readout dt { font-size: 12px; color: var(--muted); }
+.readout dd { margin: 0; font-family: var(--font-data); font-size: 17px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.readout .wide { grid-column: 1 / -1; }
+.readout .big dd { font-size: clamp(24px, 6.5vw, 30px); color: var(--neg); }
+.warn { margin: 10px 0 0; font-size: 13.5px; color: var(--muted); text-wrap: pretty; }
+
+.explain h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
+.explain p, .explain li { font-size: 14.5px; max-width: 68ch; text-wrap: pretty; }
+.explain p { margin: 8px 0 0; }
+.explain ol { margin: 8px 0 0; padding-left: 20px; }
+.explain p.key { margin-top: 0; }
+
+@media (min-width: 900px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr) 340px; column-gap: 24px;
+    grid-template-areas: "head head" "choose choose" "charts side" "dv dv";
+  }
+  .side { grid-area: side; display: flex; flex-direction: column; gap: 16px; align-self: start; min-width: 0; }
+}
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="head g4">
+    <a class="backlink" href="index.html">← Усі сторінки</a>
+    <p class="kicker">Оцінювання та залежність</p>
+    <div class="titlerow">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M9 20V4M14 20v-8M19 20V7"/><path d="M3 20h18"/></svg>
+      <h1>Бутстреп</h1>
+    </div>
+    <p class="lead">Бутстреп оцінює розподіл статистики за однією вибіркою: з неї багато разів витягують <span class="tex">n</span>&#8288; значень з поверненням і щоразу рахують статистику. Оберіть дані й додайте бутстреп-вибірки: гістограма покаже розподіл статистики. Порівняйте процентильний інтервал із t-інтервалом для середнього.</p>
+  </header>
+
+  <section class="choose panel" aria-label="Дані та параметри">
+    <p class="eyebrow">Дані</p>
+    <div class="chips" id="chips" role="group" aria-label="Набори даних"></div>
+    <p class="statement" id="statement"></p>
+    <div class="cfg">
+      <div class="fld"><span class="lab" id="statLab">Статистика</span><div class="seg" id="statSeg" role="group" aria-labelledby="statLab"></div></div>
+      <div class="fld"><span class="lab" id="levLab">Рівень довіри</span><div class="seg" id="levSeg" role="group" aria-labelledby="levLab"></div></div>
+    </div>
+    <div class="btnrow">
+      <button type="button" class="btn" id="b1">Нова бутстреп-вибірка</button>
+      <button type="button" class="btn" id="b10">+10</button>
+      <button type="button" class="btn" id="b100">+100</button>
+      <button type="button" class="btn" id="b1000">+1000</button>
+      <button type="button" class="btn" id="b10000">+10 000</button>
+      <button type="button" class="btn" id="reset">Скинути</button>
+    </div>
+    <details class="custom" id="customBox">
+      <summary>Свої числа</summary>
+      <p class="note">Розділяйте числа пробілом, крапкою з комою чи новим рядком. Десяткова кома дозволена. Потрібно від 2 до 300 значень.</p>
+      <textarea id="paste" spellcheck="false" aria-label="Свої числа" placeholder="12; 15; 9; 22; 14; 11; 48; 13"></textarea>
+      <div class="btnrow"><button type="button" class="btn" id="apply">Застосувати</button></div>
+      <p class="err" id="err" role="alert" hidden></p>
+    </details>
+    <p class="note" id="srcNote"></p>
+  </section>
+
+  <div class="charts">
+    <section class="chart" aria-labelledby="h1">
+      <h2 id="h1">Остання бутстреп-вибірка</h2>
+      <canvas id="c1" role="img" aria-label="Скільки разів кожне спостереження потрапило в бутстреп-вибірку"></canvas>
+      <p class="cmsg" id="c1msg"></p>
+    </section>
+    <section class="chart" aria-labelledby="h2">
+      <h2 id="h2">Бутстреп-розподіл статистики</h2>
+      <canvas id="c2" role="img" aria-label="Бутстреп-розподіл статистики"></canvas>
+      <p class="legend" id="legend"></p>
+    </section>
+  </div>
+
+  <div class="side">
+    <section class="readout panel" aria-labelledby="rTitle">
+      <p class="eyebrow" id="rTitle">Результат</p>
+      <dl id="dl"></dl>
+      <p class="warn" id="warn"></p>
+    </section>
+
+    <section class="explain panel" aria-labelledby="eTitle">
+      <h2 id="eTitle">Що тут відбувається</h2>
+      <p class="key"><strong>Бутстреп.</strong> Вибірку розглядають як модель сукупності: з неї <span class="tex">n</span>&#8288; разів витягують значення з поверненням. Для кожної такої бутстреп-вибірки рахують статистику. Розкид цих значень оцінює, наскільки статистика змінюється від вибірки до вибірки.</p>
+      <details>
+        <summary>Докладніше: формули й пояснення</summary>
+        <p><strong>Алгоритм.</strong></p>
+        <ol>
+          <li>Візьміть вибірку <span class="tex" data-tex="x_1,\dots,x_n">x₁, …, xₙ</span>&#8288; і порахуйте статистику <span class="tex" data-tex="\hat\theta">θ̂</span>&#8288; (тут вибіркове середнє або медіана).</li>
+          <li>Витягніть <span class="tex">n</span>&#8288; значень із вибірки незалежно й з поверненням. Це одна бутстреп-вибірка. Деякі спостереження потрапляють у неї кілька разів, інші жодного разу.</li>
+          <li>Порахуйте статистику <span class="tex" data-tex="\hat\theta^*">θ̂*</span>&#8288; за бутстреп-вибіркою.</li>
+          <li>Повторіть кроки 2–3 <span class="tex">B</span>&#8288; разів. Отримані <span class="tex" data-tex="\hat\theta^*_1,\dots,\hat\theta^*_B">θ̂*₁, …, θ̂*_B</span>&#8288; утворюють бутстреп-розподіл.</li>
+        </ol>
+        <p><strong>Де центр.</strong> Бутстреп-розподіл центрований приблизно навколо спостереженої статистики <span class="tex" data-tex="\hat\theta">θ̂</span>&#8288;, а не навколо невідомого параметра.</p>
+        <p><strong>Стандартна похибка.</strong> Це вибіркове стандартне відхилення значень <span class="tex" data-tex="\hat\theta^*_b">θ̂*ᵦ</span>&#8288; (ділення на <span class="tex" data-tex="B-1">B − 1</span>&#8288;). Для середнього вона близька до <span class="tex" data-tex="s/\sqrt n">s/√n</span>&#8288;. Для медіани немає такої формули через <span class="tex">s</span>&#8288; і <span class="tex">n</span>&#8288;, а бутстреп дає оцінку.</p>
+        <p><strong>Процентильний інтервал.</strong> Це середні <span class="tex" data-tex="100(1-\alpha)\%">100(1 − α) %</span>&#8288; бутстреп-розподілу: від квантиля <span class="tex" data-tex="q_{\alpha/2}">q_α/₂</span>&#8288; до <span class="tex" data-tex="q_{1-\alpha/2}">q₁₋α/₂</span>&#8288;. Квантиль рахують лінійною інтерполяцією між впорядкованими значеннями. Класичний t-інтервал для середнього — це <span class="tex" data-tex="\bar x\pm t_{1-\alpha/2}(n-1)\,s/\sqrt n">x̄ ± t₁₋α/₂(n − 1)·s/√n</span>&#8288;.</p>
+        <p><strong>Обмеження.</strong> На малих вибірках процентильний інтервал буває закороткий: його фактичне покриття нижче за заданий рівень довіри (Hesterberg, 2015). Для медіани на малій вибірці бутстреп-розподіл має мало різних значень, бо кожне з них — одне зі спостережень чи півсума двох. Збільшення <span class="tex">B</span>&#8288; зменшує випадковий розкид самого бутстрепу, але не додає інформації про сукупність: вона обмежена вибіркою.</p>
+        <p><strong>Джерела.</strong> Efron, Tibshirani, <em>An Introduction to the Bootstrap</em>; Hesterberg, <em>What Teachers Should Know about the Bootstrap</em>, The American Statistician 69(4), 2015.</p>
+      </details>
+    </section>
+  </div>
+
+  <div id="dv" hidden></div>
+</main>
+
+<div class="sr-only" id="sr" role="status" aria-live="polite"></div>
+
+<script src="common.js"></script>
+<script src="formulas.js"></script>
+<script src="distributions.js"></script>
+<script src="random.js"></script>
+<script src="bootstrap.js"></script>
+<script src="summary.js"></script>
+<script src="datasets.js"></script>
+<script src="dataview.js"></script>
+<script>
+(function () {
+  "use strict";
+  var S = Stat, fmt = S.fmt, sig = S.fmtSig;
+  function $(id) { return document.getElementById(id); }
+  function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
+
+  var BMAX = 100000;
+  var SOURCES = [
+    { id: "repair", name: "Час ремонту, CLEC", unit: "год", dec: 2, data: Data.verizon.CLEC.slice(), file: "verizon-clec.csv",
+      text: "Час ремонту в годинах для 23 клієнтів конкурентів оператора (CLEC). Вибірка мала й сильно скошена: кілька великих значень.", ds: true },
+    { id: "price", name: "Price, 2002", unit: "", dec: 1, data: Data.seattle.y2002.slice(), file: "seattle-2002.csv",
+      text: "50 значень Price за 2002 рік. Вибірка скошена в бік великих значень.", ds: true },
+    { id: "adhd", name: "Різниці: препарат і плацебо", unit: "", dec: 2, data: Data.adhd.D60.map(function (v, i) { return v - Data.adhd.D0[i]; }), file: "adhd-diff.csv",
+      text: "Різниці Dᵢ = «після препарату» − «після плацебо» для 24 дітей із СДВГ.", ds: true },
+    { id: "water", name: "Смертність, північ", unit: "", dec: 1, data: Data.water.North.slice(), file: "water-north.csv",
+      text: "Смертність у 35 містах півночі.", ds: true },
+    { id: "small", name: "Мала вибірка (n = 8)", unit: "", dec: 1, data: [12, 15, 9, 22, 14, 11, 48, 13], file: "small.csv",
+      text: "Вісім умовних значень, одне з яких далеко від інших (навчальний приклад).", ds: false }
+  ];
+  var STATS = [{ id: "mean", name: "Вибіркове середнє" }, { id: "median", name: "Медіана" }];
+  var LEVELS = [0.9, 0.95, 0.99];
+
+  var st = { src: 0, data: SOURCES[0].data, kind: "mean", level: 0.95, custom: false };
+  var run = { stats: [], rng: null, lastIdx: null, seed: 2026 };
+  var chipEls = [], statEls = [], levEls = [];
+
+  /* ---------- Обчислення ---------- */
+  function reset() {
+    run.rng = Rand.create(run.seed); run.stats = []; run.lastIdx = null;
+  }
+  function add(k) {
+    var room = BMAX - run.stats.length; k = Math.min(k, room);
+    if (k <= 0) return false;
+    var n = st.data.length, i, idx;
+    for (i = 0; i < k; i++) { idx = Boot.indices(n, run.rng); run.stats.push(Boot.statOf(st.data, idx, st.kind)); }
+    run.lastIdx = idx; return true;
+  }
+  function theta() { return Boot.stat(st.data, st.kind); }
+
+  /* ---------- Виведення чисел ---------- */
+  function row(dl, label, value, cls) {
+    var d = document.createElement("div"); if (cls) d.className = cls;
+    var t = document.createElement("dt"), v = document.createElement("dd"); t.textContent = label; v.textContent = value;
+    d.appendChild(t); d.appendChild(v); dl.appendChild(d);
+  }
+  function interval(a) { return a ? "[" + sig(a[0]) + "; " + sig(a[1]) + "]" : "—"; }
+  var srTimer = null;
+  function say(t) { clearTimeout(srTimer); srTimer = setTimeout(function () { $("sr").textContent = ""; $("sr").textContent = t; }, 400); }
+
+  function update() {
+    var n = st.data.length, B = run.stats.length, th = theta(), dl = $("dl"), lev = Math.round(st.level * 100);
+    dl.textContent = "";
+    var ci = B ? Boot.percentileCI(run.stats, st.level) : null, se = B > 1 ? Boot.se(run.stats) : null;
+    row(dl, "Обсяг вибірки n", String(n)); row(dl, st.kind === "mean" ? "Вибіркове середнє x̄" : "Вибіркова медіана", sig(th));
+    row(dl, "Бутстреп-вибірок B", String(B));
+    row(dl, "Бутстреп-оцінка стандартної похибки", se === null ? "—" : sig(se), "wide");
+    row(dl, lev + " % процентильний інтервал", interval(ci), "wide big");
+    var cl = null;
+    if (st.kind === "mean" && n >= 2) {
+      cl = Dist.meanCI(st.data, st.level, "t");
+      row(dl, "Стандартна похибка s/√n", sig(cl.se)); row(dl, lev + " % t-інтервал", interval([cl.lo, cl.hi]), "wide");
+    }
+    var w = "";
+    if (st.kind === "median" && B >= 100) {
+      var dist = Boot.distinct(run.stats);
+      if (dist <= 15) w = "Бутстреп-розподіл медіани має лише " + dist + " різних значень: на малій вибірці медіана приймає лише значення зі спостережень чи їхні півсуми.";
+    }
+    w += (w ? " " : "") + "На малих вибірках фактичне покриття процентильного інтервалу може бути нижчим за заданий рівень довіри (Hesterberg, 2015).";
+    if (B >= BMAX) w += (w ? " " : "") + "Досягнуто межі " + BMAX.toLocaleString("uk-UA") + " бутстреп-вибірок. Натисніть «Скинути».";
+    $("warn").textContent = w;
+    $("c1msg").textContent = run.lastIdx ? "Кожен стовпчик — спостереження (за зростанням значення). Висота — скільки разів воно потрапило в останню бутстреп-вибірку. Синій — один раз, помаранчевий — більше разів, порожнє місце — жодного разу." : "";
+    draw(ci, cl);
+    say("Бутстреп-вибірок " + B + ", інтервал " + interval(ci) + (cl ? ", t-інтервал " + interval([cl.lo, cl.hi]) : ""));
+  }
+
+  /* ---------- Керування ---------- */
+  function setSource(i) {
+    var s = SOURCES[i]; st.src = i; st.data = s.data; st.custom = false;
+    $("statement").textContent = s.text; $("srcNote").textContent = s.ds ? "" : "Дані умовні (навчальний приклад).";
+    renderDv(s); restart();
+  }
+  function renderDv(s) {
+    var host = $("dv");
+    if (!s || !s.data) { host.hidden = true; return; }
+    host.hidden = false;
+    DataView.render(host, { cols: [{ name: s.name, values: s.data }], file: s.file, dec: s.dec });
+  }
+  function restart() {
+    reset(); add(1000); sync(); update();
+  }
+  function sync() {
+    chipEls.forEach(function (b, i) { b.setAttribute("aria-pressed", String(!st.custom && i === st.src)); });
+    statEls.forEach(function (b, i) { b.setAttribute("aria-pressed", String(STATS[i].id === st.kind)); });
+    levEls.forEach(function (b, i) { b.setAttribute("aria-pressed", String(LEVELS[i] === st.level)); });
+  }
+  SOURCES.forEach(function (s, i) {
+    var b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.textContent = s.name;
+    b.addEventListener("click", function () { setSource(i); }); $("chips").appendChild(b); chipEls.push(b);
+  });
+  STATS.forEach(function (s) {
+    var b = document.createElement("button"); b.type = "button"; b.textContent = s.name;
+    b.addEventListener("click", function () { st.kind = s.id; restart(); }); $("statSeg").appendChild(b); statEls.push(b);
+  });
+  LEVELS.forEach(function (v) {
+    var b = document.createElement("button"); b.type = "button"; b.textContent = Math.round(v * 100) + " %";
+    b.addEventListener("click", function () { st.level = v; sync(); update(); }); $("levSeg").appendChild(b); levEls.push(b);
+  });
+  [["b1", 1], ["b10", 10], ["b100", 100], ["b1000", 1000], ["b10000", 10000]].forEach(function (p) {
+    $(p[0]).addEventListener("click", function () { add(p[1]); update(); });
+  });
+  $("reset").addEventListener("click", function () { restart(); });
+  $("apply").addEventListener("click", function () {
+    var toks = $("paste").value.split(/[\s;]+/).filter(function (t) { return t.length; }), vals = [], bad = 0;
+    toks.forEach(function (t) { var v = S.toNumber(t); if (v === null) bad++; else vals.push(v); });
+    var err = "";
+    if (bad) err = "Не вдалося розпізнати значень: " + bad + ". Перевірте, що це числа.";
+    else if (vals.length < 2) err = "Потрібно щонайменше 2 числа.";
+    else if (vals.length > 300) err = "Забагато значень: потрібно не більше 300.";
+    $("err").hidden = !err; $("err").textContent = err;
+    if (err) return;
+    st.data = vals; st.custom = true; st.src = -1;
+    $("statement").textContent = "Свої числа: " + vals.length + " значень."; $("srcNote").textContent = "";
+    $("dv").hidden = true; restart();
+  });
+
+  /* ---------- Малювання ---------- */
+  function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+  function colors() {
+    return { panel: cssVar("--panel"), grid: cssVar("--grid"), muted: cssVar("--muted"), ink: cssVar("--ink"), pos: cssVar("--pos"), neg: cssVar("--neg"),
+             data: cssVar("--font-data"), body: cssVar("--font-body") };
+  }
+  function setup(cv) {
+    var r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    cv.width = Math.max(1, Math.round(r.width * dpr)); cv.height = Math.max(1, Math.round(r.height * dpr));
+    var ctx = cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx: ctx, W: r.width, H: r.height };
+  }
+  function halo(ctx, k, text, x, y) { ctx.lineWidth = 3; ctx.strokeStyle = k.panel; ctx.lineJoin = "round"; ctx.strokeText(text, x, y); ctx.fillText(text, x, y); }
+  var lastCI = null, lastCL = null;
+  function draw(ci, cl) { if (ci !== undefined) { lastCI = ci; lastCL = cl; } drawSample(); drawDist(lastCI, lastCL); }
+
+  function drawSample() {
+    var c = setup($("c1")), ctx = c.ctx, W = c.W, H = c.H, k = colors(), M = { l: 34, r: 10, t: 12, b: 22 };
+    ctx.fillStyle = k.panel; ctx.fillRect(0, 0, W, H);
+    var n = st.data.length, order = st.data.map(function (v, i) { return i; }).sort(function (a, b) { return st.data[a] - st.data[b]; });
+    var cnt = run.lastIdx ? Boot.counts(n, run.lastIdx) : null, mx = 3;
+    if (cnt) cnt.forEach(function (v) { mx = Math.max(mx, v); });
+    var ty = S.ticksFor(0, mx, 4), top = Math.max(mx, ty.major[ty.major.length - 1]), pw = W - M.l - M.r, ph = H - M.t - M.b;
+    function py(v) { return M.t + (1 - v / top) * ph; }
+    ctx.strokeStyle = k.grid; ctx.lineWidth = 1; ctx.beginPath();
+    ty.major.forEach(function (v) { var y = Math.round(py(v)) + 0.5; ctx.moveTo(M.l, y); ctx.lineTo(M.l + pw, y); }); ctx.stroke();
+    ctx.fillStyle = k.muted; ctx.font = "11px " + k.data; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    ty.major.forEach(function (v) { ctx.fillText(fmt(v, 0), M.l - 6, py(v)); });
+    var bw = pw / n;
+    if (cnt) order.forEach(function (idx, pos) {
+      var v = cnt[idx]; if (!v) return;
+      ctx.fillStyle = v === 1 ? k.pos : k.neg; ctx.globalAlpha = v === 1 ? 0.85 : 0.9;
+      ctx.fillRect(M.l + pos * bw + Math.min(1, bw * 0.12), py(v), Math.max(1, bw - Math.min(2, bw * 0.24)), py(0) - py(v));
+    });
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = k.ink; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(M.l + 0.5, M.t); ctx.lineTo(M.l + 0.5, M.t + ph + 0.5); ctx.lineTo(M.l + pw, M.t + ph + 0.5); ctx.stroke();
+    ctx.fillStyle = k.muted; ctx.font = "11px " + k.body; ctx.textAlign = "center"; ctx.textBaseline = "top";
+    ctx.fillText("спостереження за зростанням значення →", M.l + pw / 2, M.t + ph + 5);
+    $("c1").setAttribute("aria-label", cnt ? "Бутстреп-вибірка з " + n + " спостережень; найбільше повторень одного спостереження: " + mx : "Бутстреп-вибірок ще немає");
+  }
+
+  function drawDist(ci, cl) {
+    var c = setup($("c2")), ctx = c.ctx, W = c.W, H = c.H, k = colors(), M = { l: 46, r: 14, t: 42, b: 34 };
+    ctx.fillStyle = k.panel; ctx.fillRect(0, 0, W, H);
+    var a = run.stats, B = a.length, pw = W - M.l - M.r, ph = H - M.t - M.b, th = theta();
+    if (!B) { $("c2").setAttribute("aria-label", "Бутстреп-розподіл порожній"); return; }
+    var lo = Infinity, hi = -Infinity, i;
+    for (i = 0; i < B; i++) { if (a[i] < lo) lo = a[i]; if (a[i] > hi) hi = a[i]; }
+    if (cl) { lo = Math.min(lo, cl.lo); hi = Math.max(hi, cl.hi); }
+    if (!(hi > lo)) { lo -= 1; hi += 1; }
+    var pad = (hi - lo) * 0.04; lo -= pad; hi += pad;
+    function px(v) { return M.l + (v - lo) / (hi - lo) * pw; }
+    var distinct = Boot.distinct(a), bars = [], maxc = 0;
+    if (distinct <= 30) {
+      var sorted = a.slice().sort(function (x, y) { return x - y; }), cur = null;
+      sorted.forEach(function (v) { if (cur && cur.v === v) cur.c++; else { cur = { v: v, c: 1 }; bars.push(cur); } });
+      var gap = Infinity; for (i = 1; i < bars.length; i++) gap = Math.min(gap, bars[i].v - bars[i - 1].v);
+      var wv = isFinite(gap) ? gap * 0.8 : (hi - lo) * 0.1;
+      bars.forEach(function (b) { b.a = b.v - wv / 2; b.b = b.v + wv / 2; maxc = Math.max(maxc, b.c); });
+    } else {
+      var nb = clamp(Math.round(Math.sqrt(B) * 0.9), 10, 45), bw = (hi - lo) / nb; maxc = 0;
+      for (i = 0; i < nb; i++) bars.push({ a: lo + i * bw, b: lo + (i + 1) * bw, c: 0 });
+      for (i = 0; i < B; i++) bars[Math.min(nb - 1, Math.floor((a[i] - lo) / bw))].c++;
+      bars.forEach(function (b) { maxc = Math.max(maxc, b.c); });
+    }
+    var ty = S.ticksFor(0, maxc, clamp(ph / 40, 3, 6)), top = Math.max(maxc, ty.major[ty.major.length - 1]);
+    function py(v) { return M.t + (1 - v / top) * ph; }
+    ctx.strokeStyle = k.grid; ctx.lineWidth = 1; ctx.beginPath();
+    ty.major.forEach(function (v) { var y = Math.round(py(v)) + 0.5; ctx.moveTo(M.l, y); ctx.lineTo(M.l + pw, y); }); ctx.stroke();
+    ctx.fillStyle = k.pos; ctx.globalAlpha = 0.85;
+    bars.forEach(function (b) { if (b.c) ctx.fillRect(px(b.a) + 0.5, py(b.c), Math.max(1, px(b.b) - px(b.a) - 1), py(0) - py(b.c)); });
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = k.ink; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(M.l + 0.5, M.t); ctx.lineTo(M.l + 0.5, M.t + ph + 0.5); ctx.lineTo(M.l + pw, M.t + ph + 0.5); ctx.stroke();
+    ctx.fillStyle = k.muted; ctx.font = "11px " + k.data; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    ty.major.forEach(function (v) { ctx.fillText(fmt(v, 0), M.l - 6, py(v)); });
+    var tx = S.ticksFor(lo, hi, clamp(pw / 70, 3, 9)); ctx.textAlign = "center"; ctx.textBaseline = "top";
+    tx.major.forEach(function (v) { if (v >= lo && v <= hi) ctx.fillText(fmt(v, tx.decimals), px(v), M.t + ph + 6); });
+    ctx.fillStyle = k.ink; ctx.font = "500 12px " + k.body; ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.fillText("кількість", 4, M.t - 14);
+    // інтервали: процентильний (пунктир) і класичний (суцільний, нижче осі)
+    if (ci) {
+      ctx.setLineDash([6, 4]); ctx.strokeStyle = k.neg; ctx.lineWidth = 1.8;
+      ci.forEach(function (v) { ctx.beginPath(); ctx.moveTo(px(v), M.t); ctx.lineTo(px(v), M.t + ph); ctx.stroke(); }); ctx.setLineDash([]);
+    }
+    if (cl) {
+      ctx.strokeStyle = k.muted; ctx.lineWidth = 4; ctx.lineCap = "butt"; var y = 12;
+      ctx.beginPath(); ctx.moveTo(px(cl.lo), y); ctx.lineTo(px(cl.hi), y); ctx.stroke();
+    }
+    ctx.strokeStyle = k.ink; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(px(th), M.t + ph); ctx.lineTo(px(th), 26); ctx.stroke();
+    ctx.fillStyle = k.ink; ctx.font = "500 11px " + k.body; ctx.textBaseline = "top"; ctx.textAlign = px(th) > W - 110 ? "right" : "left";
+    halo(ctx, k, (st.kind === "mean" ? "x̄ = " : "медіана = ") + sig(th), px(th) + (px(th) > W - 110 ? -5 : 5), 24);
+    $("c2").setAttribute("aria-label", "Бутстреп-розподіл " + (st.kind === "mean" ? "середнього" : "медіани") + " для " + B + " бутстреп-вибірок" + (ci ? ", процентильний інтервал від " + sig(ci[0]) + " до " + sig(ci[1]) : ""));
+    var lg = $("legend"); lg.textContent = "";
+    [["bar", "Бутстреп-розподіл"], ["obs", "Статистика за вибіркою"], ["ci", "Процентильний інтервал"]].concat(cl ? [["cl", "t-інтервал (над графіком)"]] : []).forEach(function (it) {
+      var sp = document.createElement("span"), sw = document.createElement("span"); sw.className = "sw " + it[0]; sp.appendChild(sw); sp.appendChild(document.createTextNode(it[1])); lg.appendChild(sp);
+    });
+  }
+
+  if (window.ResizeObserver) { var ro = new ResizeObserver(function () { draw(); }); ro.observe($("c1")); ro.observe($("c2")); } else window.addEventListener("resize", function () { draw(); });
+  new MutationObserver(function () { draw(); }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  if (window.matchMedia) { var mq = window.matchMedia("(prefers-color-scheme: dark)"); if (mq.addEventListener) mq.addEventListener("change", function () { draw(); }); }
+
+  setSource(0);
+})();
+</script>
+</body>
+</html>
